@@ -1,0 +1,4 @@
+command: hello
+description: Hello from tools (no subcategory)
+type: sh
+entrypoint: run.sh

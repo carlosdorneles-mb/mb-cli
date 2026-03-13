@@ -1,0 +1,252 @@
+package cache
+
+import (
+	"database/sql"
+	_ "embed"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+//go:embed schema_table.sql
+var schemaTableSQL string
+
+//go:embed schema_index.sql
+var schemaIndexSQL string
+
+//go:embed schema_categories.sql
+var schemaCategoriesSQL string
+
+type Category struct {
+	Path        string
+	Description string
+	ReadmePath  string
+}
+
+type Plugin struct {
+	ID          int64
+	CommandPath string // e.g. "infra/ci/deploy"
+	CommandName string
+	Description string
+	ExecPath    string // empty for flags-only
+	PluginType  string // "sh"|"bin" or "" for flags-only
+	ConfigHash  string
+	ReadmePath  string
+	FlagsJSON   string // for flags-only: JSON map of flag name -> {type, entrypoint}
+}
+
+type Store struct {
+	db *sql.DB
+}
+
+func NewStore(cacheDBPath string) (*Store, error) {
+	if err := os.MkdirAll(filepath.Dir(cacheDBPath), 0o755); err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite3", cacheDBPath)
+	if err != nil {
+		return nil, err
+	}
+
+	store := &Store{db: db}
+	if err := store.InitSchema(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+
+	return store, nil
+}
+
+func (s *Store) InitSchema() error {
+	// Migrate old schema (category, subcategory, command_name) to command_path if needed
+	if err := s.migrateToCommandPath(); err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(schemaTableSQL); err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(schemaIndexSQL); err != nil {
+		return err
+	}
+	_, err := s.db.Exec(schemaCategoriesSQL)
+	return err
+}
+
+// migrateToCommandPath converts old plugins table to new schema (command_path, flags_json, etc).
+func (s *Store) migrateToCommandPath() error {
+	var hasCategory int
+	var hasCommandPath int
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='category'").Scan(&hasCategory)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='command_path'").Scan(&hasCommandPath)
+	if hasCategory == 0 || hasCommandPath > 0 {
+		return nil
+	}
+	_, err := s.db.Exec(`
+CREATE TABLE IF NOT EXISTS plugins_new (
+    id INTEGER PRIMARY KEY,
+    command_path TEXT NOT NULL UNIQUE,
+    command_name TEXT NOT NULL,
+    description TEXT,
+    exec_path TEXT,
+    plugin_type TEXT,
+    config_hash TEXT NOT NULL,
+    readme_path TEXT,
+    flags_json TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO plugins_new (id, command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, updated_at)
+SELECT id,
+       (COALESCE(category,'') || CASE WHEN subcategory IS NOT NULL AND subcategory != '' THEN '/' || subcategory ELSE '' END || '/' || COALESCE(command_name,'')) AS command_path,
+       command_name,
+       '' AS description,
+       exec_path,
+       plugin_type,
+       config_hash,
+       readme_path,
+       NULL AS flags_json,
+       COALESCE(updated_at, CURRENT_TIMESTAMP)
+FROM plugins;
+DROP TABLE plugins;
+ALTER TABLE plugins_new RENAME TO plugins;
+`)
+	if err != nil {
+		return err
+	}
+	_, _ = s.db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_plugins_command_path ON plugins (command_path)")
+	return nil
+}
+
+func (s *Store) Close() error {
+	return s.db.Close()
+}
+
+func (s *Store) UpsertPlugin(plugin Plugin) error {
+	// Entrypoint plugin: type sh/bin and exec_path set. Flags-only: flags_json set, exec_path/type can be empty.
+	if plugin.FlagsJSON == "" {
+		if plugin.PluginType != "sh" && plugin.PluginType != "bin" {
+			return fmt.Errorf("invalid plugin type %q", plugin.PluginType)
+		}
+		if plugin.ExecPath == "" {
+			return fmt.Errorf("exec_path required for entrypoint plugin")
+		}
+	}
+
+	_, err := s.db.Exec(`
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(command_path) DO UPDATE SET
+  command_name = excluded.command_name,
+  description = excluded.description,
+  exec_path = excluded.exec_path,
+  plugin_type = excluded.plugin_type,
+  config_hash = excluded.config_hash,
+  readme_path = excluded.readme_path,
+  flags_json = excluded.flags_json,
+  updated_at = CURRENT_TIMESTAMP
+`, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON))
+	return err
+}
+
+func nullEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func (s *Store) ListPlugins() ([]Plugin, error) {
+	rows, err := s.db.Query(`
+SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, '')
+FROM plugins
+ORDER BY command_path
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanPlugins(rows)
+}
+
+func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
+	pattern := prefix + "%"
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		pattern = prefix + "/%"
+	}
+	rows, err := s.db.Query(`
+SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, '')
+FROM plugins
+WHERE command_path LIKE ? OR command_path = ?
+ORDER BY command_path
+`, pattern, prefix)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanPlugins(rows)
+}
+
+func (s *Store) UpsertCategory(cat Category) error {
+	_, err := s.db.Exec(`
+INSERT INTO categories (path, description, readme_path)
+VALUES (?, ?, ?)
+ON CONFLICT(path) DO UPDATE SET
+  description = excluded.description,
+  readme_path = excluded.readme_path
+`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath))
+	return err
+}
+
+func (s *Store) DeleteAllCategories() error {
+	_, err := s.db.Exec("DELETE FROM categories")
+	return err
+}
+
+func (s *Store) ListCategories() ([]Category, error) {
+	rows, err := s.db.Query(`
+SELECT path, COALESCE(description, ''), COALESCE(readme_path, '')
+FROM categories
+ORDER BY path
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []Category
+	for rows.Next() {
+		var c Category
+		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath); err != nil {
+			return nil, err
+		}
+		list = append(list, c)
+	}
+	return list, rows.Err()
+}
+
+func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
+	plugins := []Plugin{}
+	for rows.Next() {
+		var plugin Plugin
+		if err := rows.Scan(
+			&plugin.ID,
+			&plugin.CommandPath,
+			&plugin.CommandName,
+			&plugin.Description,
+			&plugin.ExecPath,
+			&plugin.PluginType,
+			&plugin.ConfigHash,
+			&plugin.ReadmePath,
+			&plugin.FlagsJSON,
+		); err != nil {
+			return nil, err
+		}
+		plugins = append(plugins, plugin)
+	}
+	return plugins, rows.Err()
+}

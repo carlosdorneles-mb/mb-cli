@@ -1,0 +1,4 @@
+command: apply
+description: Apply k8s manifests
+type: sh
+entrypoint: run.sh

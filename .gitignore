@@ -1,0 +1,7 @@
+bin/
+*.test
+dist/
+node_modules/
+docs-site/node_modules/
+docs-site/dist/
+.DS_Store

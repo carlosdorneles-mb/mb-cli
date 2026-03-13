@@ -1,0 +1,4 @@
+command: lint
+description: Lint step for the CI pipeline
+type: sh
+entrypoint: run.sh

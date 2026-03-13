@@ -1,0 +1,5 @@
+command: deploy
+description: Deploy step for the CI pipeline
+type: sh
+entrypoint: run.sh
+readme: README.md

@@ -1,0 +1,2 @@
+command: ci
+description: Comandos de CI (lint, deploy, etc.)
