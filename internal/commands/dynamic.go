@@ -62,7 +62,7 @@ func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
 			pathSoFar := strings.Join(segments[:i+1], "/")
 			if byPath[pathSoFar] == nil {
 				cat := categoriesByPath[pathSoFar]
-				short := seg + " commands"
+				short := seg + " comandos"
 				if cat.Description != "" {
 					short = cat.Description
 				}
@@ -113,7 +113,7 @@ func pluginDescription(desc, fallback, suffix string) string {
 func newLeafCommand(use string, plugin cache.Plugin, deps Dependencies) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
-		short = "Run " + plugin.CommandPath
+		short = "Executa " + plugin.CommandPath
 	}
 
 	// Entrypoint plugin: pass-through all args; optional --readme when ReadmePath is set
@@ -135,7 +135,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps Dependencies) *cobra.C
 	// Flags-only plugin: register flags from FlagsJSON; no flag -> help; flag -> run entrypoint
 	var flagsMap map[string]plugins.FlagDef
 	if err := json.Unmarshal([]byte(plugin.FlagsJSON), &flagsMap); err != nil {
-		cmd := &cobra.Command{Use: use, Short: short + " (invalid flags config)"}
+		cmd := &cobra.Command{Use: use, Short: short + " (config de flags inválida)"}
 		return cmd
 	}
 

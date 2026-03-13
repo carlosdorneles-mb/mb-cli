@@ -14,7 +14,7 @@ import (
 func NewSelfCmd(deps Dependencies) *cobra.Command {
 	selfCmd := &cobra.Command{
 		Use:     "self",
-		Short:   "Manage MB CLI internal operations",
+		Short:   "Gerencia operações internas do MB CLI",
 		GroupID: "commands",
 	}
 
@@ -27,7 +27,7 @@ func NewSelfCmd(deps Dependencies) *cobra.Command {
 func newSelfSyncCmd(deps Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sync",
-		Short: "Rescan plugins and rebuild SQLite cache",
+		Short: "Rescaneia plugins e reconstrói o cache SQLite",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			plugins, categories, err := deps.Scanner.Scan()
 			if err != nil {
@@ -58,7 +58,7 @@ func newSelfSyncCmd(deps Dependencies) *cobra.Command {
 func newSelfListCmd(deps Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List available commands in cache",
+		Short: "Lista os comandos disponíveis no cache",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			plugins, err := deps.Store.ListPlugins()
 			if err != nil {
@@ -96,12 +96,12 @@ func newSelfListCmd(deps Dependencies) *cobra.Command {
 func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 	selfEnvCmd := &cobra.Command{
 		Use:   "env",
-		Short: "Manage default environment values",
+		Short: "Gerencia variáveis de ambiente padrão",
 	}
 
 	selfEnvCmd.AddCommand(&cobra.Command{
 		Use:   "list",
-		Short: "List default env values",
+		Short: "Lista variáveis padrão",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			values, err := loadDefaultEnvValues(deps.Runtime.DefaultEnvPath)
 			if err != nil {
@@ -123,7 +123,7 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 
 	selfEnvCmd.AddCommand(&cobra.Command{
 		Use:   "set KEY [VALUE]",
-		Short: "Set a default env value",
+		Short: "Define uma variável padrão",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
@@ -155,7 +155,7 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 
 	selfEnvCmd.AddCommand(&cobra.Command{
 		Use:   "unset KEY",
-		Short: "Unset a default env value",
+		Short: "Remove uma variável padrão",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			values, err := loadDefaultEnvValues(deps.Runtime.DefaultEnvPath)

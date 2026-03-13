@@ -31,6 +31,7 @@ func main() {
 
 	opts := []fang.Option{
 		fang.WithoutManpage(),
+		fang.WithErrorHandler(ui.ErrorHandlerPT),
 	}
 	if err := fang.Execute(ctx, rootCmd, opts...); err != nil {
 		os.Exit(1)
