@@ -4,60 +4,19 @@ sidebar_position: 4
 
 # Criar um plugin
 
-## 1. Criar o diretório do plugin
+Para uma visão completa de como os plugins funcionam e como criá-los, consulte a página **[Plugins](./plugins.md)**.
 
-No diretório de plugins do MB (ex.: `~/.config/mb/plugins`):
+Ela inclui:
 
-```bash
-# Linux
-mkdir -p ~/.config/mb/plugins/meu-plugin
+- Como funciona o diretório de plugins, o cache e a árvore de comandos
+- Comandos `mb plugins add`, `list`, `remove`, `update`
+- Passo a passo para criar um plugin: estrutura de pastas, `manifest.yaml` (`command`, `description`, `type`, `entrypoint`, `readme`), script ou binário, e como registrar com `mb self sync` ou instalar via `mb plugins add <url>`
 
-# macOS
-mkdir -p ~/Library/Application\ Support/mb/plugins/meu-plugin
-```
+Resumo rápido:
 
-## 2. Criar o manifesto `manifest.yaml`
+1. Crie uma pasta em `~/.config/mb/plugins/<categoria>/<comando>/` (ex.: `tools/meu-plugin/`).
+2. Adicione `manifest.yaml` com `command`, `description`, `type: sh`, `entrypoint: run.sh`.
+3. Crie o script `run.sh` (executável) e rode `mb self sync`.
+4. Execute com `mb tools meu-plugin`.
 
-Crie `manifest.yaml` dentro da pasta do plugin:
-
-```yaml
-name: meu-plugin      # nome do comando (ex.: mb tools meu-plugin)
-category: tools       # categoria = subcomando pai
-type: sh              # sh = script shell; bin = executável
-entrypoint: run.sh    # arquivo a executar (relativo à pasta do plugin)
-readme: README.md     # opcional: usado pela flag --readme (glow)
-```
-
-Campos obrigatórios: `name`, `category`, `type`, `entrypoint`.  
-`readme` é opcional; se existir, o comando ganha a flag `--readme` para exibir o README com glow.
-
-## 3. Criar o script ou binário
-
-Para `type: sh`, crie o script referido em `entrypoint` (ex.: `run.sh`):
-
-```bash
-#!/bin/sh
-echo "Plugin rodando!"
-echo "Variável injetada: API_KEY=${API_KEY:-não definida}"
-```
-
-Torne o script executável:
-
-```bash
-chmod +x ~/.config/mb/plugins/meu-plugin/run.sh
-```
-
-Para `type: bin`, use um executável compilado (Go, Rust, etc.) e indique-o em `entrypoint`.
-
-## 4. (Opcional) README para ajuda
-
-Se você declarou `readme: README.md`, crie esse arquivo na mesma pasta. Ao rodar `mb tools meu-plugin --readme`, o MB renderiza esse Markdown com glow.
-
-## 5. Registrar no cache e rodar
-
-```bash
-mb self sync
-mb self list                    # lista plugins (incluindo meu-plugin)
-mb tools meu-plugin             # executa o plugin
-mb --env API_KEY=xyz tools meu-plugin   # com variável injetada
-```
+Detalhes e exemplos completos estão em [Plugins](./plugins.md).

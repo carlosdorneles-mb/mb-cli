@@ -100,7 +100,7 @@ Se você declarou `readme: README.md`, crie esse arquivo na mesma pasta. Ao roda
 
 ```bash
 mb self sync
-mb self list                    # lista plugins (incluindo meu-plugin)
+mb plugins list                 # lista plugins (incluindo meu-plugin)
 mb tools meu-plugin             # executa o plugin
 mb --env API_KEY=xyz tools meu-plugin   # com variável injetada
 ```
@@ -122,7 +122,7 @@ Comandos para gerenciar defaults: `mb self env list`, `mb self env set KEY [VALU
 | Comando | Descrição |
 |--------|-----------|
 | `mb self sync` | Escaneia o diretório de plugins e atualiza o cache SQLite |
-| `mb self list` | Lista todos os comandos disponíveis (cache) |
+| `mb plugins list` | Lista plugins instalados (name, command, version, url) |
 | `mb self env list` | Lista variáveis padrão |
 | `mb self env set KEY [VALUE]` | Define variável padrão |
 | `mb self env unset KEY` | Remove variável padrão |
@@ -138,14 +138,14 @@ Para rodar o CLI sem instalar (comandos e exemplos completos em **[docs/running-
 make run-local                    # go run . (ajuda: make run-local ARGS="--help")
 make run-local ARGS="self sync"   # sync usando código atual
 make run                          # build + ./bin/mb
-make run-sandbox ARGS="self list" # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
+make run-sandbox ARGS="plugins list" # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
 ```
 
 ## Testar o CLI
 
 ```bash
 make test       # testes unitários
-make build && ./bin/mb self sync && ./bin/mb self list
+make build && ./bin/mb self sync && ./bin/mb plugins list
 ```
 
 Para testar sem alterar seu config real, use um diretório temporário:
@@ -155,6 +155,6 @@ export XDG_CONFIG_HOME=/tmp/mb-test   # Linux
 mkdir -p "$XDG_CONFIG_HOME/mb/plugins/hello"
 # ... criar manifest.yaml e run.sh ...
 ./bin/mb self sync
-./bin/mb self list
+./bin/mb plugins list
 ./bin/mb <categoria> hello
 ```

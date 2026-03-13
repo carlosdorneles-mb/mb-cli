@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/cache"
 	"mb/internal/system"
 	"mb/internal/ui"
 )
@@ -19,9 +21,83 @@ func NewSelfCmd(deps Dependencies) *cobra.Command {
 	}
 
 	selfCmd.AddCommand(newSelfSyncCmd(deps))
-	selfCmd.AddCommand(newSelfListCmd(deps))
 	selfCmd.AddCommand(newSelfEnvCmd(deps))
 	return selfCmd
+}
+
+// RunSync rescans the plugins dir, upserts plugins and categories, and updates the plugin_sources registry.
+// Used by both "mb self sync" and after plugins add/remove/update.
+func RunSync(deps Dependencies, outSuccess func(string)) error {
+	plugins, categories, err := deps.Scanner.Scan()
+	if err != nil {
+		return err
+	}
+
+	for _, plugin := range plugins {
+		if err := deps.Store.UpsertPlugin(plugin); err != nil {
+			return err
+		}
+	}
+
+	if err := deps.Store.DeleteAllCategories(); err != nil {
+		return err
+	}
+	for _, cat := range categories {
+		if err := deps.Store.UpsertCategory(cat); err != nil {
+			return err
+		}
+	}
+
+	if err := updatePluginSourcesRegistry(deps, plugins, categories); err != nil {
+		return err
+	}
+
+	if outSuccess != nil {
+		outSuccess(fmt.Sprintf("synced %d plugin(s)", len(plugins)))
+	}
+	return nil
+}
+
+// updatePluginSourcesRegistry ensures plugin_sources has a row for each top-level dir under PluginsDir.
+// Existing rows keep their git_url/ref_type/ref/version; new dirs get an empty row (manual install).
+func updatePluginSourcesRegistry(deps Dependencies, plugins []cache.Plugin, categories []cache.Category) error {
+	topLevelDirs := make(map[string]struct{})
+	for _, p := range plugins {
+		dir := firstPathSegment(p.CommandPath)
+		if dir != "" {
+			topLevelDirs[dir] = struct{}{}
+		}
+	}
+	for _, c := range categories {
+		dir := firstPathSegment(c.Path)
+		if dir != "" {
+			topLevelDirs[dir] = struct{}{}
+		}
+	}
+	for dir := range topLevelDirs {
+		existing, err := deps.Store.GetPluginSource(dir)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			continue
+		}
+		if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: dir}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func firstPathSegment(path string) string {
+	if path == "" {
+		return ""
+	}
+	idx := strings.Index(path, "/")
+	if idx == -1 {
+		return path
+	}
+	return path[:idx]
 }
 
 func newSelfSyncCmd(deps Dependencies) *cobra.Command {
@@ -29,66 +105,9 @@ func newSelfSyncCmd(deps Dependencies) *cobra.Command {
 		Use:   "sync",
 		Short: "Rescaneia plugins e reconstrói o cache SQLite",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			plugins, categories, err := deps.Scanner.Scan()
-			if err != nil {
-				return err
-			}
-
-			for _, plugin := range plugins {
-				if err := deps.Store.UpsertPlugin(plugin); err != nil {
-					return err
-				}
-			}
-
-			if err := deps.Store.DeleteAllCategories(); err != nil {
-				return err
-			}
-			for _, cat := range categories {
-				if err := deps.Store.UpsertCategory(cat); err != nil {
-					return err
-				}
-			}
-
-			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("synced %d plugin(s)", len(plugins))))
-			return nil
-		},
-	}
-}
-
-func newSelfListCmd(deps Dependencies) *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "Lista os comandos disponíveis no cache",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			plugins, err := deps.Store.ListPlugins()
-			if err != nil {
-				return err
-			}
-
-			sort.Slice(plugins, func(i, j int) bool {
-				return plugins[i].CommandPath < plugins[j].CommandPath
+			return RunSync(deps, func(msg string) {
+				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
 			})
-
-			rows := make([][]string, 0, len(plugins))
-			for _, plugin := range plugins {
-				kind := plugin.PluginType
-				execOrFlags := plugin.ExecPath
-				if plugin.FlagsJSON != "" {
-					kind = "flags"
-					execOrFlags = "(see --help)"
-				}
-				if execOrFlags == "" {
-					execOrFlags = "-"
-				}
-				rows = append(rows, []string{
-					plugin.CommandPath,
-					plugin.CommandName,
-					kind,
-					execOrFlags,
-				})
-			}
-
-			return system.Table(context.Background(), []string{"PATH", "COMMAND", "TYPE", "EXEC"}, rows)
 		},
 	}
 }

@@ -26,5 +26,5 @@ Para rodar o CLI sem instalar:
 make run-local                    # go run . (ajuda: make run-local ARGS="--help")
 make run-local ARGS="self sync"   # sync usando código atual
 make run                          # build + ./bin/mb
-make run-sandbox ARGS="self list"  # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
+make run-sandbox ARGS="plugins list"  # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
 ```

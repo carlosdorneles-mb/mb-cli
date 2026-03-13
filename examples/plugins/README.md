@@ -40,7 +40,7 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
 
    ```bash
    mb self sync
-   mb self list
+   mb plugins list
    mb infra ci deploy
    mb infra k8s apply
    mb tools hello

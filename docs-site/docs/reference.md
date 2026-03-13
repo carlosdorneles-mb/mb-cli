@@ -9,7 +9,10 @@ sidebar_position: 5
 | Comando | Descrição |
 |--------|-----------|
 | `mb self sync` | Escaneia o diretório de plugins e atualiza o cache SQLite |
-| `mb self list` | Lista todos os comandos disponíveis (cache) |
+| `mb plugins add <git-url> [--name N] [--tag TAG]` | Instala um plugin a partir de uma URL Git |
+| `mb plugins list [--check-updates]` | Lista plugins instalados (name, command, version, url) |
+| `mb plugins remove <name>` | Remove um plugin instalado (com confirmação) |
+| `mb plugins update [name \| --all]` | Atualiza um plugin ou todos |
 | `mb self env list` | Lista variáveis padrão |
 | `mb self env set KEY [VALUE]` | Define variável padrão |
 | `mb self env unset KEY` | Remove variável padrão |
@@ -32,7 +35,7 @@ Para instalar o completion no seu shell, consulte a saída de `mb completion --h
 
 ```bash
 make test       # testes unitários
-make build && ./bin/mb self sync && ./bin/mb self list
+make build && ./bin/mb self sync && ./bin/mb plugins list
 ```
 
 Para testar sem alterar seu config real, use um diretório temporário:
@@ -42,6 +45,6 @@ export XDG_CONFIG_HOME=/tmp/mb-test   # Linux
 mkdir -p "$XDG_CONFIG_HOME/mb/plugins/hello"
 # ... criar manifest.yaml e run.sh ...
 ./bin/mb self sync
-./bin/mb self list
+./bin/mb plugins list
 ./bin/mb <categoria> hello
 ```

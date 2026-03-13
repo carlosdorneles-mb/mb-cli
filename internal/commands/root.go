@@ -80,6 +80,7 @@ func NewRootCmd(deps Dependencies) RootCommand {
 	rootCmd.SetCompletionCommandGroupID("commands")
 
 	rootCmd.AddCommand(NewSelfCmd(deps))
+	rootCmd.AddCommand(NewPluginsCmd(deps))
 	AttachDynamicCommands(rootCmd, deps)
 
 	rootCmd.InitDefaultHelpCmd()

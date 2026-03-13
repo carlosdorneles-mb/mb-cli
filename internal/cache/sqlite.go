@@ -20,6 +20,9 @@ var schemaIndexSQL string
 //go:embed schema_categories.sql
 var schemaCategoriesSQL string
 
+//go:embed schema_plugin_sources.sql
+var schemaPluginSourcesSQL string
+
 type Category struct {
 	Path        string
 	Description string
@@ -36,6 +39,16 @@ type Plugin struct {
 	ConfigHash  string
 	ReadmePath  string
 	FlagsJSON   string // for flags-only: JSON map of flag name -> {type, entrypoint}
+}
+
+// PluginSource represents one installation (top-level dir in PluginsDir) and its git origin/version.
+type PluginSource struct {
+	InstallDir string
+	GitURL     string
+	RefType    string // "tag" | "branch"
+	Ref        string // e.g. "v1.2.3" or "main"
+	Version    string // current state: tag name or short SHA
+	UpdatedAt  string
 }
 
 type Store struct {
@@ -72,7 +85,10 @@ func (s *Store) InitSchema() error {
 	if _, err := s.db.Exec(schemaIndexSQL); err != nil {
 		return err
 	}
-	_, err := s.db.Exec(schemaCategoriesSQL)
+	if _, err := s.db.Exec(schemaCategoriesSQL); err != nil {
+		return err
+	}
+	_, err := s.db.Exec(schemaPluginSourcesSQL)
 	return err
 }
 
@@ -227,6 +243,62 @@ ORDER BY path
 		list = append(list, c)
 	}
 	return list, rows.Err()
+}
+
+func (s *Store) UpsertPluginSource(ps PluginSource) error {
+	_, err := s.db.Exec(`
+INSERT INTO plugin_sources (install_dir, git_url, ref_type, ref, version)
+VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(install_dir) DO UPDATE SET
+  git_url = excluded.git_url,
+  ref_type = excluded.ref_type,
+  ref = excluded.ref,
+  version = excluded.version,
+  updated_at = CURRENT_TIMESTAMP
+`, ps.InstallDir, nullEmpty(ps.GitURL), nullEmpty(ps.RefType), nullEmpty(ps.Ref), nullEmpty(ps.Version))
+	return err
+}
+
+func (s *Store) GetPluginSource(installDir string) (*PluginSource, error) {
+	var ps PluginSource
+	err := s.db.QueryRow(`
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(updated_at, '')
+FROM plugin_sources WHERE install_dir = ?
+`, installDir).Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &ps, nil
+}
+
+func (s *Store) ListPluginSources() ([]PluginSource, error) {
+	rows, err := s.db.Query(`
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(updated_at, '')
+FROM plugin_sources
+ORDER BY install_dir
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []PluginSource
+	for rows.Next() {
+		var ps PluginSource
+		if err := rows.Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.UpdatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, ps)
+	}
+	return list, rows.Err()
+}
+
+func (s *Store) DeletePluginSource(installDir string) error {
+	_, err := s.db.Exec("DELETE FROM plugin_sources WHERE install_dir = ?", installDir)
+	return err
 }
 
 func scanPlugins(rows *sql.Rows) ([]Plugin, error) {

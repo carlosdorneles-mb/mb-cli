@@ -12,7 +12,7 @@ Use quando quiser rodar o código atual **e** que o CLI leia os plugins que voc�
 
 ```bash
 go run . --help
-go run . self list
+go run . plugins list
 go run . self sync
 go run . <categoria> <comando>
 ```
@@ -21,7 +21,7 @@ go run . <categoria> <comando>
 
 ```bash
 make run-local
-make run-local ARGS="self list"
+make run-local ARGS="plugins list"
 make run-local ARGS="self sync"
 make run-local ARGS="tools meu-plugin"
 ```
@@ -37,14 +37,14 @@ Gera o executável em `bin/mb` e roda com o mesmo config real (plugins instalado
 ```bash
 make build
 ./bin/mb --help
-./bin/mb self list
+./bin/mb plugins list
 ./bin/mb <categoria> <comando>
 ```
 
 Ou em um comando só:
 
 ```bash
-make run ARGS="self list"
+make run ARGS="plugins list"
 make run ARGS="tools meu-plugin"
 ```
 
@@ -59,7 +59,7 @@ Para **não** usar seu `~/.config/mb` (por exemplo em testes ou para não mistur
 ```bash
 # Uma execução
 XDG_CONFIG_HOME=/tmp/mb-test go run . self sync
-XDG_CONFIG_HOME=/tmp/mb-test go run . self list
+XDG_CONFIG_HOME=/tmp/mb-test go run . plugins list
 ```
 
 Várias execuções na mesma sessão:
@@ -67,7 +67,7 @@ Várias execuções na mesma sessão:
 ```bash
 export XDG_CONFIG_HOME=/tmp/mb-test
 go run . self sync
-go run . self list
+go run . plugins list
 go run . self env set MY_VAR value
 ```
 
@@ -75,7 +75,7 @@ go run . self env set MY_VAR value
 
 ```bash
 make run-sandbox ARGS="self sync"
-make run-sandbox ARGS="self list"
+make run-sandbox ARGS="plugins list"
 ```
 
 No sandbox o CLI **não** enxerga os plugins já instalados; plugins e cache ficam só no diretório temporário.
@@ -90,4 +90,4 @@ No sandbox o CLI **não** enxerga os plugins já instalados; plugins e cache fic
 | Build + rodar com plugins instalados | `make run ARGS="..."` | Config real |
 | Rodar em sandbox (config isolado) | `make run-sandbox ARGS="..."` ou `XDG_CONFIG_HOME=/tmp/... go run . ARGS` | Só o dir temporário |
 
-Substitua `ARGS` por qualquer comando do MB: `self sync`, `self list`, `--quiet self list`, `tools meu-plugin`, etc.
+Substitua `ARGS` por qualquer comando do MB: `self sync`, `plugins list`, `--quiet self list`, `tools meu-plugin`, etc.
