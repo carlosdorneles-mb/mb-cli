@@ -15,6 +15,12 @@ sidebar_position: 5
 | `mb self env unset KEY` | Remove variável padrão |
 | `mb <categoria> <comando> [args...]` | Executa o plugin correspondente |
 
+## Completion de shell
+
+O CLI gera scripts de completion para bash, zsh, fish e powershell via `mb completion <shell>`. O completion inclui os comandos built-in (por exemplo `self`, `help`, `completion`) e também **todos os comandos e subcomandos de plugins** disponíveis no cache. Ou seja, após `mb self sync`, ao usar TAB no shell serão sugeridas as categorias e comandos de plugins (ex.: `tools`, `infra`, `tools hello`, `infra ci`).
+
+Para instalar o completion no seu shell, consulte a saída de `mb completion --help` e os subcomandos `bash`, `zsh`, `fish`, `powershell`.
+
 ## Flags globais
 
 - `--verbose` — saída mais verbosa
