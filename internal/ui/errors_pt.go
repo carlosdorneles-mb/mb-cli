@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -54,9 +55,22 @@ func translateError(s string) string {
 		return "A flag precisa de um argumento: " + s[len("flag needs an argument: "):]
 	case strings.HasPrefix(s, "invalid argument "):
 		return "Argumento inválido " + s[len("invalid argument "):]
+	case acceptArgCountRe.MatchString(s):
+		return translateAcceptArgCount(s)
 	default:
 		return s
 	}
+}
+
+// acceptArgCountRe matches Cobra "accepts X arg(s), received Y" (case-insensitive).
+var acceptArgCountRe = regexp.MustCompile(`(?i)^accepts\s+(\d+)\s+arg\(s\),\s+received\s+(\d+)\s*$`)
+
+func translateAcceptArgCount(s string) string {
+	subs := acceptArgCountRe.FindStringSubmatch(s)
+	if len(subs) != 3 {
+		return s
+	}
+	return "Aceita " + subs[1] + " argumento(s), recebido(s) " + subs[2]
 }
 
 func isUsageError(errMsg string) bool {
@@ -70,6 +84,9 @@ func isUsageError(errMsg string) bool {
 		if strings.HasPrefix(errMsg, prefix) {
 			return true
 		}
+	}
+	if strings.HasPrefix(strings.ToLower(errMsg), "accepts ") && acceptArgCountRe.MatchString(strings.TrimSpace(errMsg)) {
+		return true
 	}
 	return false
 }
