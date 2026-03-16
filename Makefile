@@ -13,9 +13,9 @@ help:
 	@echo "MB CLI - targets:"
 	@echo ""
 	@echo "Executar localmente:"
-	@echo "  run            	build + ./bin/$(BINARY_NAME). Uso: make run [args...] ou make run ARGS=\"...\""
-	@echo "  run-local      	go run . (sem build). Uso: make run-local [args...] ou make run-local ARGS=\"...\""
-	@echo "                  	Flags como -v/-q: use ARGS (ex.: make run-local ARGS=\"tools hello -v\")"
+	@echo "  run            	build + ./bin/$(BINARY_NAME). Uso: make run [comandos...] ou ARGS=\"...\" ou ambos"
+	@echo "  run-local      	go run . (sem build). Uso: make run-local [comandos...] ou ARGS=\"...\" ou ambos"
+	@echo "                  	Ex.: make run-local tools do ARGS=\"--deploy\"  ou  make run-local ARGS=\"tools do --deploy\""
 	@echo "  install-examples    	registra cada plugin em examples/plugins com 'mb plugins add' (não copia arquivos)"
 	@echo "  uninstall-examples  	remove os plugins de exemplo (infra, tools, etc.) do config do usuário"
 	@echo ""
@@ -62,14 +62,14 @@ clean:
 	rm -rf $(DOCS_DIR)/dist
 
 # Run the CLI: build then execute binary.
-# Uso: make run [args...]  ou  make run ARGS="self sync"
+# Uso: make run [comandos...] ou make run ARGS="..." ou ambos (comandos + ARGS).
 run: build
-	@./bin/$(BINARY_NAME) $(or $(ARGS),$(filter-out run,$(MAKECMDGOALS)))
+	@./bin/$(BINARY_NAME) $(filter-out run,$(MAKECMDGOALS)) $(ARGS)
 
 # Run without building (go run .). Use for quick local testing.
-# Uso: make run-local [args...]  ou  make run-local ARGS="self sync"
+# Uso: make run-local [comandos...] ou make run-local ARGS="..." ou ambos (comandos + ARGS).
 run-local:
-	@go run . $(or $(ARGS),$(filter-out run-local,$(MAKECMDGOALS)))
+	@go run . $(filter-out run-local,$(MAKECMDGOALS)) $(ARGS)
 
 # Registra os plugins de exemplo (apenas diretórios diretos em examples/plugins: infra, tools, etc.).
 # Executa na raiz do repo: para cada subdir, mb plugins add <path>. Não copia arquivos.

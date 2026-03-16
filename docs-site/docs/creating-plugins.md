@@ -36,26 +36,27 @@ Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `me
 
 Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. O MB resolve o path de forma absoluta na execução. O **tipo de execução** é inferido pelo sufixo: se terminar em **`.sh`**, executa como script shell (`/bin/sh` + script); caso contrário, como binário. Não é necessário declarar `type` no manifesto.
 
-Para plugins que **só expõem flags** (sem um único programa), não use `entrypoint` no nível raiz do manifesto; use o campo `flags`, onde cada flag pode ter seu próprio `entrypoint` e um `type` opcional que define como a flag aparece no CLI:
-
-| `type` (por flag) | Efeito |
-|-------------------|--------|
-| `long` | Só a forma longa: `--nome` (ex.: `--deploy`). |
-| `short` | Se o nome da flag tiver **um caractere**, o usuário pode usar `-n` ou `--nome`; se tiver mais de um, comporta como `long`. |
-
-**`short`** (opcional): uma letra para a forma curta. Quando definido, o usuário pode usar tanto `--nome` quanto `-x` para a mesma ação. Ex.: chave `deploy` com `short: d` → `--deploy` e `-d` disparam o mesmo entrypoint. A letra deve ser única entre as flags do comando.
-
-Se omitir `type`, a flag **não** é registrada e o comando não aceita essa opção. Ex.:
+Para plugins que **só expõem flags** (sem um único programa), não use `entrypoint` no nível raiz do manifesto; use o campo `flags` como **lista**. Cada item tem `name`, `description` (exibida no `--help` da flag), `entrypoint` e `commands` com `long` (nome da flag, ex.: `--deploy`) e `short` (opcional, uma letra, ex.: `-d`). O `short` deve ser único entre as flags do comando. Ex.:
 
 ```yaml
 command: do
 description: "Ações por flag (deploy, rollback)"
 flags:
-  deploy:  { type: long, short: d, entrypoint: deploy.sh }
-  rollback: { type: long, short: r, entrypoint: rollback.sh }
+  - name: deploy
+    description: Faz o deploy
+    entrypoint: deploy.sh
+    commands:
+      long: deploy
+      short: d
+  - name: rollback
+    description: Reverte o último deploy
+    entrypoint: rollback.sh
+    commands:
+      long: rollback
+      short: r
 ```
 
-O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** ou **`mb tools do -d`** rodam `deploy.sh`; **`mb tools do --rollback`** ou **`mb tools do -r`** rodam `rollback.sh`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
+O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** ou **`mb tools do -d`** rodam `deploy.sh`; **`mb tools do --rollback`** ou **`mb tools do -r`** rodam `rollback.sh`. As descrições aparecem ao rodar `mb tools do --help`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
 
 Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
@@ -81,6 +82,8 @@ log info "Processando..."
 ```
 
 Para carregar só o helper de log: `. "$MB_HELPERS_PATH/log.sh"`. Veja [Helpers de shell](./helpers-shell.md) para a lista de helpers e [Flags globais](./flags-globais.md) para o efeito de `-v` e `-q`.
+
+Além dos helpers, você pode usar os comandos do [gum](https://github.com/charmbracelet/gum) nos scripts do plugin (ex.: `gum choose`, `gum input`, `gum confirm`, `gum filter`) para criar interfaces interativas. O gum é opcional; se estiver instalado no sistema, os scripts podem chamá-lo normalmente.
 
 ## 4. (Opcional) README
 

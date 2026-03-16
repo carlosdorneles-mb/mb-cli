@@ -155,19 +155,20 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 
 	usedShorts := make(map[string]bool)
 	for name, def := range flagsMap {
+		usage := def.Description
 		useShort := def.Short != "" && len([]rune(def.Short)) == 1 && !usedShorts[def.Short]
 		if useShort {
 			usedShorts[def.Short] = true
 		}
 		switch {
 		case useShort:
-			cmd.Flags().BoolP(name, def.Short, false, "")
+			cmd.Flags().BoolP(name, def.Short, false, usage)
 		case def.Type == "long":
-			cmd.Flags().Bool(name, false, "")
+			cmd.Flags().Bool(name, false, usage)
 		case def.Type == "short" && len(name) == 1:
-			cmd.Flags().BoolP(name, name, false, "")
+			cmd.Flags().BoolP(name, name, false, usage)
 		case def.Type == "short":
-			cmd.Flags().Bool(name, false, "")
+			cmd.Flags().Bool(name, false, usage)
 		}
 	}
 	if plugin.ReadmePath != "" {

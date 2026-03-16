@@ -108,9 +108,10 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 			return nil
 		}
 
-		// Leaf with flags only: no entrypoint, has Flags map
-		if len(manifest.Flags) > 0 {
-			flagsJSON, err := json.Marshal(manifest.Flags)
+		// Leaf with flags only: no entrypoint, has Flags (list or map)
+		if manifest.Flags.Len() > 0 {
+			flagsMap := manifest.Flags.ToMap()
+			flagsJSON, err := json.Marshal(flagsMap)
 			if err != nil {
 				return fmt.Errorf("marshal flags %s: %w", path, err)
 			}
@@ -214,8 +215,9 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 			return nil
 		}
 
-		if len(manifest.Flags) > 0 {
-			flagsJSON, err := json.Marshal(manifest.Flags)
+		if manifest.Flags.Len() > 0 {
+			flagsMap := manifest.Flags.ToMap()
+			flagsJSON, err := json.Marshal(flagsMap)
 			if err != nil {
 				return fmt.Errorf("marshal flags %s: %w", path, err)
 			}

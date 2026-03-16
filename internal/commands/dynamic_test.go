@@ -99,8 +99,8 @@ func TestParseRootVerbosityFlags(t *testing.T) {
 // with both long (--deploy) and short (-d) forms, and that both trigger the same flag.
 func TestFlagsOnlyWithShort(t *testing.T) {
 	flagsWithShort := map[string]plugins.FlagDef{
-		"deploy":  {Type: "long", Short: "d", Entrypoint: "deploy.sh"},
-		"rollback": {Type: "long", Short: "r", Entrypoint: "rollback.sh"},
+		"deploy":  {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Faz o deploy"},
+		"rollback": {Type: "long", Short: "r", Entrypoint: "rollback.sh", Description: "Reverte o último deploy"},
 	}
 	flagsJSON, err := json.Marshal(flagsWithShort)
 	if err != nil {
@@ -174,6 +174,9 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	if deployFlag.Shorthand != "d" {
 		t.Errorf("deploy flag Shorthand = %q, want \"d\"", deployFlag.Shorthand)
 	}
+	if deployFlag.Usage != "Faz o deploy" {
+		t.Errorf("deploy flag Usage = %q, want \"Faz o deploy\"", deployFlag.Usage)
+	}
 
 	rollbackFlag := doCmd.Flags().Lookup("rollback")
 	if rollbackFlag == nil {
@@ -200,7 +203,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 // (no Short field) are still registered and work with the long form only.
 func TestFlagsOnlyWithoutShort(t *testing.T) {
 	flagsLongOnly := map[string]plugins.FlagDef{
-		"deploy": {Type: "long", Entrypoint: "deploy.sh"},
+		"deploy": {Type: "long", Entrypoint: "deploy.sh", Description: "Deploy"},
 	}
 	flagsJSON, err := json.Marshal(flagsLongOnly)
 	if err != nil {
