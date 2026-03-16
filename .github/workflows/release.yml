@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    # Allows bump-version.yml to trigger this workflow for the new tag (ref passed via API)
 
 permissions:
   contents: write

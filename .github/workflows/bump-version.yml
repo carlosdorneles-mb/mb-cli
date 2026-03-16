@@ -1,4 +1,4 @@
-# Bump version and push tag; triggers release.yml (GoReleaser).
+# Bump version and push tag; then triggers release.yml (GoReleaser).
 # Run manually from Actions tab: Run workflow -> choose bump type.
 name: Bump version
 
@@ -52,3 +52,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "${{ steps.next.outputs.version }}"
           git push origin "${{ steps.next.outputs.version }}"
+
+      - name: Trigger Release workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml --ref "${{ steps.next.outputs.version }}"
