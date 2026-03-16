@@ -24,11 +24,11 @@ func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
 	pluginList, err := deps.Store.ListPlugins()
 	if err != nil {
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderError(err.Error()))
-		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("run `mb self sync` to rebuild plugin cache"))
+		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("Execute `mb self sync` para reconstruir o cache de plugins."))
 		return
 	}
 	if len(pluginList) == 0 {
-		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("no plugins in cache. run `mb self sync` first"))
+		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("Não há plugins em cache. Execute `mb self sync` primeiro."))
 		return
 	}
 

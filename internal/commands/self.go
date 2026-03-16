@@ -19,9 +19,14 @@ func NewSelfCmd(deps Dependencies) *cobra.Command {
 		Short:   "Gerencia operações internas do MB CLI",
 		GroupID: "commands",
 	}
+	selfCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	selfCmd.AddCommand(newSelfSyncCmd(deps))
-	selfCmd.AddCommand(newSelfEnvCmd(deps))
+	syncCmd := newSelfSyncCmd(deps)
+	syncCmd.GroupID = "commands"
+	selfCmd.AddCommand(syncCmd)
+	envCmd := newSelfEnvCmd(deps)
+	envCmd.GroupID = "commands"
+	selfCmd.AddCommand(envCmd)
 	return selfCmd
 }
 
@@ -117,8 +122,9 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 		Use:   "env",
 		Short: "Gerencia variáveis de ambiente padrão",
 	}
+	selfEnvCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	selfEnvCmd.AddCommand(&cobra.Command{
+	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lista variáveis padrão",
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -138,9 +144,11 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 			}
 			return nil
 		},
-	})
+	}
+	listCmd.GroupID = "commands"
+	selfEnvCmd.AddCommand(listCmd)
 
-	selfEnvCmd.AddCommand(&cobra.Command{
+	setCmd := &cobra.Command{
 		Use:   "set KEY [VALUE]",
 		Short: "Define uma variável padrão",
 		Args:  cobra.RangeArgs(1, 2),
@@ -170,9 +178,11 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("saved %s", key)))
 			return nil
 		},
-	})
+	}
+	setCmd.GroupID = "commands"
+	selfEnvCmd.AddCommand(setCmd)
 
-	selfEnvCmd.AddCommand(&cobra.Command{
+	unsetCmd := &cobra.Command{
 		Use:   "unset KEY",
 		Short: "Remove uma variável padrão",
 		Args:  cobra.ExactArgs(1),
@@ -189,7 +199,9 @@ func newSelfEnvCmd(deps Dependencies) *cobra.Command {
 			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("removed %s", args[0])))
 			return nil
 		},
-	})
+	}
+	unsetCmd.GroupID = "commands"
+	selfEnvCmd.AddCommand(unsetCmd)
 
 	return selfEnvCmd
 }

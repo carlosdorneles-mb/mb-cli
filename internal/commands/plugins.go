@@ -22,11 +22,20 @@ func NewPluginsCmd(deps Dependencies) *cobra.Command {
 		Short:   "Gerencia plugins instalados (add, list, remove, update)",
 		GroupID: "commands",
 	}
+	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	pluginsCmd.AddCommand(newPluginsAddCmd(deps))
-	pluginsCmd.AddCommand(newPluginsListCmd(deps))
-	pluginsCmd.AddCommand(newPluginsRemoveCmd(deps))
-	pluginsCmd.AddCommand(newPluginsUpdateCmd(deps))
+	addCmd := newPluginsAddCmd(deps)
+	addCmd.GroupID = "commands"
+	pluginsCmd.AddCommand(addCmd)
+	listCmd := newPluginsListCmd(deps)
+	listCmd.GroupID = "commands"
+	pluginsCmd.AddCommand(listCmd)
+	removeCmd := newPluginsRemoveCmd(deps)
+	removeCmd.GroupID = "commands"
+	pluginsCmd.AddCommand(removeCmd)
+	updateCmd := newPluginsUpdateCmd(deps)
+	updateCmd.GroupID = "commands"
+	pluginsCmd.AddCommand(updateCmd)
 	return pluginsCmd
 }
 
@@ -201,9 +210,9 @@ func newPluginsListCmd(deps Dependencies) *cobra.Command {
 				rows = append(rows, []string{name, p.CommandPath, p.Description, version, url, updateAvail})
 			}
 
-			headers := []string{"NAME", "COMMAND", "DESCRIPTION", "VERSION", "URL", "UPDATE"}
+			headers := []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "URL", "UPDATE"}
 			if !checkUpdates {
-				headers = []string{"NAME", "COMMAND", "DESCRIPTION", "VERSION", "URL"}
+				headers = []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "URL"}
 				for i := range rows {
 					rows[i] = rows[i][:5]
 				}
