@@ -222,7 +222,7 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 	}
 }
 
-const readmeFlagDesc = "Render README"
+const readmeFlagDesc = "Visualizar documentação do comando"
 
 func setHelpFang(c *cobra.Command) {
 	c.SetHelpFunc(func(cmd *cobra.Command, args []string) {
