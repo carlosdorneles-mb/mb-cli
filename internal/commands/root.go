@@ -12,6 +12,7 @@ import (
 	"mb/internal/executor"
 	"mb/internal/plugins"
 	"mb/internal/ui"
+	"mb/internal/version"
 )
 
 type RootCommand = *cobra.Command
@@ -51,7 +52,7 @@ func NewDependencies(
 func NewRootCmd(deps Dependencies) RootCommand {
 	rootCmd := &cobra.Command{
 		Use:   "mb",
-		Short: "MB CLI - Orquestrador Moderno em Go",
+		Short: "MB CLI - Uma CLI, infinitas possibilidades",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if _, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues); err != nil {
 				return err
@@ -118,7 +119,9 @@ func NewRootCmd(deps Dependencies) RootCommand {
 
 	if rootCmd.Version == "" {
 		rootCmd.Version = "dev"
-		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		if version.Version != "" {
+			rootCmd.Version = version.Version
+		} else if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
 			rootCmd.Version = info.Main.Version
 		}
 	}

@@ -21,8 +21,22 @@ CLI em Go para orquestrar plugins com UX em laranja, descoberta dinâmica via ca
 ```bash
 make build          # binário em bin/mb
 make install        # instala em $GOPATH/bin
-make cross         # Linux amd64 + macOS amd64/arm64
+make cross          # Linux amd64 + macOS amd64/arm64
 ```
+
+A versão exibida em `mb --version` vem do build: em desenvolvimento (`go run .` ou `make build`) aparece `dev`; em releases oficiais, a versão é injetada a partir da tag Git (ex.: `v1.0.0`).
+
+## Versionamento e releases
+
+O MB segue [Semantic Versioning](https://semver.org/) (SemVer). A versão é definida por **tags Git** (ex.: `v1.0.0`). Os releases são gerados com [GoReleaser](https://goreleaser.com/): ao dar push numa tag `v*`, o [workflow de release](.github/workflows/release.yml) roda no GitHub Actions, gera binários para **Linux** e **macOS** (amd64 e arm64) e publica um [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github) com os artefatos e o checksum.
+
+**Como gerar uma nova versão**
+
+1. Decidir a versão (ex.: `v1.0.0`).
+2. Criar e enviar a tag: `git tag v1.0.0 && git push origin v1.0.0`.
+3. O workflow de release dispara automaticamente e publica o release com os binários. O comando `mb --version` nos binários gerados exibirá essa versão.
+
+Para validar o pipeline de release sem publicar, use localmente: `make release-snapshot` (requer [goreleaser](https://goreleaser.com/install/) instalado).
 
 ## Como funciona a gestão de plugins
 

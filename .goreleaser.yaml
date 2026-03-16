@@ -1,0 +1,30 @@
+version: 2
+
+project_name: mb
+
+builds:
+  - id: mb
+    main: .
+    binary: mb
+    ldflags:
+      - -s -w -X mb/internal/version.Version={{.Version}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  draft: false
