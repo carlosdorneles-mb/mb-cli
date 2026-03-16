@@ -18,23 +18,24 @@ func TestEnsureShellHelpers(t *testing.T) {
 		t.Fatal("EnsureShellHelpers returned empty path")
 	}
 
-	indexPath := filepath.Join(configDir, "lib", "shell", "index.sh")
-	if path != indexPath {
-		t.Errorf("path = %q, want %q", path, indexPath)
+	shellDir := filepath.Join(configDir, "lib", "shell")
+	if path != shellDir {
+		t.Errorf("path = %q, want directory %q", path, shellDir)
 	}
 
-	for _, name := range []string{"index.sh", "log.sh"} {
-		full := filepath.Join(configDir, "lib", "shell", name)
+	for _, name := range []string{"all.sh", "log.sh"} {
+		full := filepath.Join(shellDir, name)
 		if _, err := os.Stat(full); err != nil {
 			t.Errorf("file %s: %v", name, err)
 		}
 	}
 
-	indexData, _ := os.ReadFile(indexPath)
-	if !strings.Contains(string(indexData), "log.sh") {
-		t.Errorf("index.sh should source log.sh, got: %s", indexData)
+	allPath := filepath.Join(shellDir, "all.sh")
+	allData, _ := os.ReadFile(allPath)
+	if !strings.Contains(string(allData), "log.sh") {
+		t.Errorf("all.sh should source log.sh, got: %s", allData)
 	}
-	logPath := filepath.Join(configDir, "lib", "shell", "log.sh")
+	logPath := filepath.Join(shellDir, "log.sh")
 	logData, _ := os.ReadFile(logPath)
 	if !strings.Contains(string(logData), "log()") {
 		t.Errorf("log.sh should define log(), got: %s", logData)

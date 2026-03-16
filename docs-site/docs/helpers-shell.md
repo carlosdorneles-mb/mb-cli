@@ -4,21 +4,26 @@ sidebar_position: 7
 
 # Helpers de shell
 
-O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para um script que carrega funções de shell reutilizáveis. Assim você pode usar helpers como `log` sem duplicar código no seu plugin. O helper de log usa [gum](https://github.com/charmbracelet/gum) — instale-o para que `log` funcione.
+O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para o **diretório** dos helpers de shell (`~/.config/mb/lib/shell`).
 
 ## Como carregar
 
-No início do script do plugin (por exemplo em `run.sh`), source o script:
+No início do script do plugin (por exemplo em `run.sh`), importe o que precisar:
+
+- **Todos os helpers:** `. "$MB_HELPERS_PATH/all.sh"`
+- **Só o helper de log:** `. "$MB_HELPERS_PATH/log.sh"`
+
+Exemplo:
 
 ```sh
 #!/bin/sh
-. "$MB_HELPERS_PATH"
+. "$MB_HELPERS_PATH/all.sh"
 
 # A partir daqui você pode usar os helpers
 log info "Olá!"
 ```
 
-O path em `MB_HELPERS_PATH` é o do arquivo `index.sh` em `~/.config/mb/lib/shell/` (criado na primeira execução de um plugin).
+O diretório é criado na primeira execução de um plugin.
 
 ## Helpers disponíveis
 

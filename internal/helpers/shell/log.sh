@@ -1,4 +1,4 @@
-# Helper de log do MB CLI. Sourcear via MB_HELPERS_PATH (index.sh).
+# Helper de log do MB CLI. Sourcear via . "$MB_HELPERS_PATH/log.sh" ou tudo via all.sh.
 # Uso: log <level> <mensagem...>
 # Níveis: none, debug, info, warn, error, fatal
 # - MB_QUIET=1: só exibe error e fatal

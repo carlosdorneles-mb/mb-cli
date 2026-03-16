@@ -1,6 +1,6 @@
 #!/bin/sh
 # Plugin: tools/hello
-. "$MB_HELPERS_PATH"
+. "$MB_HELPERS_PATH/all.sh"
 
 log info "Olá, Mundo!"
 log debug "Mensagem de debug (visível só com mb -v tools hello)"

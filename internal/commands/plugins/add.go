@@ -182,7 +182,7 @@ func runAddLocal(cmd *cobra.Command, deps config.Dependencies, pathArg string, n
 	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q registrado localmente em %s", installDir, absPath)))
+	fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("O plugin %q foi registrado localmente em %s", installDir, absPath)))
 	return nil
 }
 
