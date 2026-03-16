@@ -48,7 +48,7 @@ O workflow `.github/workflows/bump-version.yml` pode ser disparado manualmente n
 
 O fluxo de publicação de release **não** cria a tag; ele **reage** ao push de uma tag.
 
-1. **Trigger:** ao dar **push** em uma tag `v*` (por exemplo após `make release` ou após o workflow “Bump version”), o GitHub Actions executa o workflow [.github/workflows/release.yml](.github/workflows/release.yml).
+1. **Trigger:** ao dar **push** em uma tag `v*` (por exemplo após `make release` ou após o workflow “Bump version”), o GitHub Actions executa o workflow [release.yml](https://github.com/carlosdorneles-mb/mb-cli/blob/HEAD/.github/workflows/release.yml).
 
 2. **GoReleaser:** o workflow chama o [GoReleaser](https://goreleaser.com/) em modo `release`. O GoReleaser:
    - Lê a tag que disparou o workflow (ex.: `v1.0.0`),
