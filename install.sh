@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Install MB CLI from GitHub Releases (no sudo; installs to ~/.local/bin)
+# Install MB CLI, gum and glow from GitHub Releases (no sudo; installs to ~/.local/bin)
 
 REPO="carlosdorneles-mb/mb-cli"
 RELEASE_BASE="https://github.com/${REPO}/releases/download"
@@ -9,10 +9,18 @@ API_BASE="https://api.github.com/repos/${REPO}"
 INSTALL_DIR="${HOME}/.local/bin"
 BINARY_NAME="mb"
 
+GUM_REPO="charmbracelet/gum"
+GUM_RELEASE_BASE="https://github.com/${GUM_REPO}/releases/download"
+GUM_API_BASE="https://api.github.com/repos/${GUM_REPO}"
+
+GLOW_REPO="charmbracelet/glow"
+GLOW_RELEASE_BASE="https://github.com/${GLOW_REPO}/releases/download"
+GLOW_API_BASE="https://api.github.com/repos/${GLOW_REPO}"
+
 usage() {
   echo "Uso: $0 [--version VERSION] [--pre-release]"
   echo ""
-  echo "  Baixa e instala o MB CLI em ${INSTALL_DIR}."
+  echo "  Baixa e instala o MB CLI, gum e glow (dependências) em ${INSTALL_DIR}."
   echo "  Sem opções     Usa a última versão estável (consulta a API do GitHub)."
   echo "  --version N    Usa a versão N (ex.: 0.0.5 ou v0.0.5)."
   echo "  --pre-release  Usa a última versão pre-release (requer jq)."
@@ -44,6 +52,28 @@ get_latest_prerelease_tag() {
     curl -sSL "$url" | jq -r '[.[] | select(.prerelease==true)][0].tag_name // empty'
   else
     echo "Requer curl para obter pre-release." >&2
+    exit 1
+  fi
+}
+
+# Obtém a tag da última release estável do gum (charmbracelet/gum).
+get_gum_latest_tag() {
+  local url="${GUM_API_BASE}/releases/latest"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSL "$url" | tr -d '\n' | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  else
+    echo "Requer curl para obter a versão do gum." >&2
+    exit 1
+  fi
+}
+
+# Obtém a tag da última release estável do glow (charmbracelet/glow).
+get_glow_latest_tag() {
+  local url="${GLOW_API_BASE}/releases/latest"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSL "$url" | tr -d '\n' | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  else
+    echo "Requer curl para obter a versão do glow." >&2
     exit 1
   fi
 }
@@ -145,6 +175,99 @@ do_install() {
   chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
 
   echo "MB CLI ${tag} instalado em ${INSTALL_DIR}/${BINARY_NAME}"
+
+  # Instalar gum (dependência do MB CLI) no mesmo INSTALL_DIR
+  local gum_tag gum_version GUM_OS GUM_ARCH gum_artifact gum_url_tarball gum_url_checksums gum_tmpdir gum_tarball gum_checksums_file gum_binary
+  gum_tag="$(get_gum_latest_tag)"
+  [ -n "$gum_tag" ] || { echo "Não foi possível obter a última versão do gum." >&2; exit 1; }
+  gum_version="${gum_tag#v}"
+  case "$OS" in
+    linux)  GUM_OS="Linux" ;;
+    darwin) GUM_OS="Darwin" ;;
+    *)      echo "OS não mapeado para gum: $OS" >&2; exit 1 ;;
+  esac
+  case "$ARCH" in
+    amd64) GUM_ARCH="x86_64" ;;
+    arm64) GUM_ARCH="arm64" ;;
+    *)     echo "ARCH não mapeado para gum: $ARCH" >&2; exit 1 ;;
+  esac
+  gum_artifact="gum_${gum_version}_${GUM_OS}_${GUM_ARCH}.tar.gz"
+  gum_url_tarball="${GUM_RELEASE_BASE}/${gum_tag}/${gum_artifact}"
+  gum_url_checksums="${GUM_RELEASE_BASE}/${gum_tag}/checksums.txt"
+  gum_tmpdir="$(mktemp -d)"
+  gum_tarball="${gum_tmpdir}/${gum_artifact}"
+  gum_checksums_file="${gum_tmpdir}/checksums.txt"
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir"' EXIT
+
+  echo "Baixando gum ${gum_tag} (${gum_artifact})..."
+  download_file "$gum_url_tarball" "$gum_tarball" || {
+    echo "Falha ao baixar gum: ${gum_url_tarball}" >&2
+    exit 1
+  }
+  echo "Baixando checksums.txt do gum..."
+  download_file "$gum_url_checksums" "$gum_checksums_file" || {
+    echo "Falha ao baixar checksums.txt do gum." >&2
+    exit 1
+  }
+  echo "Validando checksum do gum..."
+  if ! verify_checksum "$gum_tarball" "$gum_checksums_file"; then
+    echo "Validação do checksum do gum falhou. Instalação abortada." >&2
+    exit 1
+  fi
+  tar -xzf "$gum_tarball" -C "$gum_tmpdir"
+  gum_binary="$(find "$gum_tmpdir" -maxdepth 2 -name gum -type f | head -n1)"
+  [ -n "$gum_binary" ] || { echo "Binário gum não encontrado no tarball." >&2; exit 1; }
+  cp -f "$gum_binary" "${INSTALL_DIR}/gum"
+  chmod +x "${INSTALL_DIR}/gum"
+  echo "gum ${gum_tag} instalado em ${INSTALL_DIR}/gum"
+
+  # Instalar glow (dependência do MB CLI) no mesmo INSTALL_DIR
+  local glow_tag glow_version GLOW_OS GLOW_ARCH glow_artifact glow_url_tarball glow_url_checksums glow_tmpdir glow_tarball glow_checksums_file glow_binary
+  glow_tag="$(get_glow_latest_tag)"
+  [ -n "$glow_tag" ] || { echo "Não foi possível obter a última versão do glow." >&2; exit 1; }
+  glow_version="${glow_tag#v}"
+  case "$OS" in
+    linux)  GLOW_OS="Linux" ;;
+    darwin) GLOW_OS="Darwin" ;;
+    *)      echo "OS não mapeado para glow: $OS" >&2; exit 1 ;;
+  esac
+  case "$ARCH" in
+    amd64) GLOW_ARCH="x86_64" ;;
+    arm64) GLOW_ARCH="arm64" ;;
+    *)     echo "ARCH não mapeado para glow: $ARCH" >&2; exit 1 ;;
+  esac
+  glow_artifact="glow_${glow_version}_${GLOW_OS}_${GLOW_ARCH}.tar.gz"
+  glow_url_tarball="${GLOW_RELEASE_BASE}/${glow_tag}/${glow_artifact}"
+  glow_url_checksums="${GLOW_RELEASE_BASE}/${glow_tag}/checksums.txt"
+  glow_tmpdir="$(mktemp -d)"
+  glow_tarball="${glow_tmpdir}/${glow_artifact}"
+  glow_checksums_file="${glow_tmpdir}/checksums.txt"
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir"' EXIT
+
+  echo "Baixando glow ${glow_tag} (${glow_artifact})..."
+  download_file "$glow_url_tarball" "$glow_tarball" || {
+    echo "Falha ao baixar glow: ${glow_url_tarball}" >&2
+    exit 1
+  }
+  echo "Baixando checksums.txt do glow..."
+  download_file "$glow_url_checksums" "$glow_checksums_file" || {
+    echo "Falha ao baixar checksums.txt do glow." >&2
+    exit 1
+  }
+  echo "Validando checksum do glow..."
+  if ! verify_checksum "$glow_tarball" "$glow_checksums_file"; then
+    echo "Validação do checksum do glow falhou. Instalação abortada." >&2
+    exit 1
+  fi
+  tar -xzf "$glow_tarball" -C "$glow_tmpdir"
+  glow_binary="$(find "$glow_tmpdir" -maxdepth 2 -name glow -type f | head -n1)"
+  [ -n "$glow_binary" ] || { echo "Binário glow não encontrado no tarball." >&2; exit 1; }
+  cp -f "$glow_binary" "${INSTALL_DIR}/glow"
+  chmod +x "${INSTALL_DIR}/glow"
+  echo "glow ${glow_tag} instalado em ${INSTALL_DIR}/glow"
+
+  echo ""
+  echo "MB CLI, gum e glow foram instalados em ${INSTALL_DIR}."
   if ! echo "$PATH" | grep -qF "${INSTALL_DIR}"; then
     echo "Adicione ${INSTALL_DIR} ao seu PATH, por exemplo em ~/.profile ou ~/.bashrc:"
     echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""

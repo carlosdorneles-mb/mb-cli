@@ -7,11 +7,11 @@ sidebar_position: 1
 ## Pré-requisitos
 
 - Go 1.22+ (apenas se for compilar a partir do código)
-- Opcional: [gum](https://github.com/charmbracelet/gum) (tabelas/inputs), [glow](https://github.com/charmbracelet/glow) (help em Markdown)
+- O **script de instalação** instala o [gum](https://github.com/charmbracelet/gum) e o [glow](https://github.com/charmbracelet/glow) em `~/.local/bin` junto com o MB (sem root). O glow é necessário para a flag `--readme` dos plugins (help em Markdown).
 
 ## Instalação do CLI
 
-A forma recomendada é usar o **script de instalação**, que baixa o binário do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) para o seu sistema (Linux ou macOS, amd64 ou arm64), valida o download com o arquivo `checksums.txt` e instala em **`~/.local/bin`** (sem precisar de sudo).
+A forma recomendada é usar o **script de instalação**, que baixa o binário do MB, o **gum** e o **glow** (dependências) do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) (e dos repositórios charmbracelet/gum e charmbracelet/glow), valida os downloads com `checksums.txt` e instala em **`~/.local/bin`** (sem precisar de sudo).
 
 **Instalar:**
 
@@ -33,7 +33,7 @@ Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sync` para 
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
 ```
 
-Ou remova manualmente: `rm -f ~/.local/bin/mb`. Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
+Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow` (se foram instalados pelo install.sh). Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
 
 ## Build e instalação (desenvolvedores)
 
