@@ -69,10 +69,10 @@ func NewRootCmd(deps Dependencies) RootCommand {
 		SilenceUsage: true,
 	}
 
-	rootCmd.PersistentFlags().BoolVar(&deps.Runtime.Verbose, "verbose", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().BoolVar(&deps.Runtime.Quiet, "quiet", false, "Não exibir nenhuma mensagem.")
+	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
+	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem.")
 	rootCmd.PersistentFlags().StringVar(&deps.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
-	rootCmd.PersistentFlags().StringArrayVar(&deps.Runtime.InlineEnvValues, "env", nil, "Define variável KEY=VALUE")
+	rootCmd.PersistentFlags().StringArrayVarP(&deps.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMANDOS DE PLUGINS"})
@@ -126,14 +126,15 @@ func NewRootCmd(deps Dependencies) RootCommand {
 		}
 	}
 	rootCmd.InitDefaultHelpFlag()
+	if rootCmd.Version != "" {
+		rootCmd.Flags().BoolP("version", "V", false, "Versão do MB CLI")
+		_ = rootCmd.Flags().SetAnnotation("version", cobra.FlagSetByCobraAnnotation, []string{"true"})
+	}
 	rootCmd.InitDefaultVersionFlag()
 	initDefaultHelpFlagRecursive(rootCmd)
 	setHelpFlagUsagePT(rootCmd)
 	if f := rootCmd.Flags().Lookup("help"); f != nil {
 		f.Usage = "Ajuda para MB CLI"
-	}
-	if f := rootCmd.Flags().Lookup("version"); f != nil {
-		f.Usage = "Versão do MB CLI"
 	}
 
 	rootCmd.SetOut(os.Stdout)
