@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/commands/config"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -36,11 +37,11 @@ func TestCompletionIncludesPluginCommands(t *testing.T) {
 		t.Fatalf("upsert plugin: %v", err)
 	}
 
-	runtime := &RuntimeConfig{
+	runtime := &config.RuntimeConfig{
 		ConfigDir:  filepath.Join(tmp, "mb"),
 		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
 	}
-	deps := NewDependencies(
+	deps := config.NewDependencies(
 		runtime,
 		store,
 		plugins.NewScanner(runtime.PluginsDir),

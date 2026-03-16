@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,13 +13,14 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
+	"mb/internal/commands/config"
 	"mb/internal/env"
 	"mb/internal/plugins"
 	"mb/internal/system"
 	"mb/internal/ui"
 )
 
-func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
+func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 	pluginList, err := deps.Store.ListPlugins()
 	if err != nil {
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderError(err.Error()))
@@ -42,17 +42,15 @@ func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
 		return pluginList[i].CommandPath < pluginList[j].CommandPath
 	})
 
-	// Build tree from command_path: "infra/ci/deploy" -> root -> infra -> ci -> deploy
 	type node struct {
 		cmd     *cobra.Command
-		plugins []cache.Plugin // only at leaf
+		plugins []cache.Plugin
 	}
 	byPath := map[string]*node{}
 
 	for _, plugin := range pluginList {
 		segments := strings.Split(plugin.CommandPath, "/")
 		if len(segments) == 0 || (len(segments) == 1 && segments[0] == "") {
-			// root-level command
 			segments = []string{plugin.CommandName}
 		}
 
@@ -92,7 +90,7 @@ func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
 
 		pathSoFar := plugin.CommandPath
 		if byPath[pathSoFar] != nil {
-			continue // same path already added (should not happen with unique command_path)
+			continue
 		}
 		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps)
 		if parent == root {
@@ -103,20 +101,12 @@ func AttachDynamicCommands(root *cobra.Command, deps Dependencies) {
 	}
 }
 
-func pluginDescription(desc, fallback, suffix string) string {
-	if desc != "" {
-		return desc
-	}
-	return fallback + " " + suffix
-}
-
-func newLeafCommand(use string, plugin cache.Plugin, deps Dependencies) *cobra.Command {
+func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
 		short = "Executa " + plugin.CommandPath
 	}
 
-	// Entrypoint plugin: pass-through all args; optional --readme when ReadmePath is set
 	if plugin.FlagsJSON == "" {
 		cmd := &cobra.Command{
 			Use:   use,
@@ -132,7 +122,6 @@ func newLeafCommand(use string, plugin cache.Plugin, deps Dependencies) *cobra.C
 		return cmd
 	}
 
-	// Flags-only plugin: register flags from FlagsJSON; no flag -> help; flag -> run entrypoint
 	var flagsMap map[string]plugins.FlagDef
 	if err := json.Unmarshal([]byte(plugin.FlagsJSON), &flagsMap); err != nil {
 		cmd := &cobra.Command{Use: use, Short: short + " (config de flags inválida)"}
@@ -164,7 +153,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps Dependencies) *cobra.C
 	return cmd
 }
 
-func runEntrypointCommand(plugin cache.Plugin, deps Dependencies) func(*cobra.Command, []string) error {
+func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
@@ -186,12 +175,11 @@ func runEntrypointCommand(plugin cache.Plugin, deps Dependencies) func(*cobra.Co
 	}
 }
 
-func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, deps Dependencies) func(*cobra.Command, []string) error {
+func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, deps config.Dependencies) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
-		// Check which mapped flag was set
 		var chosenFlag string
 		var chosenEntrypoint string
 		for name, def := range flagsMap {
@@ -254,11 +242,11 @@ func runReadmeWithGlow(path string) error {
 	return system.RenderMarkdown(context.Background(), path)
 }
 
-func buildEnvFileValues(ctx *RuntimeConfig) (map[string]string, error) {
+func buildEnvFileValues(ctx *config.RuntimeConfig) (map[string]string, error) {
 	merged := map[string]string{}
 
-	defaultValues, err := godotenv.Read(ctx.DefaultEnvPath)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	defaultValues, err := config.LoadDefaultEnvValues(ctx.DefaultEnvPath)
+	if err != nil {
 		return nil, err
 	}
 	for key, value := range defaultValues {

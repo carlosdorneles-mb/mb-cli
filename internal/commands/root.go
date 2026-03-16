@@ -7,49 +7,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
+	"mb/internal/commands/config"
+	plugincmd "mb/internal/commands/plugins"
+	"mb/internal/commands/self"
 	"mb/internal/env"
-	"mb/internal/executor"
-	"mb/internal/plugins"
 	"mb/internal/ui"
 	"mb/internal/version"
 )
 
 type RootCommand = *cobra.Command
 
-type RuntimeConfig struct {
-	ConfigDir       string
-	PluginsDir      string
-	CacheDBPath     string
-	DefaultEnvPath  string
-	Verbose         bool
-	Quiet           bool
-	EnvFilePath     string
-	InlineEnvValues []string
-}
-
-type Dependencies struct {
-	Runtime  *RuntimeConfig
-	Store    *cache.Store
-	Scanner  *plugins.Scanner
-	Executor *executor.Executor
-}
-
-func NewDependencies(
-	runtime *RuntimeConfig,
-	store *cache.Store,
-	scanner *plugins.Scanner,
-	exec *executor.Executor,
-) Dependencies {
-	return Dependencies{
-		Runtime:  runtime,
-		Store:    store,
-		Scanner:  scanner,
-		Executor: exec,
-	}
-}
-
-func NewRootCmd(deps Dependencies) RootCommand {
+func NewRootCmd(deps config.Dependencies) RootCommand {
 	rootCmd := &cobra.Command{
 		Use:   "mb",
 		Short: "MB CLI - Uma CLI, infinitas possibilidades",
@@ -70,7 +38,7 @@ func NewRootCmd(deps Dependencies) RootCommand {
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem.")
+	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
 	rootCmd.PersistentFlags().StringVar(&deps.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
 	rootCmd.PersistentFlags().StringArrayVarP(&deps.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 
@@ -80,8 +48,8 @@ func NewRootCmd(deps Dependencies) RootCommand {
 	rootCmd.SetHelpCommandGroupID("commands")
 	rootCmd.SetCompletionCommandGroupID("commands")
 
-	rootCmd.AddCommand(NewSelfCmd(deps))
-	rootCmd.AddCommand(NewPluginsCmd(deps))
+	rootCmd.AddCommand(self.NewSelfCmd(deps))
+	rootCmd.AddCommand(plugincmd.NewPluginsCmd(deps))
 	AttachDynamicCommands(rootCmd, deps)
 
 	rootCmd.InitDefaultHelpCmd()

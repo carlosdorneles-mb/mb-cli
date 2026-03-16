@@ -1,0 +1,87 @@
+package self
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+
+	"mb/internal/cache"
+	"mb/internal/commands/config"
+	"mb/internal/ui"
+)
+
+// RunSync rescans the plugins dir, upserts plugins and categories, and updates the plugin_sources registry.
+// Used by both "mb self sync" and after plugins add/remove/update.
+func RunSync(deps config.Dependencies, outSuccess func(string)) error {
+	plugins, categories, err := deps.Scanner.Scan()
+	if err != nil {
+		return err
+	}
+
+	for _, plugin := range plugins {
+		if err := deps.Store.UpsertPlugin(plugin); err != nil {
+			return err
+		}
+	}
+
+	if err := deps.Store.DeleteAllCategories(); err != nil {
+		return err
+	}
+	for _, cat := range categories {
+		if err := deps.Store.UpsertCategory(cat); err != nil {
+			return err
+		}
+	}
+
+	if err := updatePluginSourcesRegistry(deps, plugins, categories); err != nil {
+		return err
+	}
+
+	if outSuccess != nil {
+		outSuccess(fmt.Sprintf("synced %d plugin(s)", len(plugins)))
+	}
+	return nil
+}
+
+// updatePluginSourcesRegistry ensures plugin_sources has a row for each top-level dir under PluginsDir.
+// Existing rows keep their git_url/ref_type/ref/version; new dirs get an empty row (manual install).
+func updatePluginSourcesRegistry(deps config.Dependencies, plugins []cache.Plugin, categories []cache.Category) error {
+	topLevelDirs := make(map[string]struct{})
+	for _, p := range plugins {
+		dir := FirstPathSegment(p.CommandPath)
+		if dir != "" {
+			topLevelDirs[dir] = struct{}{}
+		}
+	}
+	for _, c := range categories {
+		dir := FirstPathSegment(c.Path)
+		if dir != "" {
+			topLevelDirs[dir] = struct{}{}
+		}
+	}
+	for dir := range topLevelDirs {
+		existing, err := deps.Store.GetPluginSource(dir)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			continue
+		}
+		if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: dir}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func newSelfSyncCmd(deps config.Dependencies) *cobra.Command {
+	return &cobra.Command{
+		Use:   "sync",
+		Short: "Rescaneia plugins e reconstrói o cache SQLite",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return RunSync(deps, func(msg string) {
+				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
+			})
+		},
+	}
+}

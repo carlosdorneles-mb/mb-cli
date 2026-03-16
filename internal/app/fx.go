@@ -7,6 +7,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands"
+	"mb/internal/commands/config"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -22,7 +23,7 @@ func Bootstrap() (*fx.App, commands.RootCommand, error) {
 			NewStoreFromContext,
 			NewScannerFromContext,
 			executor.New,
-			commands.NewDependencies,
+			config.NewDependencies,
 			commands.NewRootCmd,
 		),
 		fx.Invoke(registerLifecycle),
@@ -36,8 +37,8 @@ func Bootstrap() (*fx.App, commands.RootCommand, error) {
 	return application, root, nil
 }
 
-func NewRuntimeConfig(ctx *AppContext) *commands.RuntimeConfig {
-	return &commands.RuntimeConfig{
+func NewRuntimeConfig(ctx *AppContext) *config.RuntimeConfig {
+	return &config.RuntimeConfig{
 		ConfigDir:      ctx.ConfigDir,
 		PluginsDir:     ctx.PluginsDir,
 		CacheDBPath:    ctx.CacheDBPath,
