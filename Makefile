@@ -10,6 +10,7 @@ SANDBOX_DIR ?= /tmp/mb-sandbox
 
 .PHONY: all build test clean run run-local run-sandbox install tidy deps \
 	build-linux build-darwin build-darwin-arm64 cross \
+	release-snapshot \
 	docs-install docs-dev docs-build docs-preview \
 	lint help
 
@@ -36,6 +37,7 @@ help:
 	@echo "  build-linux    binary for Linux amd64"
 	@echo "  build-darwin   binary for macOS amd64"
 	@echo "  build-darwin-arm64  binary for macOS arm64"
+	@echo "  release-snapshot  run goreleaser release --snapshot (test release pipeline locally)"
 	@echo "  lint           run golangci-lint (optional)"
 	@echo ""
 	@echo "Documentação (Docusaurus em $(DOCS_DIR)):"
@@ -110,6 +112,11 @@ build-darwin-arm64:
 
 # Build all supported platforms (Linux + macOS)
 cross: build-linux build-darwin build-darwin-arm64
+
+# Run GoReleaser in snapshot mode (no GitHub release; validates pipeline locally).
+# Requires: go install github.com/goreleaser/goreleaser@latest
+release-snapshot:
+	goreleaser release --snapshot
 
 # Documentation (Docusaurus)
 docs-install:
