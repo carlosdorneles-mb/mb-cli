@@ -7,7 +7,7 @@ builds:
     main: .
     binary: mb
     ldflags:
-      - -s -w -X mb/internal/version.Version={{.Version}}
+      - -s -w -X mb/internal/version.Version={{.Tag}}
     goos:
       - linux
       - darwin

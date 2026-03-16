@@ -9,6 +9,7 @@ import (
 
 	"mb/internal/app"
 	"mb/internal/ui"
+	"mb/internal/version"
 )
 
 func main() {
@@ -29,9 +30,14 @@ func main() {
 		_ = fxApp.Stop(ctx)
 	}()
 
+	v := version.Version
+	if v == "" {
+		v = "dev"
+	}
 	opts := []fang.Option{
 		fang.WithoutManpage(),
 		fang.WithErrorHandler(ui.ErrorHandlerPT),
+		fang.WithVersion(v),
 	}
 	if err := fang.Execute(ctx, rootCmd, opts...); err != nil {
 		os.Exit(1)
