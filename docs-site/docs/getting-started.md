@@ -11,7 +11,7 @@ sidebar_position: 1
 
 ## Instalação do CLI
 
-A forma recomendada é usar o **script de instalação**, que baixa o binário do MB, o **gum**, o **glow**, o **jq** e o **fzf** (dependências) do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) (e dos repositórios charmbracelet/gum, charmbracelet/glow, jqlang/jq e junegunn/fzf), valida os downloads com `checksums.txt` quando disponível e instala em **`~/.local/bin`** (sem precisar de sudo).
+A forma recomendada é usar o **script de instalação**, que baixa o binário do MB CLI, o **gum**, o **glow**, o **jq** e o **fzf** (dependências) do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) (e dos repositórios charmbracelet/gum, charmbracelet/glow, jqlang/jq e junegunn/fzf), valida os downloads com `checksums.txt` quando disponível e instala em **`~/.local/bin`** (sem precisar de sudo).
 
 **Instalar:**
 
@@ -35,7 +35,9 @@ curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninst
 
 Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf` (se foram instalados pelo install.sh). Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
 
-## Build e instalação (desenvolvedores)
+## Para desenvolvedores
+
+### Build e instalação
 
 Se você for alterar o código ou contribuir:
 
@@ -44,7 +46,7 @@ make build          # binário em bin/mb
 make install        # instala em $GOPATH/bin
 ```
 
-## Executar localmente
+### Executar localmente
 
 Para rodar o CLI sem instalar (a partir do código-fonte):
 

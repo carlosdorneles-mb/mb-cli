@@ -11,7 +11,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'MB CLI',
-  tagline: 'CLI em Go para orquestrar plugins com UX, cache SQLite e injeção segura de ambiente.',
+  tagline: 'CLI em Go para orquestrar plugins com injeção segura de variáveis de ambiente.',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -46,16 +46,7 @@ const config = {
         docs: {
           sidebarPath: './sidebars.js',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -84,9 +75,8 @@ const config = {
             position: 'left',
             label: 'Documentação',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
           {
-            href: 'https://github.com',
+            href: 'https://github.com/carlosdorneles-mb/mb-cli',
             label: 'GitHub',
             position: 'right',
           },
@@ -106,8 +96,7 @@ const config = {
           {
             title: 'Mais',
             items: [
-              { label: 'Blog', to: '/blog' },
-              { label: 'GitHub', href: 'https://github.com' },
+              { label: 'GitHub', href: 'https://github.com/carlosdorneles-mb/mb-cli' },
             ],
           },
         ],

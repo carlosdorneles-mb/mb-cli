@@ -356,8 +356,20 @@ do_install() {
   echo ""
   echo "MB CLI, gum, glow, jq e fzf foram instalados em ${INSTALL_DIR}."
   if ! echo "$PATH" | grep -qF "${INSTALL_DIR}"; then
-    echo "Adicione ${INSTALL_DIR} ao seu PATH, por exemplo em ~/.profile ou ~/.bashrc:"
-    echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
+    # Escolhe o arquivo de config do shell; só adiciona se o path ainda não estiver lá
+    if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename "$SHELL" 2>/dev/null)" = "zsh" ]; then
+      rcfile="${HOME}/.zshrc"
+    elif [ "$(basename "$SHELL" 2>/dev/null)" = "bash" ]; then
+      rcfile="${HOME}/.bashrc"
+    else
+      rcfile="${HOME}/.profile"
+    fi
+    if [ -f "$rcfile" ] && grep -q '\.local/bin' "$rcfile" 2>/dev/null; then
+      echo "O arquivo $rcfile já parece conter ${INSTALL_DIR} no PATH. Abra um novo terminal ou rode: source $rcfile"
+    else
+      printf '\n# MB CLI (install.sh)\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rcfile"
+      echo "${INSTALL_DIR} foi adicionado ao PATH em $rcfile. Abra um novo terminal ou rode: source $rcfile"
+    fi
   fi
   echo "Depois rode: mb self sync"
 }

@@ -110,7 +110,7 @@ docs-dev:
 	cd $(DOCS_DIR) && npm run start
 
 docs-build:
-	cd $(DOCS_DIR) && npm run build
+	cd $(DOCS_DIR) && npm install && npm run build
 
 docs-preview:
 	cd $(DOCS_DIR) && npx serve dist -p 3000

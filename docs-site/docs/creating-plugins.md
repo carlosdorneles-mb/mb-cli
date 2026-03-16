@@ -6,6 +6,8 @@ sidebar_position: 2
 
 Este guia mostra o passo a passo para criar um plugin do MB CLI. Para uma visão técnica de como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](./plugins.md).
 
+Há **plugins de exemplo** no repositório: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins). Use-os como referência ou registre com `make install-examples` na raiz do repo e depois `mb self sync`.
+
 ## 1. Estrutura do diretório
 
 Cada plugin fica em uma pasta. A hierarquia de pastas define a **categoria** no CLI. Exemplo: uma pasta `tools/meu-comando/` vira o comando `mb tools meu-comando`.
@@ -20,16 +22,52 @@ Você pode criar o plugin em qualquer lugar para desenvolvimento e depois instal
 Crie `manifest.yaml` na pasta raiz do plugin (ou em subpastas, se quiser categorias aninhadas):
 
 ```yaml
-command: meu-comando   # nome do comando (opcional; padrão = nome da pasta)
+command: meu-comando   # opcional; se omitido = nome da pasta
 description: "Descrição curta para o help"
-type: sh               # sh = script shell; bin = executável
-entrypoint: run.sh     # arquivo a executar (relativo à pasta do plugin)
+type: sh               # obrigatório se houver entrypoint: sh | bin
+entrypoint: run.sh     # script ou binário a executar (relativo à pasta do plugin)
 readme: README.md      # opcional: flag --readme exibe com glow
 ```
 
-Campos principais: `command`, `description`, `type`, `entrypoint`. O `readme` é opcional; se existir, o comando ganha a flag `--readme`.
+#### `command` (opcional)
 
-Para plugins que só expõem flags (sem entrypoint único), use o campo `flags` no manifesto; consulte a [Referência de comandos](./reference.md) ou o código do MB para o formato.
+Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `meu-comando` → comando `mb tools meu-comando`. Útil quando você quer um nome diferente da pasta (ex.: pasta `deploy` em `infra/ci/deploy` continua como comando `deploy`).
+
+#### `type` (obrigatório quando há `entrypoint`)
+
+Define **como** o MB executa o programa:
+
+| Valor | Significado |
+|-------|-------------|
+| `sh`  | **Script shell** — o MB invoca o interpretador e passa o caminho do script. O arquivo deve ser executável (`chmod +x`). |
+| `bin` | **Executável** — o MB executa o arquivo diretamente (ex.: binário Go, Rust, C). Deve ser compilado para o SO/arquitetura do usuário. |
+
+Se você definir `entrypoint` sem `type`, ou com `type` diferente de `sh`/`bin`, o scanner reporta erro.
+
+#### `entrypoint` (para comando “folha” executável)
+
+Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. Quando definido, é obrigatório informar `type: sh` ou `type: bin`. O MB resolve o path de forma absoluta na execução.
+
+Para plugins que **só expõem flags** (sem um único programa), não use `entrypoint` no nível raiz do manifesto; use o campo `flags`, onde cada flag pode ter seu próprio `entrypoint` e um `type` opcional que define como a flag aparece no CLI:
+
+| `type` (por flag) | Efeito |
+|-------------------|--------|
+| `long` | Só a forma longa: `--nome` (ex.: `--deploy`). |
+| `short` | Se o nome da flag tiver **um caractere**, o usuário pode usar `-n` ou `--nome`; se tiver mais de um, comporta como `long`. |
+
+Se omitir `type`, a flag **não** é registrada e o comando não aceita essa opção. Ex.:
+
+```yaml
+command: do
+description: "Ações por flag (deploy, rollback)"
+flags:
+  deploy:  { type: long, entrypoint: deploy.sh }
+  rollback: { type: long, entrypoint: rollback.sh }
+```
+
+O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** roda `deploy.sh`, **`mb tools do --rollback`** roda `rollback.sh`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
+
+Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
 ## 3. Script ou binário
 

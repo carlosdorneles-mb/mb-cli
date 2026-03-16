@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Introdução ao MB CLI
 
-O **MB CLI** é um CLI em Go para orquestrar plugins com UX em laranja, descoberta dinâmica via cache SQLite e injeção segura de variáveis de ambiente.
+O **MB CLI** é um CLI em Go para orquestrar plugins com injeção segura de variáveis de ambiente.
 
 ## O que o MB faz
 
@@ -19,8 +19,8 @@ O **MB CLI** é um CLI em Go para orquestrar plugins com UX em laranja, descober
 **Guia (uso do dia a dia)**
 
 - [Começar](getting-started) — pré-requisitos, build e instalação
-- [Criar um plugin](creating-plugins) — passo a passo com manifest e entrypoint
 - [Comandos de plugins](comandos-plugins) — como descobrir e executar comandos de plugins
+- [Criar um plugin](creating-plugins) — passo a passo com manifest e entrypoint
 - [Flags globais](flags-globais) — `--verbose`, `--quiet`, `--env`
 - [Variáveis de ambiente](variaveis-ambiente) — ordem de precedência e como usar
 
