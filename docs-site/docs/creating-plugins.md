@@ -45,7 +45,7 @@ Torne o script executável (`chmod +x run.sh`). Para `type: bin`, use um execut�
 
 ### Usando os helpers do MB
 
-Se o plugin for shell, você pode importar os helpers em `$MB_HELPERS_PATH` (diretório) para ter acesso a funções como `log`, que respeitam `MB_QUIET` e `MB_VERBOSE`. No início do script:
+Os helpers são instalados quando você roda **`mb self sync`** (ou ao adicionar um plugin com `mb plugins add`). Se o plugin for shell, você pode importar os helpers em `$MB_HELPERS_PATH` (diretório) para ter acesso a funções como `log`, que respeitam `MB_QUIET` e `MB_VERBOSE`. No início do script:
 
 ```sh
 . "$MB_HELPERS_PATH/all.sh"

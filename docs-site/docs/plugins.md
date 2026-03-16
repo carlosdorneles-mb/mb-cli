@@ -40,10 +40,11 @@ O cache SQLite (`cache.db`) armazena:
 
 O **sync** (`mb self sync` ou após add/remove/update):
 
-1. Chama o scanner em `PluginsDir` e obtém listas de plugins e categories.
-2. Obtém `ListPluginSources()`; para cada source com `local_path` não vazio, chama `ScanDir(local_path, installDir)` e faz **merge** (append) dos resultados.
-3. Faz upsert de todos os plugins e categories no cache (replace por `command_path` ou `path`).
-4. Atualiza **plugin_sources**: para cada top-level dir que apareceu no scan e ainda não tem linha no banco, insere uma linha (com git_url e local_path vazios). Linhas existentes são preservadas (incluindo `local_path` e `git_url`).
+1. Garante que os **helpers de shell** existem em `ConfigDir/lib/shell` (cria ou atualiza `all.sh`, `log.sh` e `.checksum`). Se falhar (ex.: permissão), o sync retorna erro.
+2. Chama o scanner em `PluginsDir` e obtém listas de plugins e categories.
+3. Obtém `ListPluginSources()`; para cada source com `local_path` não vazio, chama `ScanDir(local_path, installDir)` e faz **merge** (append) dos resultados.
+4. Faz upsert de todos os plugins e categories no cache (replace por `command_path` ou `path`).
+5. Atualiza **plugin_sources**: para cada top-level dir que apareceu no scan e ainda não tem linha no banco, insere uma linha (com git_url e local_path vazios). Linhas existentes são preservadas (incluindo `local_path` e `git_url`).
 
 Assim, a árvore de comandos reflete tanto o conteúdo de `PluginsDir` quanto dos diretórios registrados como locais.
 

@@ -17,7 +17,6 @@ import (
 	"mb/internal/commands/config"
 	"mb/internal/commands/self"
 	"mb/internal/env"
-	"mb/internal/helpers/shell"
 	"mb/internal/plugins"
 	"mb/internal/system"
 	"mb/internal/ui"
@@ -268,10 +267,7 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 }
 
 func appendShellHelpersEnv(merged []string, configDir string) []string {
-	path, err := shell.EnsureShellHelpers(configDir)
-	if err != nil || path == "" {
-		return merged
-	}
+	path := filepath.Join(configDir, "lib", "shell")
 	return append(merged, "MB_HELPERS_PATH="+path)
 }
 

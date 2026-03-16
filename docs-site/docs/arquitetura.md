@@ -23,7 +23,7 @@ O cache fica em `~/.config/mb/cache.db` (ou equivalente no macOS). Tabelas relev
 - **categories** — Uma por pasta que só tem manifesto de categoria (sem entrypoint): `path`, `description`, `readme_path`.
 - **plugin_sources** — Um registro por “instalação” (nome do plugin): `install_dir`, `git_url`, `ref_type`, `ref`, `version`, `local_path`. Quando `local_path` está preenchido, o plugin é local (o código fica nesse path; não em `PluginsDir`). Quando `git_url` está preenchido, o plugin foi instalado por clone Git em `PluginsDir`.
 
-O cache é **escrito** quando alguém roda `mb self sync` (ou após `plugins add/remove/update`). O sync escaneia o diretório de plugins e, para cada source com `local_path`, escaneia esse diretório; em seguida faz merge e upsert em `plugins` e `categories`, e atualiza `plugin_sources` para novos diretórios (preservando `local_path` e `git_url` existentes).
+O cache é **escrito** quando alguém roda `mb self sync` (ou após `plugins add/remove/update`). O sync primeiro garante os helpers de shell em `ConfigDir/lib/shell` (cria ou atualiza por checksum); em seguida escaneia o diretório de plugins e, para cada source com `local_path`, escaneia esse diretório; faz merge e upsert em `plugins` e `categories`, e atualiza `plugin_sources` para novos diretórios (preservando `local_path` e `git_url` existentes).
 
 O cache é **lido** na inicialização do CLI para montar a árvore de comandos e, em tempo de execução, para resolver o path do executável (PluginsDir + command_path ou local_path, conforme o caso).
 

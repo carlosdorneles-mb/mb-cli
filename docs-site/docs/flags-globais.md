@@ -42,7 +42,7 @@ mb -q tools meu-comando
 
 Em plugins escritos em shell, você pode ler `MB_VERBOSE` e `MB_QUIET` para decidir se imprime mensagens e em qual nível. Assim o plugin respeita a preferência do usuário ao usar `-v` ou `-q`.
 
-O CLI disponibiliza **helpers de shell** (por exemplo a função `log`) e define no ambiente do plugin a variável **`MB_HELPERS_PATH`** (diretório `~/.config/mb/lib/shell`). Para usá-los, no início do script faça: `. "$MB_HELPERS_PATH/all.sh"` (todos) ou `. "$MB_HELPERS_PATH/log.sh"` (só log). Depois você pode chamar `log info "mensagem"`, `log debug "detalhe"`, etc. Veja a [Referência: Helpers de shell](./helpers-shell.md) para a lista de helpers e como carregar.
+O CLI disponibiliza **helpers de shell** (por exemplo a função `log`) e define no ambiente do plugin a variável **`MB_HELPERS_PATH`** (diretório `~/.config/mb/lib/shell`). Os arquivos nesse diretório são criados e atualizados ao rodar **`mb self sync`**. Para usá-los nos plugins, no início do script faça: `. "$MB_HELPERS_PATH/all.sh"` (todos) ou `. "$MB_HELPERS_PATH/log.sh"` (só log). Depois você pode chamar `log info "mensagem"`, `log debug "detalhe"`, etc. Veja a [Referência: Helpers de shell](./helpers-shell.md) para a lista de helpers e como carregar.
 
 - **`MB_QUIET=1`** — O usuário pediu saída mínima. Evite chamar `gum log` para mensagens informativas; só mostre erros se fizer sentido.
 - **`MB_VERBOSE=1`** — O usuário pediu mais detalhes. Você pode incluir logs em nível debug ou mensagens de diagnóstico.

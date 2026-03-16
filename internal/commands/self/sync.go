@@ -8,6 +8,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands/config"
+	"mb/internal/helpers/shell"
 	"mb/internal/ui"
 )
 
@@ -17,6 +18,9 @@ import (
 func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
 	plugins, categories, warnings, err := deps.Scanner.Scan()
 	if err != nil {
+		return err
+	}
+	if _, err := shell.EnsureShellHelpers(deps.Runtime.ConfigDir); err != nil {
 		return err
 	}
 	sources, err := deps.Store.ListPluginSources()

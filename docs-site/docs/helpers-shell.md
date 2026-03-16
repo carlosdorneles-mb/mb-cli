@@ -23,7 +23,7 @@ Exemplo:
 log info "Olá!"
 ```
 
-O diretório é criado na primeira execução de um plugin. Ao atualizar o CLI para uma versão que altere os helpers, os arquivos em `lib/shell` são atualizados automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
+O diretório e os arquivos (`all.sh`, `log.sh`) são criados ou atualizados quando você executa **`mb self sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Se os helpers ainda não existirem, execute `mb self sync` antes de usá-los nos seus plugins. Ao atualizar o CLI para uma versão que altere os helpers, o próximo `mb self sync` atualiza os arquivos em `lib/shell` automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
 
 ## Helpers disponíveis
 
