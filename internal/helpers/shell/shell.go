@@ -7,22 +7,33 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
-//go:embed all.sh log.sh
+//go:embed *.sh
 var shellFS embed.FS
-
-// embedFiles ordem fixa para checksum e escrita.
-var embedFiles = []string{"all.sh", "log.sh"}
 
 const checksumFile = ".checksum"
 
-// helpersChecksum retorna SHA256 (hex) da concatenação do conteúdo dos arquivos
-// embutidos na ordem embedFiles.
+// embeddedShellFiles retorna os nomes dos arquivos .sh embutidos, ordenados para checksum determinístico.
+func embeddedShellFiles() ([]string, error) {
+	entries, err := fs.Glob(shellFS, "*.sh")
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(entries)
+	return entries, nil
+}
+
+// helpersChecksum retorna SHA256 (hex) da concatenação do conteúdo dos arquivos .sh embutidos.
 func helpersChecksum() (string, error) {
+	files, err := embeddedShellFiles()
+	if err != nil {
+		return "", err
+	}
 	h := sha256.New()
-	for _, name := range embedFiles {
+	for _, name := range files {
 		data, err := fs.ReadFile(shellFS, name)
 		if err != nil {
 			return "", err
@@ -33,12 +44,16 @@ func helpersChecksum() (string, error) {
 }
 
 // EnsureShellHelpers cria o diretório lib/shell sob configDir (se não existir),
-// grava all.sh e log.sh a partir do conteúdo embutido, e retorna o path
+// grava todos os .sh embutidos (descobertos automaticamente) e retorna o path
 // absoluto do diretório lib/shell. Esse path é passado ao plugin como MB_HELPERS_PATH.
 // Se o arquivo .checksum em lib/shell existir e for igual ao checksum atual do embed,
 // os arquivos não são reescritos (atualização automática quando o conteúdo muda).
 func EnsureShellHelpers(configDir string) (string, error) {
 	shellDir := filepath.Join(configDir, "lib", "shell")
+	files, err := embeddedShellFiles()
+	if err != nil {
+		return "", err
+	}
 	currentChecksum, err := helpersChecksum()
 	if err != nil {
 		return "", err
@@ -55,7 +70,7 @@ func EnsureShellHelpers(configDir string) (string, error) {
 		}
 	}
 
-	for _, name := range embedFiles {
+	for _, name := range files {
 		data, err := fs.ReadFile(shellFS, name)
 		if err != nil {
 			return "", err
