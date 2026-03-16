@@ -13,7 +13,6 @@ CLI em Go para orquestrar plugins com UX em laranja, descoberta dinâmica via ca
 ## Pré-requisitos
 
 - Go 1.22+
-- Toolchain C (CGO) para `mattn/go-sqlite3`
 - Opcional: [gum](https://github.com/charmbracelet/gum) (tabelas/inputs), [glow](https://github.com/charmbracelet/glow) (help em Markdown)
 
 ## Build e instalação

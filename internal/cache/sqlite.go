@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed schema_table.sql
@@ -60,7 +60,7 @@ func NewStore(cacheDBPath string) (*Store, error) {
 		return nil, err
 	}
 
-	db, err := sql.Open("sqlite3", cacheDBPath)
+	db, err := sql.Open("sqlite", cacheDBPath)
 	if err != nil {
 		return nil, err
 	}
