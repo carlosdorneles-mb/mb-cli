@@ -51,7 +51,7 @@ func TestAddLocalRegistersPathOnly(t *testing.T) {
 		t.Fatalf("write run.sh: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
 	deps := config.NewDependencies(
 		runtime,
 		store,
@@ -111,7 +111,7 @@ func TestAddLocalWithDotUsesCwd(t *testing.T) {
 		t.Fatalf("write run.sh: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
 	deps := config.NewDependencies(
 		runtime,
 		store,
@@ -156,7 +156,7 @@ func TestAddLocalInvalidDirErrors(t *testing.T) {
 	defer store.Close()
 
 	emptyDir := t.TempDir()
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
 	deps := config.NewDependencies(
 		runtime,
 		store,
@@ -205,7 +205,7 @@ func TestSyncIncludesLocalSources(t *testing.T) {
 		t.Fatalf("upsert source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
 	deps := config.NewDependencies(
 		runtime,
 		store,
@@ -263,7 +263,7 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 		t.Fatalf("upsert source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
 	deps := config.NewDependencies(
 		runtime,
 		store,

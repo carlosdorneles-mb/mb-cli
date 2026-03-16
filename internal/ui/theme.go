@@ -3,12 +3,11 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	orange = lipgloss.Color("#FFA500")
-
+	orange       = lipgloss.Color("#FFA500")
 	bannerStyle  = lipgloss.NewStyle().Foreground(orange).Bold(true)
-	infoStyle    = lipgloss.NewStyle().Foreground(orange)
-	successStyle = lipgloss.NewStyle().Foreground(orange).Bold(true)
-	errorStyle   = lipgloss.NewStyle().Foreground(orange).Bold(true)
+	infoStyle    = lipgloss.NewStyle()
+	successStyle = lipgloss.NewStyle().Bold(true)
+	errorStyle   = lipgloss.NewStyle().Bold(true)
 )
 
 func RenderBanner(message string) string {

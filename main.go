@@ -38,6 +38,7 @@ func main() {
 		fang.WithoutManpage(),
 		fang.WithErrorHandler(ui.ErrorHandlerPT),
 		fang.WithVersion(v),
+		fang.WithColorSchemeFunc(ui.MBHelpTheme()),
 	}
 	if err := fang.Execute(ctx, rootCmd, opts...); err != nil {
 		os.Exit(1)
