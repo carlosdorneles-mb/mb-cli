@@ -96,7 +96,7 @@ func newPluginsAddCmd(deps config.Dependencies) *cobra.Command {
 				return err
 			}
 
-			if err := self.RunSync(deps, func(msg string) {}); err != nil {
+			if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
 				return err
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q instalado em %s (versão %s)", installDir, destDir, version)))

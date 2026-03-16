@@ -2,6 +2,7 @@ package self
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -12,10 +13,16 @@ import (
 
 // RunSync rescans the plugins dir, upserts plugins and categories, and updates the plugin_sources registry.
 // Used by both "mb self sync" and after plugins add/remove/update.
-func RunSync(deps config.Dependencies, outSuccess func(string)) error {
-	plugins, categories, err := deps.Scanner.Scan()
+// outWarnings: if non-nil, validation warnings (skipped plugins) are written here.
+func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
+	plugins, categories, warnings, err := deps.Scanner.Scan()
 	if err != nil {
 		return err
+	}
+	if outWarnings != nil {
+		for _, w := range warnings {
+			fmt.Fprintf(outWarnings, "aviso: %s: %s\n", w.Path, w.Message)
+		}
 	}
 
 	for _, plugin := range plugins {
@@ -38,7 +45,7 @@ func RunSync(deps config.Dependencies, outSuccess func(string)) error {
 	}
 
 	if outSuccess != nil {
-		outSuccess(fmt.Sprintf("synced %d plugin(s)", len(plugins)))
+		outSuccess(fmt.Sprintf("%d plugin(s) foram sincronizados", len(plugins)))
 	}
 	return nil
 }
@@ -81,7 +88,7 @@ func newSelfSyncCmd(deps config.Dependencies) *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return RunSync(deps, func(msg string) {
 				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
-			})
+			}, cmd.ErrOrStderr())
 		},
 	}
 }

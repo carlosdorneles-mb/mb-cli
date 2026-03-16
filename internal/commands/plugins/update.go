@@ -36,7 +36,7 @@ func newPluginsUpdateCmd(deps config.Dependencies) *cobra.Command {
 						fmt.Fprintln(cmd.ErrOrStderr(), ui.RenderError(fmt.Sprintf("%s: %v", src.InstallDir, err)))
 					}
 				}
-				return self.RunSync(deps, nil)
+				return self.RunSync(deps, nil, cmd.ErrOrStderr())
 			}
 
 			if len(args) == 0 {
@@ -48,7 +48,7 @@ func newPluginsUpdateCmd(deps config.Dependencies) *cobra.Command {
 			}
 			return self.RunSync(deps, func(msg string) {
 				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
-			})
+			}, cmd.ErrOrStderr())
 		},
 	}
 

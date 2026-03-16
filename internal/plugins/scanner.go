@@ -8,9 +8,16 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"mb/internal/cache"
 )
+
+// ValidationWarning represents a plugin that was skipped during scan due to validation errors.
+type ValidationWarning struct {
+	Path    string // path to manifest.yaml
+	Message string // message in Portuguese
+}
 
 type Scanner struct {
 	pluginsDir string
@@ -20,11 +27,35 @@ func NewScanner(pluginsDir string) *Scanner {
 	return &Scanner{pluginsDir: pluginsDir}
 }
 
-func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, error) {
+// validateManifest returns a list of validation errors. Empty slice means valid.
+func validateManifest(manifest Manifest, baseDir string) []string {
+	var errs []string
+	if manifest.Type != "" && manifest.Type != "sh" && manifest.Type != "bin" {
+		errs = append(errs, "type deve ser sh ou bin")
+	}
+	if manifest.Entrypoint != "" {
+		if manifest.Type != "sh" && manifest.Type != "bin" {
+			errs = append(errs, "entrypoint exige type: sh ou bin")
+		} else {
+			execPath := filepath.Join(baseDir, manifest.Entrypoint)
+			if _, err := os.Stat(execPath); err != nil {
+				if os.IsNotExist(err) {
+					errs = append(errs, "entrypoint não encontrado: "+manifest.Entrypoint)
+				} else {
+					errs = append(errs, "entrypoint inacessível: "+manifest.Entrypoint)
+				}
+			}
+		}
+	}
+	return errs
+}
+
+func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
 	plugins := []cache.Plugin{}
 	categories := []cache.Category{}
+	warnings := []ValidationWarning{}
 	if _, err := os.Stat(s.pluginsDir); os.IsNotExist(err) {
-		return plugins, categories, nil
+		return plugins, categories, warnings, nil
 	}
 
 	err := filepath.WalkDir(s.pluginsDir, func(path string, d fs.DirEntry, walkErr error) error {
@@ -41,6 +72,11 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, error) {
 		}
 
 		baseDir := filepath.Dir(path)
+		if errs := validateManifest(manifest, baseDir); len(errs) > 0 {
+			warnings = append(warnings, ValidationWarning{Path: path, Message: strings.Join(errs, "; ")})
+			return nil
+		}
+
 		relPath, err := filepath.Rel(s.pluginsDir, baseDir)
 		if err != nil {
 			return fmt.Errorf("relative path %s: %w", baseDir, err)
@@ -106,8 +142,8 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return plugins, categories, nil
+	return plugins, categories, warnings, nil
 }
