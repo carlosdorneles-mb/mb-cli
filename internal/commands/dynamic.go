@@ -238,6 +238,25 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		}
 
 		if chosenFlag == "" || chosenEntrypoint == "" {
+			if plugin.ExecPath != "" {
+				argsToPass := args
+				if cmd.Flags().Lookup("readme") != nil {
+					argsToPass = cmd.Flags().Args()
+				}
+				cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
+				if err != nil {
+					return err
+				}
+				fileValues, err := buildEnvFileValues(deps.Runtime)
+				if err != nil {
+					return err
+				}
+				merged := env.Merge(os.Environ(), fileValues, cliValues)
+				merged = ui.PrependGumThemeDefaults(merged)
+				merged = appendVerbosityEnv(merged, deps.Runtime)
+				merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
+				return deps.Executor.Run(cmd.Context(), plugin, argsToPass, merged)
+			}
 			cmd.Help()
 			return nil
 		}

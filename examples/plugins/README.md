@@ -8,8 +8,8 @@ A hierarquia de pastas define categorias e subcategorias. Cada pasta pode ter um
 |----------------------|------------------------|
 | infra/ci/deploy      | `mb infra ci deploy` |
 | infra/ci/lint        | `mb infra ci lint`   |
-| infra/k8s/apply     | `mb infra k8s apply` |
-| tools/hello          | `mb tools hello`     |
+| infra/k8s/apply      | `mb infra k8s apply` |
+| tools/do             | `mb tools do`        |
 
 O path relativo à pasta de plugins vira o comando: `infra/ci/deploy` → `mb infra ci deploy`.
 
@@ -42,7 +42,7 @@ Os plugins continuam em `examples/plugins` e são acessados pelo path; não é n
    chmod +x ~/.config/mb/plugins/infra/ci/deploy/run.sh
    chmod +x ~/.config/mb/plugins/infra/ci/lint/run.sh
    chmod +x ~/.config/mb/plugins/infra/k8s/apply/run.sh
-   chmod +x ~/.config/mb/plugins/tools/hello/run.sh
+   chmod +x ~/.config/mb/plugins/tools/do/run.sh ~/.config/mb/plugins/tools/do/deploy.sh ~/.config/mb/plugins/tools/do/rollback.sh
    ```
 
 Depois sincronize e liste:
@@ -52,7 +52,8 @@ Depois sincronize e liste:
    mb plugins list
    mb infra ci deploy
    mb infra k8s apply
-   mb tools hello
+   mb tools do
+   mb tools do --deploy
    ```
 
 ## Como ver o README
@@ -60,4 +61,4 @@ Depois sincronize e liste:
 Se um comando ou categoria tiver `readme` no manifest (ex.: README.md), use a flag `--readme` para renderizar o arquivo com glow:
 
 - **Categorias:** `mb tools --readme`, `mb infra ci --readme`, etc.
-- **Comandos:** `mb infra ci deploy --readme`, `mb tools hello --readme` (quando o plugin tem readme configurado).
+- **Comandos:** `mb infra ci deploy --readme`, `mb tools do --readme` (quando o plugin tem readme configurado).

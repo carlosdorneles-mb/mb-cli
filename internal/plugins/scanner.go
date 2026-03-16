@@ -91,10 +91,19 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 			readmePath = filepath.Join(baseDir, manifest.Readme)
 		}
 
-		// Leaf with entrypoint: ignore Flags; type inferred from .sh suffix
+		// Leaf with entrypoint (and optionally flags): type inferred from .sh suffix
 		if manifest.Entrypoint != "" {
 			execPath := filepath.Join(baseDir, manifest.Entrypoint)
 			pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
+			flagsJSON := ""
+			if manifest.Flags.Len() > 0 {
+				flagsMap := manifest.Flags.ToMap()
+				flagsJSONBytes, err := json.Marshal(flagsMap)
+				if err != nil {
+					return fmt.Errorf("marshal flags %s: %w", path, err)
+				}
+				flagsJSON = string(flagsJSONBytes)
+			}
 			plugins = append(plugins, cache.Plugin{
 				CommandPath: commandPath,
 				CommandName: commandName,
@@ -103,12 +112,12 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 				PluginType:  pluginType,
 				ConfigHash:  configHash,
 				ReadmePath:  readmePath,
-				FlagsJSON:   "",
+				FlagsJSON:   flagsJSON,
 			})
 			return nil
 		}
 
-		// Leaf with flags only: no entrypoint, has Flags (list or map)
+		// Leaf with flags only: no entrypoint, has Flags
 		if manifest.Flags.Len() > 0 {
 			flagsMap := manifest.Flags.ToMap()
 			flagsJSON, err := json.Marshal(flagsMap)
@@ -202,6 +211,15 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 		if manifest.Entrypoint != "" {
 			execPath := filepath.Join(baseDir, manifest.Entrypoint)
 			pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
+			flagsJSON := ""
+			if manifest.Flags.Len() > 0 {
+				flagsMap := manifest.Flags.ToMap()
+				flagsJSONBytes, err := json.Marshal(flagsMap)
+				if err != nil {
+					return fmt.Errorf("marshal flags %s: %w", path, err)
+				}
+				flagsJSON = string(flagsJSONBytes)
+			}
 			plugins = append(plugins, cache.Plugin{
 				CommandPath: commandPath,
 				CommandName: commandName,
@@ -210,7 +228,7 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 				PluginType:  pluginType,
 				ConfigHash:  configHash,
 				ReadmePath:  readmePath,
-				FlagsJSON:   "",
+				FlagsJSON:   flagsJSON,
 			})
 			return nil
 		}

@@ -36,7 +36,9 @@ Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `me
 
 Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. O MB resolve o path de forma absoluta na execução. O **tipo de execução** é inferido pelo sufixo: se terminar em **`.sh`**, executa como script shell (`/bin/sh` + script); caso contrário, como binário. Não é necessário declarar `type` no manifesto.
 
-Para plugins que **só expõem flags** (sem um único programa), não use `entrypoint` no nível raiz do manifesto; use o campo `flags` como **lista**. Cada item tem `name`, `description` (exibida no `--help` da flag), `entrypoint` e `commands` com `long` (nome da flag, ex.: `--deploy`) e `short` (opcional, uma letra, ex.: `-d`). O `short` deve ser único entre as flags do comando. Ex.:
+É possível definir **entrypoint** e **flags** no mesmo manifest: ao executar o comando sem flag (ex.: `mb tools do`), o MB roda o entrypoint padrão; ao passar uma flag (ex.: `mb tools do --deploy`), roda o script daquela flag. Ex.: com `entrypoint: run.sh` e uma flag `deploy` com `entrypoint: deploy.sh`, `mb tools do` executa run.sh e `mb tools do --deploy` executa deploy.sh.
+
+Para plugins que **só expõem flags** (sem execução padrão), não use `entrypoint` no nível raiz; use apenas o campo `flags` como **lista**. Cada item tem `name`, `description` (exibida no `--help` da flag), `entrypoint` e `commands` com `long` (nome da flag, ex.: `--deploy`) e `short` (opcional, uma letra, ex.: `-d`). O `short` deve ser único entre as flags do comando. Ex.:
 
 ```yaml
 command: do

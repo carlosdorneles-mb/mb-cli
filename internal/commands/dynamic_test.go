@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -196,6 +197,109 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 			t.Errorf("after Parse(%v), deploy flag not changed", args)
 		}
 		deployFlag.Changed = false
+	}
+}
+
+// TestEntrypointAndFlagsRunsDefaultOrFlag verifies that when a plugin has both ExecPath
+// and FlagsJSON, running with no flag runs the default entrypoint, and running with
+// a flag runs that flag's entrypoint.
+func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
+	flagsMap := map[string]plugins.FlagDef{
+		"deploy": {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Deploy"},
+	}
+	flagsJSON, err := json.Marshal(flagsMap)
+	if err != nil {
+		t.Fatalf("marshal flags: %v", err)
+	}
+
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	pluginDoDir := filepath.Join(pluginsDir, "tools", "do")
+	if err := os.MkdirAll(pluginDoDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	runPath := filepath.Join(pluginDoDir, "run.sh")
+	deployPath := filepath.Join(pluginDoDir, "deploy.sh")
+	for _, path := range []string{runPath, deployPath} {
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatalf("write script: %v", err)
+		}
+	}
+
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	plugin := cache.Plugin{
+		CommandPath: "tools/do",
+		CommandName: "do",
+		Description: "Default + flags",
+		ExecPath:    runPath,
+		PluginType:  "sh",
+		ConfigHash:  "test",
+		FlagsJSON:   string(flagsJSON),
+	}
+	if err := store.UpsertPlugin(plugin); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		ExecPath:    "/bin/true",
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert tools/hello: %v", err)
+	}
+
+	runtime := &config.RuntimeConfig{
+		ConfigDir:  filepath.Join(tmp, "mb"),
+		PluginsDir: pluginsDir,
+	}
+	deps := config.NewDependencies(
+		runtime,
+		store,
+		plugins.NewScanner(runtime.PluginsDir),
+		executor.New(),
+	)
+	root := NewRootCmd(deps)
+
+	var doCmd *cobra.Command
+	for _, c := range root.Commands() {
+		if c.Name() == "tools" {
+			for _, sub := range c.Commands() {
+				if sub.Name() == "do" {
+					doCmd = sub
+					break
+				}
+			}
+			break
+		}
+	}
+	if doCmd == nil {
+		t.Fatal("command 'tools do' not found")
+	}
+
+	// No flag: should run default entrypoint (run.sh)
+	doCmd.SetContext(context.Background())
+	doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
+	if err := doCmd.Flags().Parse([]string{}); err != nil {
+		t.Fatalf("Parse(): %v", err)
+	}
+	if err := doCmd.RunE(doCmd, []string{}); err != nil {
+		t.Errorf("RunE with no flag (default entrypoint): %v", err)
+	}
+
+	// --deploy: should run deploy.sh
+	doCmd.Flags().Parse([]string{"--deploy"})
+	if err := doCmd.RunE(doCmd, []string{}); err != nil {
+		t.Errorf("RunE with --deploy: %v", err)
 	}
 }
 

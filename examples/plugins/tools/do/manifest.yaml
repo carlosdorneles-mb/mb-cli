@@ -1,5 +1,6 @@
 command: do
 description: Ações por flag (deploy, rollback) — exemplo sem entrypoint único
+entrypoint: run.sh
 flags:
   - name: deploy
     description: Descrição da flag deploy

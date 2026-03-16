@@ -76,6 +76,57 @@ func TestScannerSkipsInvalidManifest(t *testing.T) {
 	_ = categories
 }
 
+func TestScannerEntrypointAndFlags(t *testing.T) {
+	tmp := t.TempDir()
+	pluginDir := filepath.Join(tmp, "plugins", "tools", "do")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	runPath := filepath.Join(pluginDir, "run.sh")
+	deployPath := filepath.Join(pluginDir, "deploy.sh")
+	for _, p := range []string{runPath, deployPath} {
+		if err := os.WriteFile(p, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatalf("write script: %v", err)
+		}
+	}
+	manifest := []byte(`command: do
+description: Do with default and flags
+entrypoint: run.sh
+flags:
+  - name: deploy
+    description: Deploy
+    entrypoint: deploy.sh
+    commands:
+      long: deploy
+      short: d
+`)
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	scanner := NewScanner(filepath.Join(tmp, "plugins"))
+	plugins, _, warnings, err := scanner.Scan()
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %d: %v", len(warnings), warnings)
+	}
+	if len(plugins) != 1 {
+		t.Fatalf("expected one plugin, got %d", len(plugins))
+	}
+	p := plugins[0]
+	if p.ExecPath != runPath {
+		t.Errorf("ExecPath = %q, want %q", p.ExecPath, runPath)
+	}
+	if p.FlagsJSON == "" {
+		t.Error("FlagsJSON should be set when manifest has both entrypoint and flags")
+	}
+	if p.PluginType != "sh" {
+		t.Errorf("PluginType = %q, want sh", p.PluginType)
+	}
+}
+
 func TestScanDir(t *testing.T) {
 	tmp := t.TempDir()
 	pluginDir := filepath.Join(tmp, "mydir")
