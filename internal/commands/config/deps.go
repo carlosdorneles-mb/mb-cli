@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"mb/internal/cache"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -15,6 +17,8 @@ type RuntimeConfig struct {
 	Quiet           bool
 	EnvFilePath     string
 	InlineEnvValues []string
+	// PluginTimeout limits how long a plugin script can run. Zero means no limit.
+	PluginTimeout time.Duration
 }
 
 type Dependencies struct {

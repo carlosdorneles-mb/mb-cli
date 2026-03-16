@@ -26,7 +26,7 @@ func TestRunInjectsEnv(t *testing.T) {
 		PluginType:  "sh",
 	}
 
-	err := ex.Run(context.Background(), plugin, []string{outputFile}, []string{"MB_TOKEN=abc123"})
+	err := ex.Run(context.Background(), plugin, []string{outputFile}, []string{"MB_TOKEN=abc123"}, tmp)
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
@@ -37,5 +37,27 @@ func TestRunInjectsEnv(t *testing.T) {
 	}
 	if string(raw) != "abc123\n" {
 		t.Fatalf("expected injected env value, got %q", string(raw))
+	}
+}
+
+func TestRunRejectsPathOutsideAllowedRoot(t *testing.T) {
+	tmp := t.TempDir()
+	allowedRoot := filepath.Join(tmp, "plugin")
+	scriptOutside := filepath.Join(tmp, "other", "run.sh")
+	if err := os.MkdirAll(filepath.Dir(scriptOutside), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(scriptOutside, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	ex := New()
+	plugin := cache.Plugin{
+		ExecPath:   scriptOutside,
+		PluginType: "sh",
+	}
+	err := ex.Run(context.Background(), plugin, nil, nil, allowedRoot)
+	if err == nil {
+		t.Fatal("Run expected to fail when ExecPath is outside allowedRoot")
 	}
 }

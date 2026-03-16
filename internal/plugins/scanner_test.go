@@ -76,6 +76,43 @@ func TestScannerSkipsInvalidManifest(t *testing.T) {
 	_ = categories
 }
 
+func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
+	tmp := t.TempDir()
+	pluginDir := filepath.Join(tmp, "plugins", "tools", "safe")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	// Script outside plugin dir: tmp/other/run.sh (so path escapes plugins/tools/safe)
+	outsideDir := filepath.Join(tmp, "other")
+	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
+		t.Fatalf("mkdir outside: %v", err)
+	}
+	outsideScript := filepath.Join(outsideDir, "run.sh")
+	if err := os.WriteFile(outsideScript, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write outside script: %v", err)
+	}
+	// Manifest points to script outside plugin dir via .. (safe -> tools -> plugins -> tmp, then other/run.sh)
+	manifest := []byte("command: safe\ndescription: Safe\nentrypoint: ../../../other/run.sh\n")
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	scanner := NewScanner(filepath.Join(tmp, "plugins"))
+	plugins, _, warnings, err := scanner.Scan()
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(plugins) != 0 {
+		t.Fatalf("expected no plugins (path traversal), got %d", len(plugins))
+	}
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0].Message, "fora do diretório") {
+		t.Errorf("warning should mention path outside plugin dir, got %q", warnings[0].Message)
+	}
+}
+
 func TestScannerEntrypointAndFlags(t *testing.T) {
 	tmp := t.TempDir()
 	pluginDir := filepath.Join(tmp, "plugins", "tools", "do")

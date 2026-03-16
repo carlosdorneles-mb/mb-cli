@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Plugins (referência técnica)
+# Plugins
 
 Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para como **criar** um plugin e usar os comandos `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](./creating-plugins.md) e [Comandos de plugins](./plugin-commands.md).
 
@@ -82,3 +82,7 @@ As flags listadas na tabela acima são reconhecidas e **não** aparecem em `$1`,
 - **Plugin com README ou com `flags` no manifesto:** o comando do plugin faz parsing de flags (só as que o CLI declarou). Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
 
 Resumindo: em plugins “simples” (um entrypoint, sem README), qualquer coisa após o comando vira argumento do script. Em plugins com README ou com flags no manifesto, apenas as flags conhecidas são aceitas; o resto gera erro antes de rodar o plugin.
+
+## Segurança
+
+Os plugins rodam com as permissões do usuário; o CLI restringe a execução a scripts **dentro do diretório do plugin** (confinamento de path no scan e no executor) e suporta timeout opcional. Para o modelo completo e recomendações, veja [Segurança](./security.md).

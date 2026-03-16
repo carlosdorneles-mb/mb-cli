@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"mb/internal/cache"
+	"mb/internal/safepath"
 )
 
 // ValidationWarning represents a plugin that was skipped during scan due to validation errors.
@@ -37,6 +38,23 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 				errs = append(errs, "entrypoint não encontrado: "+manifest.Entrypoint)
 			} else {
 				errs = append(errs, "entrypoint inacessível: "+manifest.Entrypoint)
+			}
+		} else if err := safepath.ValidateUnderDir(execPath, baseDir); err != nil {
+			errs = append(errs, "entrypoint fora do diretório do plugin: "+manifest.Entrypoint)
+		}
+	}
+	if manifest.Readme != "" {
+		readmePath := filepath.Join(baseDir, manifest.Readme)
+		if err := safepath.ValidateUnderDir(readmePath, baseDir); err != nil {
+			errs = append(errs, "readme fora do diretório do plugin: "+manifest.Readme)
+		}
+	}
+	for _, e := range manifest.Flags.List {
+		if e.Entrypoint != "" {
+			flagPath := filepath.Join(baseDir, e.Entrypoint)
+			if err := safepath.ValidateUnderDir(flagPath, baseDir); err != nil {
+				errs = append(errs, "flag entrypoint fora do diretório do plugin: "+e.Entrypoint)
+				break
 			}
 		}
 	}

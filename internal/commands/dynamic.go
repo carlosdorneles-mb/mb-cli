@@ -18,6 +18,7 @@ import (
 	"mb/internal/commands/self"
 	"mb/internal/env"
 	"mb/internal/plugins"
+	"mb/internal/safepath"
 	"mb/internal/system"
 	"mb/internal/ui"
 )
@@ -130,7 +131,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 		cmd := &cobra.Command{
 			Use:   use,
 			Short: short,
-			RunE:  runEntrypointCommand(plugin, deps),
+			RunE:  runEntrypointCommand(plugin, deps, pluginRoot),
 		}
 		if plugin.ReadmePath != "" {
 			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
@@ -191,7 +192,7 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 	return fs.Args()
 }
 
-func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*cobra.Command, []string) error {
+func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
@@ -213,7 +214,13 @@ func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*c
 		merged = ui.PrependGumThemeDefaults(merged)
 		merged = appendVerbosityEnv(merged, deps.Runtime)
 		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
-		return deps.Executor.Run(cmd.Context(), plugin, argsToPass, merged)
+		ctx := cmd.Context()
+		if deps.Runtime.PluginTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+			defer cancel()
+		}
+		return deps.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 	}
 }
 
@@ -255,7 +262,13 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 				merged = ui.PrependGumThemeDefaults(merged)
 				merged = appendVerbosityEnv(merged, deps.Runtime)
 				merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
-				return deps.Executor.Run(cmd.Context(), plugin, argsToPass, merged)
+				ctx := cmd.Context()
+				if deps.Runtime.PluginTimeout > 0 {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+					defer cancel()
+				}
+				return deps.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 			}
 			cmd.Help()
 			return nil
@@ -269,6 +282,9 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			baseDir = pluginRoot
 		}
 		execPath := filepath.Join(baseDir, chosenEntrypoint)
+		if err := safepath.ValidateUnderDir(execPath, baseDir); err != nil {
+			return fmt.Errorf("flag entrypoint fora do diretório do plugin: %w", err)
+		}
 		pluginType := plugins.PluginTypeFromEntrypoint(chosenEntrypoint)
 		syntheticPlugin := cache.Plugin{
 			CommandPath: plugin.CommandPath,
@@ -290,7 +306,13 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		merged = ui.PrependGumThemeDefaults(merged)
 		merged = appendVerbosityEnv(merged, deps.Runtime)
 		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
-		return deps.Executor.Run(cmd.Context(), syntheticPlugin, args, merged)
+		ctx := cmd.Context()
+		if deps.Runtime.PluginTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+			defer cancel()
+		}
+		return deps.Executor.Run(ctx, syntheticPlugin, args, merged, pluginRoot)
 	}
 }
 
