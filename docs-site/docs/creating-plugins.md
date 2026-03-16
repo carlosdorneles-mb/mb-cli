@@ -43,6 +43,17 @@ echo "Variável injetada: API_KEY=${API_KEY:-não definida}"
 
 Torne o script executável (`chmod +x run.sh`). Para `type: bin`, use um executável compilado (Go, Rust, etc.) e indique-o em `entrypoint`.
 
+### Usando os helpers do MB
+
+Se o plugin for shell, você pode sourcear `$MB_HELPERS_PATH` para ter acesso a funções como `log`, que respeitam `MB_QUIET` e `MB_VERBOSE`. No início do script:
+
+```sh
+. "$MB_HELPERS_PATH"
+log info "Processando..."
+```
+
+Veja [Helpers de shell](./helpers-shell.md) para a lista de helpers e [Flags globais](./flags-globais.md) para o efeito de `-v` e `-q`.
+
 ## 4. (Opcional) README
 
 Se você declarou `readme: README.md`, crie esse arquivo na mesma pasta. Ao rodar `mb tools meu-comando --readme`, o MB renderiza o Markdown no terminal (com glow, se instalado).

@@ -26,6 +26,7 @@ const sidebars = {
       items: [
         'arquitetura',
         'plugins',
+        'helpers-shell',
         'reference',
       ],
     },

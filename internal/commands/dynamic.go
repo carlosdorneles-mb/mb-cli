@@ -17,6 +17,7 @@ import (
 	"mb/internal/commands/config"
 	"mb/internal/commands/self"
 	"mb/internal/env"
+	"mb/internal/helpers/shell"
 	"mb/internal/plugins"
 	"mb/internal/system"
 	"mb/internal/ui"
@@ -205,6 +206,7 @@ func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*c
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
 		merged = appendVerbosityEnv(merged, deps.Runtime)
+		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
 		return deps.Executor.Run(cmd.Context(), plugin, argsToPass, merged)
 	}
 }
@@ -260,8 +262,17 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
 		merged = appendVerbosityEnv(merged, deps.Runtime)
+		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
 		return deps.Executor.Run(cmd.Context(), syntheticPlugin, args, merged)
 	}
+}
+
+func appendShellHelpersEnv(merged []string, configDir string) []string {
+	path, err := shell.EnsureShellHelpers(configDir)
+	if err != nil || path == "" {
+		return merged
+	}
+	return append(merged, "MB_HELPERS_PATH="+path)
 }
 
 func appendVerbosityEnv(merged []string, rt *config.RuntimeConfig) []string {
