@@ -23,6 +23,7 @@ O **MB CLI** é um CLI em Go para orquestrar plugins com injeção segura de var
 - [Criar um plugin](creating-plugins) — passo a passo com manifest e entrypoint
 - [Flags globais](global-flags) — `--verbose`, `--quiet`, `--env`
 - [Variáveis de ambiente](environment-variables) — ordem de precedência e como usar
+- [Segurança](security) — modelo de execução, confinamento de path e boas práticas
 
 **Referência técnica**
 

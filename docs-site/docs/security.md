@@ -1,0 +1,53 @@
+---
+sidebar_position: 6
+---
+
+# Segurança
+
+Esta página descreve como o MB CLI lida com a execução de scripts e binários de plugins e o que você pode fazer para usar o CLI de forma segura.
+
+## Modelo de execução
+
+- **Permissões:** os scripts e binários dos plugins rodam com as **mesmas permissões do usuário** que invocou o CLI. Não há sandbox, container nem ambiente isolado: o processo do plugin é um processo filho normal no seu sistema.
+- **O que isso implica:** qualquer código que você instala como plugin pode ler e escrever arquivos que o seu usuário pode, usar a rede, variáveis de ambiente e acessar outros recursos do sistema. Por isso, a regra prática é **instalar apenas plugins de fontes em que você confie**.
+
+## O que o CLI protege
+
+O CLI não executa código arbitrário em qualquer path. Ele aplica regras para garantir que só scripts **dentro do diretório do plugin** sejam executados.
+
+### 1. Confinamento de path no manifesto
+
+No momento do **scan** (quando o CLI lê os `manifest.yaml` e monta o cache):
+
+- O **entrypoint** declarado no manifesto deve ser um arquivo que exista e que, após resolução de path, fique **dentro do diretório do plugin**. Paths com `..` que “saiam” do diretório do plugin são considerados inválidos e o plugin é rejeitado (aparece como aviso no sync).
+- O mesmo vale para o **readme** (arquivo de documentação) e para os **entrypoints das flags** (quando o plugin usa `flags` no manifesto). Nenhum deles pode apontar para fora do diretório do plugin.
+
+Assim, um manifesto malicioso não pode, por exemplo, apontar para um script em `/tmp` ou em outro projeto no disco.
+
+### 2. Validação na execução
+
+Antes de rodar qualquer script ou binário, o **executor** verifica de novo que o path do executável está sob o diretório permitido (a raiz do plugin em uso). Essa raiz é:
+
+- o diretório do plugin dentro de `PluginsDir`, ou  
+- o path local registrado com `mb plugins add <path>` (plugin local).
+
+Se o path não estiver sob essa raiz (por exemplo, por cache corrompido ou alteração manual), a execução **não** é feita e o CLI retorna erro.
+
+### 3. Timeout opcional
+
+O CLI suporta um tempo máximo de execução por plugin (`PluginTimeout`). Quando configurado, scripts que excederem esse tempo são interrompidos, evitando que um plugin preso rode indefinidamente. O valor é definido na configuração do runtime (por padrão não há limite).
+
+## O que o CLI não faz
+
+- **Sandbox:** não há isolamento de rede, sistema de arquivos ou processo. O plugin roda como processo normal do usuário.
+- **Assinatura ou verificação de integridade:** o CLI não verifica assinaturas digitais dos repositórios ou dos scripts. Cabe a você obter plugins de fontes confiáveis.
+- **Filtragem de ambiente:** o processo do plugin recebe o ambiente mesclado (sistema, arquivo de defaults, `--env-file`, `--env`). O CLI não remove variáveis sensíveis; evite rodar com secrets em env se o plugin não for de confiança.
+
+## Recomendações
+
+1. **Instale apenas plugins de fontes confiáveis** — repositórios próprios, do time ou de projetos conhecidos. Ao usar `mb plugins add <url>`, você está autorizando esse código a rodar no seu ambiente.
+2. **Revise o conteúdo antes de adicionar** — dê uma olhada no repositório (manifest, scripts, dependências) antes de instalar.
+3. **Plugins locais** — ao registrar um path local com `mb plugins add <path>`, o CLI não copia arquivos; ele usa esse diretório como raiz do plugin. Certifique-se de que o path aponta para um projeto em que você confia.
+4. **Variáveis de ambiente** — use `--env-file` ou `--env` para injetar apenas o que o plugin precisa; evite expor credenciais desnecessárias ao processo do plugin.
+
+Para mais detalhes sobre como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](./plugins.md).

@@ -82,3 +82,7 @@ As flags listadas na tabela acima são reconhecidas e **não** aparecem em `$1`,
 - **Plugin com README ou com `flags` no manifesto:** o comando do plugin faz parsing de flags (só as que o CLI declarou). Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
 
 Resumindo: em plugins “simples” (um entrypoint, sem README), qualquer coisa após o comando vira argumento do script. Em plugins com README ou com flags no manifesto, apenas as flags conhecidas são aceitas; o resto gera erro antes de rodar o plugin.
+
+## Segurança
+
+Os plugins rodam com as permissões do usuário; o CLI restringe a execução a scripts **dentro do diretório do plugin** (confinamento de path no scan e no executor) e suporta timeout opcional. Para o modelo completo e recomendações, veja [Segurança](./security.md).

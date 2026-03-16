@@ -17,6 +17,7 @@ const sidebars = {
         'plugin-commands',
         'global-flags',
         'environment-variables',
+        'security',
       ],
     },
     {
