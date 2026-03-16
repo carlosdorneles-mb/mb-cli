@@ -172,11 +172,25 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 	return cmd
 }
 
+// parseRootVerbosityFlags parses args against the root's persistent flags (e.g. -v, -q)
+// so that deps.Runtime.Verbose/Quiet are set even when the flag appears after the subcommand
+// (e.g. mb tools hello -v). It returns the remaining args not consumed by those flags.
+func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
+	root := cmd.Root()
+	if root == nil {
+		return args
+	}
+	fs := root.PersistentFlags()
+	_ = fs.Parse(args)
+	return fs.Args()
+}
+
 func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
+		args = parseRootVerbosityFlags(cmd, args)
 		argsToPass := args
 		if cmd.Flags().Lookup("readme") != nil {
 			argsToPass = cmd.Flags().Args()
@@ -190,6 +204,7 @@ func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*c
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
+		merged = appendVerbosityEnv(merged, deps.Runtime)
 		return deps.Executor.Run(cmd.Context(), plugin, argsToPass, merged)
 	}
 }
@@ -199,6 +214,7 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
+		args = parseRootVerbosityFlags(cmd, args)
 		var chosenFlag string
 		var chosenEntrypoint string
 		for name, def := range flagsMap {
@@ -243,8 +259,22 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
+		merged = appendVerbosityEnv(merged, deps.Runtime)
 		return deps.Executor.Run(cmd.Context(), syntheticPlugin, args, merged)
 	}
+}
+
+func appendVerbosityEnv(merged []string, rt *config.RuntimeConfig) []string {
+	if rt == nil {
+		return merged
+	}
+	if rt.Quiet {
+		merged = append(merged, "MB_QUIET=1")
+	}
+	if rt.Verbose {
+		merged = append(merged, "MB_VERBOSE=1")
+	}
+	return merged
 }
 
 const readmeFlagDesc = "Visualizar documentação do comando"

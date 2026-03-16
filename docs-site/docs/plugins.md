@@ -53,3 +53,31 @@ Assim, a árvore de comandos reflete tanto o conteúdo de `PluginsDir` quanto do
 - Para plugins **flags-only** (várias ações por flag): o cache guarda `flags_json`. O handler do comando folha sabe qual flag foi escolhida e qual entrypoint corresponde; o **plugin root** é obtido assim: se há `plugin_sources[installDir].LocalPath`, usa esse path; senão, usa `filepath.Join(PluginsDir, installDir)`. O `baseDir` do comando é o plugin root + o sufixo do `command_path` (segmentos após o primeiro). O `exec_path` efetivo é `baseDir + entrypoint` da flag.
 
 A indicação **(local)** no Short do comando folha vem do fato de o plugin ter `local_path` preenchido em `plugin_sources`; o mesmo dado é usado para resolver o plugin root na execução.
+
+## Execução: flags e argumentos passados ao plugin
+
+O processo do plugin (script ou binário) **nunca recebe flags na linha de comando**. O CLI trata as flags que conhece e repassa ao entrypoint apenas **argumentos posicionais** (como `$1`, `$2`, … no shell). O ambiente do processo inclui variáveis injetadas (por exemplo `MB_VERBOSE`, `MB_QUIET` quando se usa `-v` ou `-q`).
+
+### Flags que o CLI conhece
+
+| Origem | Flags | O que acontece |
+|--------|--------|----------------|
+| **Root (globais)** | `-v` / `--verbose`, `-q` / `--quiet`, `--env-file`, `-e` / `--env` | Consumidas pelo CLI. `-v` e `-q` não vão para o script; em troca, o CLI define no ambiente do plugin `MB_VERBOSE=1` ou `MB_QUIET=1`. Podem ser usadas em qualquer posição (ex.: `mb tools hello -v`). |
+| **Plugin com README** | `-r` / `--readme` | Consumida pelo CLI; abre a documentação no terminal. Não é repassada ao script. |
+| **Plugin com `flags` no manifesto** | As flags declaradas no manifesto (ex.: `--deploy`, `--rollback`) | Consumidas pelo CLI para **escolher qual entrypoint** rodar. Não são repassadas como argumentos ao script; apenas os argumentos posicionais restantes são passados. |
+
+### O que o script/binário recebe
+
+- **Argumentos:** apenas os **posicionais** que sobraram depois de o CLI consumir as flags acima. Exemplo: `mb tools hello foo bar` → o script recebe `foo` e `bar` em `$1` e `$2`. Se o usuário passar `mb tools hello -v`, o `-v` é consumido pelo CLI (e vira `MB_VERBOSE=1` no env); o script recebe **nenhum** argumento posicional.
+- **Ambiente:** ambiente do sistema + arquivo de defaults + `--env-file` + `--env` + `MB_VERBOSE=1` e/ou `MB_QUIET=1` quando as flags globais forem usadas. Ver [Variáveis de ambiente](./variaveis-ambiente.md) e [Flags globais](./flags-globais.md).
+
+### Quando você passa flags que **existem** (conhecidas pelo CLI)
+
+As flags listadas na tabela acima são reconhecidas e **não** aparecem em `$1`, `$2`, … O comportamento é o descrito: globais afetam o ambiente; `--readme` abre o README; flags do manifesto (no caso de plugin com `flags`) escolhem o entrypoint. Os argumentos posicionais restantes são os únicos passados ao entrypoint.
+
+### Quando você passa flags que **não existem**
+
+- **Plugin com um único entrypoint e sem README no manifesto:** o comando do plugin tem `DisableFlagParsing = true`. Nada é interpretado como flag; **tudo** que vier depois do nome do comando é repassado ao script como argumentos posicionais. Exemplo: `mb tools hello --foo=bar -x` → o script recebe `$1=--foo=bar`, `$2=-x`. O script pode interpretar isso como quiser (por exemplo, com `getopts` ou um parser próprio).
+- **Plugin com README ou com `flags` no manifesto:** o comando do plugin faz parsing de flags (só as que o CLI declarou). Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
+
+Resumindo: em plugins “simples” (um entrypoint, sem README), qualquer coisa após o comando vira argumento do script. Em plugins com README ou com flags no manifesto, apenas as flags conhecidas são aceitas; o resto gera erro antes de rodar o plugin.

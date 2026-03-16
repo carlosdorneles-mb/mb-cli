@@ -36,6 +36,8 @@ Se o plugin declarou um README no manifesto, o comando ganha a flag **`--readme`
 mb tools meu-comando --readme
 ```
 
+Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de plugin (quais flags o CLI consome, o que o script recebe em `$1`, `$2`, etc., e o que ocorre quando se passam flags que não existem), veja a seção [Execução: flags e argumentos passados ao plugin](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin) na referência técnica.
+
 ## Plugin local vs remoto
 
 Na listagem (`mb plugins list`), a coluna **ORIGEM** indica se o plugin é **local** (instalado por path ou `.`) ou **remoto** (instalado por URL Git). No help (`mb help` ou `mb <categoria> <comando> --help`), comandos de plugins locais exibem **(local)** ao lado da descrição, para você saber que aquele comando vem de um plugin registrado localmente.
