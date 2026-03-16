@@ -34,7 +34,7 @@ usage() {
   echo "  --pre-release  Usa a última versão pre-release (requer jq)."
   echo ""
   echo "Para remover: execute uninstall.sh"
-  echo "Requer: curl ou wget. Instalação é validada com checksums.txt do release."
+  echo "Requer: curl ou wget. Apenas a instalação do MB CLI é validada com checksums.txt do release."
   exit 1
 }
 
@@ -207,7 +207,7 @@ do_install() {
   echo "MB CLI ${tag} instalado em ${INSTALL_DIR}/${BINARY_NAME}"
 
   # Instalar gum (dependência do MB CLI) no mesmo INSTALL_DIR
-  local gum_tag gum_version GUM_OS GUM_ARCH gum_artifact gum_url_tarball gum_url_checksums gum_tmpdir gum_tarball gum_checksums_file gum_binary
+  local gum_tag gum_version GUM_OS GUM_ARCH gum_artifact gum_url_tarball gum_tmpdir gum_tarball gum_binary
   gum_tag="$(get_gum_latest_tag)"
   [ -n "$gum_tag" ] || { echo "Não foi possível obter a última versão do gum." >&2; exit 1; }
   gum_version="${gum_tag#v}"
@@ -223,10 +223,8 @@ do_install() {
   esac
   gum_artifact="gum_${gum_version}_${GUM_OS}_${GUM_ARCH}.tar.gz"
   gum_url_tarball="${GUM_RELEASE_BASE}/${gum_tag}/${gum_artifact}"
-  gum_url_checksums="${GUM_RELEASE_BASE}/${gum_tag}/checksums.txt"
   gum_tmpdir="$(mktemp -d)"
   gum_tarball="${gum_tmpdir}/${gum_artifact}"
-  gum_checksums_file="${gum_tmpdir}/checksums.txt"
   trap 'rm -rf "$tmpdir" "$gum_tmpdir"' EXIT
 
   echo "Baixando gum ${gum_tag} (${gum_artifact})..."
@@ -234,16 +232,6 @@ do_install() {
     echo "Falha ao baixar gum: ${gum_url_tarball}" >&2
     exit 1
   }
-  echo "Baixando checksums.txt do gum..."
-  download_file "$gum_url_checksums" "$gum_checksums_file" || {
-    echo "Falha ao baixar checksums.txt do gum." >&2
-    exit 1
-  }
-  echo "Validando checksum do gum..."
-  if ! verify_checksum "$gum_tarball" "$gum_checksums_file"; then
-    echo "Validação do checksum do gum falhou. Instalação abortada." >&2
-    exit 1
-  fi
   tar -xzf "$gum_tarball" -C "$gum_tmpdir"
   gum_binary="$(find "$gum_tmpdir" -maxdepth 2 -name gum -type f | head -n1)"
   [ -n "$gum_binary" ] || { echo "Binário gum não encontrado no tarball." >&2; exit 1; }
@@ -252,7 +240,7 @@ do_install() {
   echo "gum ${gum_tag} instalado em ${INSTALL_DIR}/gum"
 
   # Instalar glow (dependência do MB CLI) no mesmo INSTALL_DIR
-  local glow_tag glow_version GLOW_OS GLOW_ARCH glow_artifact glow_url_tarball glow_url_checksums glow_tmpdir glow_tarball glow_checksums_file glow_binary
+  local glow_tag glow_version GLOW_OS GLOW_ARCH glow_artifact glow_url_tarball glow_tmpdir glow_tarball glow_binary
   glow_tag="$(get_glow_latest_tag)"
   [ -n "$glow_tag" ] || { echo "Não foi possível obter a última versão do glow." >&2; exit 1; }
   glow_version="${glow_tag#v}"
@@ -268,10 +256,8 @@ do_install() {
   esac
   glow_artifact="glow_${glow_version}_${GLOW_OS}_${GLOW_ARCH}.tar.gz"
   glow_url_tarball="${GLOW_RELEASE_BASE}/${glow_tag}/${glow_artifact}"
-  glow_url_checksums="${GLOW_RELEASE_BASE}/${glow_tag}/checksums.txt"
   glow_tmpdir="$(mktemp -d)"
   glow_tarball="${glow_tmpdir}/${glow_artifact}"
-  glow_checksums_file="${glow_tmpdir}/checksums.txt"
   trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir"' EXIT
 
   echo "Baixando glow ${glow_tag} (${glow_artifact})..."
@@ -279,16 +265,6 @@ do_install() {
     echo "Falha ao baixar glow: ${glow_url_tarball}" >&2
     exit 1
   }
-  echo "Baixando checksums.txt do glow..."
-  download_file "$glow_url_checksums" "$glow_checksums_file" || {
-    echo "Falha ao baixar checksums.txt do glow." >&2
-    exit 1
-  }
-  echo "Validando checksum do glow..."
-  if ! verify_checksum "$glow_tarball" "$glow_checksums_file"; then
-    echo "Validação do checksum do glow falhou. Instalação abortada." >&2
-    exit 1
-  fi
   tar -xzf "$glow_tarball" -C "$glow_tmpdir"
   glow_binary="$(find "$glow_tmpdir" -maxdepth 2 -name glow -type f | head -n1)"
   [ -n "$glow_binary" ] || { echo "Binário glow não encontrado no tarball." >&2; exit 1; }
@@ -320,32 +296,20 @@ do_install() {
   echo "jq ${jq_tag} instalado em ${INSTALL_DIR}/jq"
 
   # Instalar fzf no mesmo INSTALL_DIR
-  local fzf_tag fzf_version fzf_os_arch fzf_artifact fzf_url_tarball fzf_checksums_url fzf_tmpdir fzf_tarball fzf_checksums_file fzf_binary
+  local fzf_tag fzf_version fzf_os_arch fzf_artifact fzf_url_tarball fzf_tmpdir fzf_tarball fzf_binary
   fzf_tag="$(get_fzf_latest_tag)"
   [ -n "$fzf_tag" ] || { echo "Não foi possível obter a última versão do fzf." >&2; exit 1; }
   fzf_version="${fzf_tag#v}"
   fzf_os_arch="${OS}_${ARCH}"
   fzf_artifact="fzf-${fzf_version}-${fzf_os_arch}.tar.gz"
   fzf_url_tarball="${FZF_RELEASE_BASE}/${fzf_tag}/${fzf_artifact}"
-  fzf_checksums_url="${FZF_RELEASE_BASE}/${fzf_tag}/fzf_${fzf_version}_checksums.txt"
   fzf_tmpdir="$(mktemp -d)"
   fzf_tarball="${fzf_tmpdir}/${fzf_artifact}"
-  fzf_checksums_file="${fzf_tmpdir}/checksums.txt"
   echo "Baixando fzf ${fzf_tag} (${fzf_artifact})..."
   download_file "$fzf_url_tarball" "$fzf_tarball" || {
     echo "Falha ao baixar fzf: ${fzf_url_tarball}" >&2
     exit 1
   }
-  echo "Baixando checksums do fzf..."
-  download_file "$fzf_checksums_url" "$fzf_checksums_file" || {
-    echo "Falha ao baixar checksums do fzf." >&2
-    exit 1
-  }
-  echo "Validando checksum do fzf..."
-  if ! verify_checksum "$fzf_tarball" "$fzf_checksums_file"; then
-    echo "Validação do checksum do fzf falhou. Instalação abortada." >&2
-    exit 1
-  fi
   tar -xzf "$fzf_tarball" -C "$fzf_tmpdir"
   fzf_binary="$(find "$fzf_tmpdir" -maxdepth 2 -name fzf -type f | head -n1)"
   [ -n "$fzf_binary" ] || { echo "Binário fzf não encontrado no tarball." >&2; exit 1; }
