@@ -4,5 +4,6 @@ CREATE TABLE IF NOT EXISTS plugin_sources (
     ref_type TEXT,
     ref TEXT,
     version TEXT,
+    local_path TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

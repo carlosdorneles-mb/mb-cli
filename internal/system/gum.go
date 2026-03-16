@@ -4,18 +4,22 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-func Table(ctx context.Context, headers []string, rows [][]string) error {
+func Table(ctx context.Context, headers []string, rows [][]string, out io.Writer) error {
+	if out == nil {
+		out = os.Stdout
+	}
 	gumPath, err := exec.LookPath("gum")
 	if err != nil {
 		// Fallback plain output when gum is unavailable.
-		fmt.Println(strings.Join(headers, "\t"))
+		fmt.Fprintln(out, strings.Join(headers, "\t"))
 		for _, row := range rows {
-			fmt.Println(strings.Join(row, "\t"))
+			fmt.Fprintln(out, strings.Join(row, "\t"))
 		}
 		return nil
 	}
@@ -31,7 +35,7 @@ func Table(ctx context.Context, headers []string, rows [][]string) error {
 
 	cmd := exec.CommandContext(ctx, gumPath, args...)
 	cmd.Stdin = &input
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

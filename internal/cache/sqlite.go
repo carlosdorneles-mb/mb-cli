@@ -41,13 +41,14 @@ type Plugin struct {
 	FlagsJSON   string // for flags-only: JSON map of flag name -> {type, entrypoint}
 }
 
-// PluginSource represents one installation (top-level dir in PluginsDir) and its git origin/version.
+// PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
 type PluginSource struct {
 	InstallDir string
 	GitURL     string
 	RefType    string // "tag" | "branch"
 	Ref        string // e.g. "v1.2.3" or "main"
 	Version    string // current state: tag name or short SHA
+	LocalPath  string // when set, plugin is local at this path (not in PluginsDir)
 	UpdatedAt  string
 }
 
@@ -88,7 +89,19 @@ func (s *Store) InitSchema() error {
 	if _, err := s.db.Exec(schemaCategoriesSQL); err != nil {
 		return err
 	}
-	_, err := s.db.Exec(schemaPluginSourcesSQL)
+	if _, err := s.db.Exec(schemaPluginSourcesSQL); err != nil {
+		return err
+	}
+	return s.migratePluginSourcesLocalPath()
+}
+
+func (s *Store) migratePluginSourcesLocalPath() error {
+	var has int
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugin_sources') WHERE name='local_path'").Scan(&has)
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE plugin_sources ADD COLUMN local_path TEXT")
 	return err
 }
 
@@ -247,24 +260,25 @@ ORDER BY path
 
 func (s *Store) UpsertPluginSource(ps PluginSource) error {
 	_, err := s.db.Exec(`
-INSERT INTO plugin_sources (install_dir, git_url, ref_type, ref, version)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO plugin_sources (install_dir, git_url, ref_type, ref, version, local_path)
+VALUES (?, ?, ?, ?, ?, ?)
 ON CONFLICT(install_dir) DO UPDATE SET
   git_url = excluded.git_url,
   ref_type = excluded.ref_type,
   ref = excluded.ref,
   version = excluded.version,
+  local_path = excluded.local_path,
   updated_at = CURRENT_TIMESTAMP
-`, ps.InstallDir, nullEmpty(ps.GitURL), nullEmpty(ps.RefType), nullEmpty(ps.Ref), nullEmpty(ps.Version))
+`, ps.InstallDir, nullEmpty(ps.GitURL), nullEmpty(ps.RefType), nullEmpty(ps.Ref), nullEmpty(ps.Version), nullEmpty(ps.LocalPath))
 	return err
 }
 
 func (s *Store) GetPluginSource(installDir string) (*PluginSource, error) {
 	var ps PluginSource
 	err := s.db.QueryRow(`
-SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(updated_at, '')
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(updated_at, '')
 FROM plugin_sources WHERE install_dir = ?
-`, installDir).Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.UpdatedAt)
+`, installDir).Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.LocalPath, &ps.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -276,7 +290,7 @@ FROM plugin_sources WHERE install_dir = ?
 
 func (s *Store) ListPluginSources() ([]PluginSource, error) {
 	rows, err := s.db.Query(`
-SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(updated_at, '')
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(updated_at, '')
 FROM plugin_sources
 ORDER BY install_dir
 `)
@@ -288,7 +302,7 @@ ORDER BY install_dir
 	var list []PluginSource
 	for rows.Next() {
 		var ps PluginSource
-		if err := rows.Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.UpdatedAt); err != nil {
+		if err := rows.Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.LocalPath, &ps.UpdatedAt); err != nil {
 			return nil, err
 		}
 		list = append(list, ps)

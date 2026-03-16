@@ -44,16 +44,21 @@ func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
 				src := sourceByDir[installDir]
 				name := installDir
 				version := "-"
+				origem := "-"
 				url := "-"
 				if src != nil {
 					version = src.Version
-					if src.GitURL != "" {
+					if src.LocalPath != "" {
+						origem = "local"
+						url = src.LocalPath
+					} else if src.GitURL != "" {
+						origem = "remoto"
 						url = src.GitURL
 					}
 				}
 
 				updateAvail := ""
-				if checkUpdates && src != nil && src.GitURL != "" {
+				if checkUpdates && src != nil && src.GitURL != "" && src.LocalPath == "" {
 					dir := filepath.Join(deps.Runtime.PluginsDir, installDir)
 					if mbplugins.IsGitRepo(dir) {
 						if src.RefType == "tag" {
@@ -71,17 +76,17 @@ func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
 					}
 				}
 
-				rows = append(rows, []string{name, p.CommandPath, p.Description, version, url, updateAvail})
+				rows = append(rows, []string{name, p.CommandPath, p.Description, version, origem, url, updateAvail})
 			}
 
-			headers := []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "URL", "UPDATE"}
+			headers := []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL", "ATUALIZAR"}
 			if !checkUpdates {
-				headers = []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "URL"}
+				headers = []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL"}
 				for i := range rows {
-					rows[i] = rows[i][:5]
+					rows[i] = rows[i][:6]
 				}
 			}
-			return system.Table(context.Background(), headers, rows)
+			return system.Table(context.Background(), headers, rows, cmd.OutOrStdout())
 		},
 	}
 

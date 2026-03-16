@@ -15,6 +15,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands/config"
+	"mb/internal/commands/self"
 	"mb/internal/env"
 	"mb/internal/plugins"
 	"mb/internal/system"
@@ -37,6 +38,12 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 	categoriesByPath := make(map[string]cache.Category)
 	for _, c := range categoryList {
 		categoriesByPath[c.Path] = c
+	}
+
+	sources, _ := deps.Store.ListPluginSources()
+	sourceByDir := make(map[string]*cache.PluginSource)
+	for i := range sources {
+		sourceByDir[sources[i].InstallDir] = &sources[i]
 	}
 
 	sort.Slice(pluginList, func(i, j int) bool {
@@ -93,7 +100,15 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 		if byPath[pathSoFar] != nil {
 			continue
 		}
-		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps)
+		installDir := self.FirstPathSegment(plugin.CommandPath)
+		src := sourceByDir[installDir]
+		pluginRoot := filepath.Join(deps.Runtime.PluginsDir, installDir)
+		isLocal := false
+		if src != nil && src.LocalPath != "" {
+			pluginRoot = src.LocalPath
+			isLocal = true
+		}
+		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps, pluginRoot, isLocal)
 		if parent == root {
 			leafCmd.GroupID = "plugin_commands"
 		}
@@ -102,10 +117,13 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 	}
 }
 
-func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies) *cobra.Command {
+func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, pluginRoot string, isLocal bool) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
 		short = "Executa " + plugin.CommandPath
+	}
+	if isLocal {
+		short += " (local)"
 	}
 
 	if plugin.FlagsJSON == "" {
@@ -132,7 +150,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies) *
 	cmd := &cobra.Command{
 		Use:   use,
 		Short: short,
-		RunE:  runFlagsOnlyCommand(plugin, flagsMap, deps),
+		RunE:  runFlagsOnlyCommand(plugin, flagsMap, deps, pluginRoot),
 	}
 
 	for name, def := range flagsMap {
@@ -176,7 +194,7 @@ func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies) func(*c
 	}
 }
 
-func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, deps config.Dependencies) func(*cobra.Command, []string) error {
+func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, deps config.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
@@ -200,7 +218,13 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			return nil
 		}
 
-		baseDir := filepath.Join(deps.Runtime.PluginsDir, plugin.CommandPath)
+		segments := strings.Split(plugin.CommandPath, "/")
+		var baseDir string
+		if len(segments) > 1 {
+			baseDir = filepath.Join(pluginRoot, filepath.Join(segments[1:]...))
+		} else {
+			baseDir = pluginRoot
+		}
 		execPath := filepath.Join(baseDir, chosenEntrypoint)
 		syntheticPlugin := cache.Plugin{
 			CommandPath: plugin.CommandPath,

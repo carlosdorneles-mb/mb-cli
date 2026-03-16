@@ -11,13 +11,29 @@ import (
 	"mb/internal/ui"
 )
 
-// RunSync rescans the plugins dir, upserts plugins and categories, and updates the plugin_sources registry.
+// RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
 // Used by both "mb self sync" and after plugins add/remove/update.
 // outWarnings: if non-nil, validation warnings (skipped plugins) are written here.
 func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
 	plugins, categories, warnings, err := deps.Scanner.Scan()
 	if err != nil {
 		return err
+	}
+	sources, err := deps.Store.ListPluginSources()
+	if err != nil {
+		return err
+	}
+	for _, src := range sources {
+		if src.LocalPath == "" {
+			continue
+		}
+		p, c, w, err := deps.Scanner.ScanDir(src.LocalPath, src.InstallDir)
+		if err != nil {
+			return err
+		}
+		plugins = append(plugins, p...)
+		categories = append(categories, c...)
+		warnings = append(warnings, w...)
 	}
 	if outWarnings != nil {
 		for _, w := range warnings {

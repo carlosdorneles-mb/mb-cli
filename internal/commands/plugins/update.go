@@ -29,7 +29,7 @@ func newPluginsUpdateCmd(deps config.Dependencies) *cobra.Command {
 					return err
 				}
 				for _, src := range sources {
-					if src.GitURL == "" {
+					if src.GitURL == "" || src.LocalPath != "" {
 						continue
 					}
 					if err := updateOnePlugin(ctx, deps, src.InstallDir, cmd); err != nil {
@@ -63,6 +63,9 @@ func updateOnePlugin(ctx context.Context, deps config.Dependencies, name string,
 	}
 	if src == nil {
 		return fmt.Errorf("plugin %q não encontrado no registry", name)
+	}
+	if src.LocalPath != "" {
+		return fmt.Errorf("plugin %q é local; não é possível atualizar", name)
 	}
 	if src.GitURL == "" {
 		return fmt.Errorf("plugin %q foi instalado manualmente (sem URL Git); não é possível atualizar", name)

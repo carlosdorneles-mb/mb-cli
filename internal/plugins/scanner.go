@@ -147,3 +147,105 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 
 	return plugins, categories, warnings, nil
 }
+
+// ScanDir scans a single directory (e.g. a local plugin path) and returns plugins and categories
+// with commandPath prefixed by installName. ExecPath and ReadmePath are absolute.
+func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
+	plugins := []cache.Plugin{}
+	categories := []cache.Category{}
+	warnings := []ValidationWarning{}
+	rootPath, err := filepath.Abs(rootPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
+		return plugins, categories, warnings, nil
+	}
+
+	err = filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() || d.Name() != "manifest.yaml" {
+			return nil
+		}
+
+		manifest, raw, err := LoadManifest(path)
+		if err != nil {
+			return fmt.Errorf("load manifest %s: %w", path, err)
+		}
+
+		baseDir := filepath.Dir(path)
+		if errs := validateManifest(manifest, baseDir); len(errs) > 0 {
+			warnings = append(warnings, ValidationWarning{Path: path, Message: strings.Join(errs, "; ")})
+			return nil
+		}
+
+		relFromRoot, err := filepath.Rel(rootPath, baseDir)
+		if err != nil {
+			return fmt.Errorf("relative path %s: %w", baseDir, err)
+		}
+		var commandPath string
+		if relFromRoot == "." {
+			commandPath = installName
+		} else {
+			commandPath = filepath.ToSlash(filepath.Join(installName, relFromRoot))
+		}
+
+		commandName := manifest.Command
+		if commandName == "" {
+			commandName = filepath.Base(baseDir)
+		}
+
+		hash := sha256.Sum256(raw)
+		configHash := hex.EncodeToString(hash[:])
+		readmePath := ""
+		if manifest.Readme != "" {
+			readmePath = filepath.Join(baseDir, manifest.Readme)
+		}
+
+		if manifest.Entrypoint != "" && (manifest.Type == "sh" || manifest.Type == "bin") {
+			execPath := filepath.Join(baseDir, manifest.Entrypoint)
+			plugins = append(plugins, cache.Plugin{
+				CommandPath: commandPath,
+				CommandName: commandName,
+				Description: manifest.Description,
+				ExecPath:    execPath,
+				PluginType:  manifest.Type,
+				ConfigHash:  configHash,
+				ReadmePath:  readmePath,
+				FlagsJSON:   "",
+			})
+			return nil
+		}
+
+		if len(manifest.Flags) > 0 {
+			flagsJSON, err := json.Marshal(manifest.Flags)
+			if err != nil {
+				return fmt.Errorf("marshal flags %s: %w", path, err)
+			}
+			plugins = append(plugins, cache.Plugin{
+				CommandPath: commandPath,
+				CommandName: commandName,
+				Description: manifest.Description,
+				ExecPath:    "",
+				PluginType:  "",
+				ConfigHash:  configHash,
+				ReadmePath:  readmePath,
+				FlagsJSON:   string(flagsJSON),
+			})
+			return nil
+		}
+
+		categories = append(categories, cache.Category{
+			Path:        commandPath,
+			Description: manifest.Description,
+			ReadmePath:  readmePath,
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return plugins, categories, warnings, nil
+}

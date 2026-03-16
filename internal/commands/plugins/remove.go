@@ -20,10 +20,12 @@ func newPluginsRemoveCmd(deps config.Dependencies) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := strings.TrimSpace(args[0])
-			destDir := filepath.Join(deps.Runtime.PluginsDir, name)
-
-			if !dirExists(destDir) {
-				return fmt.Errorf("plugin %q não encontrado em %s", name, destDir)
+			src, err := deps.Store.GetPluginSource(name)
+			if err != nil {
+				return err
+			}
+			if src == nil {
+				return fmt.Errorf("plugin %q não encontrado", name)
 			}
 
 			confirmed, err := confirmRemove(cmd, name)
@@ -35,8 +37,11 @@ func newPluginsRemoveCmd(deps config.Dependencies) *cobra.Command {
 				return nil
 			}
 
-			if err := os.RemoveAll(destDir); err != nil {
-				return fmt.Errorf("remover diretório: %w", err)
+			if src.LocalPath == "" {
+				destDir := filepath.Join(deps.Runtime.PluginsDir, name)
+				if err := os.RemoveAll(destDir); err != nil {
+					return fmt.Errorf("remover diretório: %w", err)
+				}
 			}
 			if err := deps.Store.DeletePluginSource(name); err != nil {
 				return err

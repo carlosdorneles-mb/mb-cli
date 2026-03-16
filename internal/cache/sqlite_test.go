@@ -97,3 +97,36 @@ func TestPluginSourcesCRUD(t *testing.T) {
 		t.Fatalf("expected nil after delete, got %#v", got)
 	}
 }
+
+func TestPluginSourceLocalPath(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "cache.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	ps := PluginSource{
+		InstallDir: "local-plugin",
+		LocalPath:  "/home/user/my-plugin",
+	}
+	if err := store.UpsertPluginSource(ps); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+
+	got, err := store.GetPluginSource("local-plugin")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got == nil || got.LocalPath != "/home/user/my-plugin" {
+		t.Fatalf("unexpected get result: %#v", got)
+	}
+
+	list, err := store.ListPluginSources()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(list) != 1 || list[0].LocalPath != "/home/user/my-plugin" {
+		t.Fatalf("unexpected list: %#v", list)
+	}
+}
