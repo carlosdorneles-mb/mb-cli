@@ -23,7 +23,7 @@ Exemplo:
 log info "Olá!"
 ```
 
-O diretório é criado na primeira execução de um plugin.
+O diretório é criado na primeira execução de um plugin. Ao atualizar o CLI para uma versão que altere os helpers, os arquivos em `lib/shell` são atualizados automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
 
 ## Helpers disponíveis
 
