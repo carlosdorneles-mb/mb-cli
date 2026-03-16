@@ -13,11 +13,11 @@ CLI em Go para orquestrar plugins com UX em laranja, descoberta dinâmica via ca
 ## Pré-requisitos
 
 - Go 1.22+
-- O **install.sh** instala o [gum](https://github.com/charmbracelet/gum) e o [glow](https://github.com/charmbracelet/glow) em `~/.local/bin` junto com o MB (sem root). O glow é necessário para a flag `--readme` dos plugins (help em Markdown).
+- O **install.sh** instala o [gum](https://github.com/charmbracelet/gum), o [glow](https://github.com/charmbracelet/glow), o [jq](https://github.com/jqlang/jq) e o [fzf](https://github.com/junegunn/fzf) em `~/.local/bin` junto com o MB (sem root). O glow é necessário para a flag `--readme` dos plugins (help em Markdown).
 
 ## Instalação (usuários)
 
-Para instalar o binário do MB sem compilar (Linux e macOS, amd64/arm64), use o script de instalação. Ele instala o MB CLI, o **gum** e o **glow** (dependências) em `~/.local/bin` (não requer sudo). O download é validado com o arquivo `checksums.txt` do release.
+Para instalar o binário do MB sem compilar (Linux e macOS, amd64/arm64), use o script de instalação. Ele instala o MB CLI, o **gum**, o **glow**, o **jq** e o **fzf** (dependências) em `~/.local/bin` (não requer sudo). O download é validado com o arquivo `checksums.txt` do release.
 
 **Instalar (versão mais recente ou especificada):**
 
@@ -35,7 +35,7 @@ Certifique-se de que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sy
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
 ```
 
-Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow` (se foram instalados pelo install.sh). Os dados do CLI (plugins, config) ficam em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados na desinstalação.
+Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf` (se foram instalados pelo install.sh). Os dados do CLI (plugins, config) ficam em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados na desinstalação.
 
 ## Build e instalação (desenvolvedores)
 

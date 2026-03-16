@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Install MB CLI, gum and glow from GitHub Releases (no sudo; installs to ~/.local/bin)
+# Install MB CLI, gum, glow, jq and fzf from GitHub Releases (no sudo; installs to ~/.local/bin)
 
 REPO="carlosdorneles-mb/mb-cli"
 RELEASE_BASE="https://github.com/${REPO}/releases/download"
@@ -17,10 +17,18 @@ GLOW_REPO="charmbracelet/glow"
 GLOW_RELEASE_BASE="https://github.com/${GLOW_REPO}/releases/download"
 GLOW_API_BASE="https://api.github.com/repos/${GLOW_REPO}"
 
+JQ_REPO="jqlang/jq"
+JQ_RELEASE_BASE="https://github.com/${JQ_REPO}/releases/download"
+JQ_API_BASE="https://api.github.com/repos/${JQ_REPO}"
+
+FZF_REPO="junegunn/fzf"
+FZF_RELEASE_BASE="https://github.com/${FZF_REPO}/releases/download"
+FZF_API_BASE="https://api.github.com/repos/${FZF_REPO}"
+
 usage() {
   echo "Uso: $0 [--version VERSION] [--pre-release]"
   echo ""
-  echo "  Baixa e instala o MB CLI, gum e glow (dependências) em ${INSTALL_DIR}."
+  echo "  Baixa e instala o MB CLI, gum, glow, jq e fzf (dependências) em ${INSTALL_DIR}."
   echo "  Sem opções     Usa a última versão estável (consulta a API do GitHub)."
   echo "  --version N    Usa a versão N (ex.: 0.0.5 ou v0.0.5)."
   echo "  --pre-release  Usa a última versão pre-release (requer jq)."
@@ -74,6 +82,28 @@ get_glow_latest_tag() {
     curl -sSL "$url" | tr -d '\n' | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
   else
     echo "Requer curl para obter a versão do glow." >&2
+    exit 1
+  fi
+}
+
+# Obtém a tag da última release estável do jq (jqlang/jq). Tag vem como jq-1.8.1.
+get_jq_latest_tag() {
+  local url="${JQ_API_BASE}/releases/latest"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSL "$url" | tr -d '\n' | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  else
+    echo "Requer curl para obter a versão do jq." >&2
+    exit 1
+  fi
+}
+
+# Obtém a tag da última release estável do fzf (junegunn/fzf).
+get_fzf_latest_tag() {
+  local url="${FZF_API_BASE}/releases/latest"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSL "$url" | tr -d '\n' | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  else
+    echo "Requer curl para obter a versão do fzf." >&2
     exit 1
   fi
 }
@@ -266,8 +296,65 @@ do_install() {
   chmod +x "${INSTALL_DIR}/glow"
   echo "glow ${glow_tag} instalado em ${INSTALL_DIR}/glow"
 
+  # Instalar jq (binário direto, sem tarball; sem checksum no release)
+  local jq_tag jq_os jq_arch jq_artifact jq_url jq_tmpdir
+  jq_tag="$(get_jq_latest_tag)"
+  [ -n "$jq_tag" ] || { echo "Não foi possível obter a última versão do jq." >&2; exit 1; }
+  case "$OS" in
+    linux)  jq_os="linux" ;;
+    darwin) jq_os="macos" ;;
+    *)      echo "OS não mapeado para jq: $OS" >&2; exit 1 ;;
+  esac
+  jq_arch="$ARCH"
+  jq_artifact="jq-${jq_os}-${jq_arch}"
+  jq_url="${JQ_RELEASE_BASE}/${jq_tag}/${jq_artifact}"
+  jq_tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "$jq_tmpdir" "$fzf_tmpdir"' EXIT
+  echo "Baixando jq ${jq_tag} (${jq_artifact})..."
+  download_file "$jq_url" "${jq_tmpdir}/jq" || {
+    echo "Falha ao baixar jq: ${jq_url}" >&2
+    exit 1
+  }
+  chmod +x "${jq_tmpdir}/jq"
+  cp -f "${jq_tmpdir}/jq" "${INSTALL_DIR}/jq"
+  echo "jq ${jq_tag} instalado em ${INSTALL_DIR}/jq"
+
+  # Instalar fzf no mesmo INSTALL_DIR
+  local fzf_tag fzf_version fzf_os_arch fzf_artifact fzf_url_tarball fzf_checksums_url fzf_tmpdir fzf_tarball fzf_checksums_file fzf_binary
+  fzf_tag="$(get_fzf_latest_tag)"
+  [ -n "$fzf_tag" ] || { echo "Não foi possível obter a última versão do fzf." >&2; exit 1; }
+  fzf_version="${fzf_tag#v}"
+  fzf_os_arch="${OS}_${ARCH}"
+  fzf_artifact="fzf-${fzf_version}-${fzf_os_arch}.tar.gz"
+  fzf_url_tarball="${FZF_RELEASE_BASE}/${fzf_tag}/${fzf_artifact}"
+  fzf_checksums_url="${FZF_RELEASE_BASE}/${fzf_tag}/fzf_${fzf_version}_checksums.txt"
+  fzf_tmpdir="$(mktemp -d)"
+  fzf_tarball="${fzf_tmpdir}/${fzf_artifact}"
+  fzf_checksums_file="${fzf_tmpdir}/checksums.txt"
+  echo "Baixando fzf ${fzf_tag} (${fzf_artifact})..."
+  download_file "$fzf_url_tarball" "$fzf_tarball" || {
+    echo "Falha ao baixar fzf: ${fzf_url_tarball}" >&2
+    exit 1
+  }
+  echo "Baixando checksums do fzf..."
+  download_file "$fzf_checksums_url" "$fzf_checksums_file" || {
+    echo "Falha ao baixar checksums do fzf." >&2
+    exit 1
+  }
+  echo "Validando checksum do fzf..."
+  if ! verify_checksum "$fzf_tarball" "$fzf_checksums_file"; then
+    echo "Validação do checksum do fzf falhou. Instalação abortada." >&2
+    exit 1
+  fi
+  tar -xzf "$fzf_tarball" -C "$fzf_tmpdir"
+  fzf_binary="$(find "$fzf_tmpdir" -maxdepth 2 -name fzf -type f | head -n1)"
+  [ -n "$fzf_binary" ] || { echo "Binário fzf não encontrado no tarball." >&2; exit 1; }
+  cp -f "$fzf_binary" "${INSTALL_DIR}/fzf"
+  chmod +x "${INSTALL_DIR}/fzf"
+  echo "fzf ${fzf_tag} instalado em ${INSTALL_DIR}/fzf"
+
   echo ""
-  echo "MB CLI, gum e glow foram instalados em ${INSTALL_DIR}."
+  echo "MB CLI, gum, glow, jq e fzf foram instalados em ${INSTALL_DIR}."
   if ! echo "$PATH" | grep -qF "${INSTALL_DIR}"; then
     echo "Adicione ${INSTALL_DIR} ao seu PATH, por exemplo em ~/.profile ou ~/.bashrc:"
     echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""

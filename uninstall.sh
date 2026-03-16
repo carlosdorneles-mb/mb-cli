@@ -15,16 +15,5 @@ else
   exit 1
 fi
 
-gum_bin="${INSTALL_DIR}/gum"
-if [ -f "$gum_bin" ]; then
-  rm -f "$gum_bin"
-  echo "gum removido (${gum_bin}) — havia sido instalado pelo install.sh."
-fi
-
-glow_bin="${INSTALL_DIR}/glow"
-if [ -f "$glow_bin" ]; then
-  rm -f "$glow_bin"
-  echo "glow removido (${glow_bin}) — havia sido instalado pelo install.sh."
-fi
-
 echo "Os dados do CLI (plugins, config) permanecem em ~/.config/mb (Linux) ou ~/Library/Application Support/mb (macOS)."
+echo "gum, glow, jq e fzf (se instalados pelo install.sh) permanecem em ${INSTALL_DIR}."
