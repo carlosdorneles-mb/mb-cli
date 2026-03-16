@@ -25,7 +25,16 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
 
 ## Como usar
 
-1. Copie a árvore de plugins para o diretório de plugins do MB (ou use `make run-sandbox`, que já copia os exemplos):
+**Opção recomendada (não copia arquivos):** na raiz do repositório, registre cada plugin de exemplo com o MB e sincronize:
+
+```bash
+make install-examples   # registra examples/plugins/* com "mb plugins add <path>"
+make run self sync      # ou: mb self sync (atualiza cache e helpers)
+```
+
+Os plugins continuam em `examples/plugins` e são acessados pelo path; não é necessário copiar.
+
+**Alternativa (copiar para o diretório de plugins):** copie a árvore para o config do MB (ou use `make run-sandbox`, que usa um config em sandbox e copia os exemplos):
 
    ```bash
    mkdir -p ~/.config/mb/plugins
@@ -36,7 +45,7 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
    chmod +x ~/.config/mb/plugins/tools/hello/run.sh
    ```
 
-2. Sincronize e liste:
+Depois sincronize e liste:
 
    ```bash
    mb self sync

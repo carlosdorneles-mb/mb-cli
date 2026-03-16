@@ -5,10 +5,7 @@ BINARY_NAME := mb
 GO_FILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
 DOCS_DIR := docs-site
 
-# Sandbox dir for run-sandbox (optional: override with make run-sandbox SANDBOX_DIR=/path)
-SANDBOX_DIR ?= /tmp/mb-sandbox
-
-.PHONY: all build test clean run run-local run-sandbox install tidy deps \
+.PHONY: all build test clean run run-local install install-examples uninstall-examples tidy deps \
 	docs-install docs-dev docs-build docs-preview \
 	lint help
 
@@ -16,9 +13,10 @@ help:
 	@echo "MB CLI - targets:"
 	@echo ""
 	@echo "Executar localmente:"
-	@echo "  run            build + ./bin/$(BINARY_NAME). Uso: make run [args...] ou make run ARGS=\"...\""
-	@echo "  run-local      go run . (sem build). Uso: make run-local [args...] ou make run-local ARGS=\"...\""
-	@echo "  run-sandbox    go run . com config em $(SANDBOX_DIR). Uso: make run-sandbox [args...] ou ARGS=\"...\""
+	@echo "  run            	build + ./bin/$(BINARY_NAME). Uso: make run [args...] ou make run ARGS=\"...\""
+	@echo "  run-local      	go run . (sem build). Uso: make run-local [args...] ou make run-local ARGS=\"...\""
+	@echo "  install-examples    	registra cada plugin em examples/plugins com 'mb plugins add' (não copia arquivos)"
+	@echo "  uninstall-examples  	remove os plugins de exemplo (infra, tools, etc.) do config do usuário"
 	@echo ""
 	@echo "Build e testes:"
 	@echo "  all            tidy, test, build (default)"
@@ -72,15 +70,24 @@ run: build
 run-local:
 	@go run . $(or $(ARGS),$(filter-out run-local,$(MAKECMDGOALS)))
 
-# Run with sandbox config dir (does not touch ~/.config/mb).
-# Copies examples/plugins into sandbox and creates SANDBOX_DIR if needed.
-# Uso: make run-sandbox [args...]  ou  make run-sandbox ARGS="self sync"
-run-sandbox:
-	@mkdir -p $(SANDBOX_DIR)/mb/plugins
-	@if [ -d examples/plugins ]; then cp -r examples/plugins/* $(SANDBOX_DIR)/mb/plugins/; fi
-	@chmod +x $(SANDBOX_DIR)/mb/plugins/*/run.sh 2>/dev/null || true
-	@XDG_CONFIG_HOME=$(SANDBOX_DIR) go run . $(or $(ARGS),$(filter-out run-sandbox,$(MAKECMDGOALS)))
-	@rm -rf $(SANDBOX_DIR)/mb/plugins
+# Registra os plugins de exemplo (apenas diretórios diretos em examples/plugins: infra, tools, etc.).
+# Executa na raiz do repo: para cada subdir, mb plugins add <path>. Não copia arquivos.
+install-examples:
+	@root=$$(pwd); \
+	for subdir in examples/plugins/*/; do \
+	  [ -d "$$subdir" ] || continue; \
+	  abs=$$(cd "$$root/$$subdir" && pwd); \
+	  (cd "$$root" && go run . plugins add "$$abs"); \
+	done
+
+# Remove os plugins de exemplo do config (mb plugins remove <name>). Usa os mesmos nomes que install-examples (infra, tools, etc.).
+uninstall-examples:
+	@root=$$(pwd); \
+	for subdir in examples/plugins/*/; do \
+	  [ -d "$$subdir" ] || continue; \
+	  name=$$(basename "$$subdir"); \
+	  (cd "$$root" && echo y | go run . plugins remove "$$name"); \
+	done
 
 # Install binary to $GOPATH/bin or $GOBIN
 install: build

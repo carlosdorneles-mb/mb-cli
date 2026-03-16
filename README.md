@@ -167,11 +167,12 @@ Flags globais: `--verbose`, `--quiet`, `--env-file <path>`, `--env KEY=VALUE`.
 Para rodar o CLI sem instalar (comandos e exemplos completos em **[docs/running-locally.md](docs/running-locally.md)**):
 
 ```bash
-make run-local                    # go run . (ajuda: make run-local ARGS="--help")
-make run-local ARGS="self sync"   # sync usando código atual
-make run                          # build + ./bin/mb
-make run-sandbox ARGS="plugins list" # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
+make run-local              # go run . (ajuda: make run-local --help)
+make run-local self sync    # argumentos podem ser passados direto
+make run self sync          # build + ./bin/mb (idem: make run [args...] ou make run ARGS="...")
 ```
+
+Para registrar os plugins de exemplo no seu config (sem copiar arquivos): **`make install-examples`**; em seguida rode `make run self sync`.
 
 ## Testar o CLI
 

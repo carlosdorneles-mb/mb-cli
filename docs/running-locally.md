@@ -21,12 +21,13 @@ go run . <categoria> <comando>
 
 ```bash
 make run-local
-make run-local ARGS="plugins list"
-make run-local ARGS="self sync"
-make run-local ARGS="tools meu-plugin"
+make run-local plugins list
+make run-local self sync
+make run-local tools meu-plugin
+# Ou com ARGS: make run-local ARGS="self sync"
 ```
 
-`run-local` executa `go run .` e repassa `ARGS`; o config e os plugins são os já instalados no seu usuário.
+`run-local` executa `go run .` e repassa os argumentos (você pode passar direto, ex. `make run-local self sync`, ou usar `ARGS="..."`). O config e os plugins são os já instalados no seu usuário.
 
 ---
 
@@ -44,41 +45,12 @@ make build
 Ou em um comando só:
 
 ```bash
-make run ARGS="plugins list"
-make run ARGS="tools meu-plugin"
+make run plugins list
+make run tools meu-plugin
+# Ou: make run ARGS="self sync"
 ```
 
-`run` faz `make build` e depois `./bin/mb $(ARGS)`; continua usando o config/plugins do usuário.
-
----
-
-## 3. Executar em sandbox (config isolado, sem ver plugins instalados)
-
-Para **não** usar seu `~/.config/mb` (por exemplo em testes ou para não misturar com plugins reais), use um diretório temporário como config:
-
-```bash
-# Uma execução
-XDG_CONFIG_HOME=/tmp/mb-test go run . self sync
-XDG_CONFIG_HOME=/tmp/mb-test go run . plugins list
-```
-
-Várias execuções na mesma sessão:
-
-```bash
-export XDG_CONFIG_HOME=/tmp/mb-test
-go run . self sync
-go run . plugins list
-go run . self env set MY_VAR value
-```
-
-**Via Makefile** (usa `/tmp/mb-sandbox` por padrão):
-
-```bash
-make run-sandbox ARGS="self sync"
-make run-sandbox ARGS="plugins list"
-```
-
-No sandbox o CLI **não** enxerga os plugins já instalados; plugins e cache ficam só no diretório temporário.
+`run` faz `make build` e depois executa o binário com os argumentos (passados direto ou via `ARGS="..."`). Continua usando o config/plugins do usuário.
 
 ---
 
@@ -86,8 +58,7 @@ No sandbox o CLI **não** enxerga os plugins já instalados; plugins e cache fic
 
 | Objetivo | Comando | Plugins usados |
 |----------|---------|----------------|
-| Rodar local com plugins instalados | `go run . ARGS` ou `make run-local ARGS="..."` | Config real (~/.config/mb) |
-| Build + rodar com plugins instalados | `make run ARGS="..."` | Config real |
-| Rodar em sandbox (config isolado) | `make run-sandbox ARGS="..."` ou `XDG_CONFIG_HOME=/tmp/... go run . ARGS` | Só o dir temporário |
+| Rodar local com plugins instalados | `make run-local [args...]` ou `make run-local ARGS="..."` | Config real (~/.config/mb) |
+| Build + rodar com plugins instalados | `make run [args...]` ou `make run ARGS="..."` | Config real |
 
-Substitua `ARGS` por qualquer comando do MB: `self sync`, `plugins list`, `--quiet self list`, `tools meu-plugin`, etc.
+Exemplos de argumentos: `self sync`, `plugins list`, `tools meu-plugin`. Para usar os plugins de exemplo do repositório sem copiá-los, use **`make install-examples`** (registra cada pasta de `examples/plugins` com `mb plugins add`); depois rode `make run self sync`.

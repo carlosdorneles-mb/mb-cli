@@ -46,13 +46,14 @@ make install        # instala em $GOPATH/bin
 
 ## Executar localmente
 
-Para rodar o CLI sem instalar:
+Para rodar o CLI sem instalar (a partir do código-fonte):
 
 ```bash
-make run-local                    # go run . (ajuda: make run-local ARGS="--help")
-make run-local ARGS="self sync"   # sync usando código atual
-make run                          # build + ./bin/mb
-make run-sandbox ARGS="plugins list"  # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
+make run-local              # go run . (ajuda: make run-local --help)
+make run-local self sync    # argumentos podem ser passados direto: make run-local [args...]
+make run self sync          # build + ./bin/mb; idem: make run [args...] ou make run ARGS="..."
 ```
+
+Para usar os plugins de exemplo do repositório: **`make install-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run self sync`** (ou `mb self sync`).
 
 Próximo passo: [Criar um plugin](creating-plugins) para montar seu primeiro plugin e rodá-lo com o MB.
