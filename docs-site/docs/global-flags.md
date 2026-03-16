@@ -54,4 +54,4 @@ Para a função `log` e outros helpers, veja a [Referência: Helpers de shell](.
 - **`--env-file <path>`** — Define um arquivo de variáveis de ambiente (formato `.env`) que será carregado e mesclado ao ambiente antes de executar um plugin. Útil para manter configurações em um arquivo separado.
 - **`--env KEY=VALUE`** — Injeta uma variável no processo do plugin. Pode ser repetido várias vezes. Tem a maior precedência em relação aos outros meios de definir variáveis.
 
-Para a ordem completa de precedência e como usar defaults com `mb self env`, veja [Variáveis de ambiente](./variaveis-ambiente.md).
+Para a ordem completa de precedência e como usar defaults com `mb self env`, veja [Variáveis de ambiente](./environment-variables.md).

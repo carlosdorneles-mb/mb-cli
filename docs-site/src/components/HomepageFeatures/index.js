@@ -12,7 +12,7 @@ const FeatureList = [
         Plugins viram comandos <code>mb &lt;categoria&gt; &lt;comando&gt;</code> automaticamente.
         Instale por URL Git ou registre um path local para desenvolvimento.
         <br />
-        <Link to="/docs/comandos-plugins">Comandos de plugins</Link>
+        <Link to="/docs/plugin-commands">Comandos de plugins</Link>
       </>
     ),
   },
@@ -24,7 +24,7 @@ const FeatureList = [
         Cache SQLite guarda plugins e categorias; <code>mb self sync</code> atualiza
         a partir do diretório de plugins e dos paths locais registrados.
         <br />
-        <Link to="/docs/arquitetura">Arquitetura</Link>
+        <Link to="/docs/architecture">Arquitetura</Link>
       </>
     ),
   },
@@ -36,7 +36,7 @@ const FeatureList = [
         Variáveis mescladas (sistema, defaults, <code>--env</code>) e injetadas só no processo do plugin.
         Crie plugins com <code>manifest.yaml</code> e scripts ou binários.
         <br />
-        <Link to="/docs/variaveis-ambiente">Variáveis de ambiente</Link>
+        <Link to="/docs/environment-variables">Variáveis de ambiente</Link>
         {' · '}
         <Link to="/docs/creating-plugins">Criar um plugin</Link>
       </>

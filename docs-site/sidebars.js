@@ -14,9 +14,9 @@ const sidebars = {
       items: [
         'getting-started',
         'creating-plugins',
-        'comandos-plugins',
-        'flags-globais',
-        'variaveis-ambiente',
+        'plugin-commands',
+        'global-flags',
+        'environment-variables',
       ],
     },
     {
@@ -24,7 +24,7 @@ const sidebars = {
       label: 'Referência técnica',
       collapsed: true,
       items: [
-        'arquitetura',
+        'architecture',
         'plugins',
         'helpers-shell',
         'reference',

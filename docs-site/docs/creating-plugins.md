@@ -83,7 +83,7 @@ Os helpers são instalados quando você roda **`mb self sync`** (ou ao adicionar
 log info "Processando..."
 ```
 
-Para carregar só o helper de log: `. "$MB_HELPERS_PATH/log.sh"`. Veja [Helpers de shell](./helpers-shell.md) para a lista de helpers e [Flags globais](./flags-globais.md) para o efeito de `-v` e `-q`.
+Para carregar só o helper de log: `. "$MB_HELPERS_PATH/log.sh"`. Veja [Helpers de shell](./helpers-shell.md) para a lista de helpers e [Flags globais](./global-flags.md) para o efeito de `-v` e `-q`.
 
 Além dos helpers, você pode usar os comandos do [gum](https://github.com/charmbracelet/gum) nos scripts do plugin (ex.: `gum choose`, `gum input`, `gum confirm`, `gum filter`) para criar interfaces interativas. O gum é opcional; se estiver instalado no sistema, os scripts podem chamá-lo normalmente.
 
@@ -120,6 +120,12 @@ mb plugins add https://github.com/sua-org/meu-plugin
 
 O CLI clona o repositório para o diretório de plugins e atualiza o cache. Use `--name` para escolher o nome do plugin e `--tag` para uma tag específica.
 
+### Repositório com vários plugins
+
+Um único `mb plugins add <url>` ou `mb plugins add <path>` trata **todo o diretório** como uma instalação (o nome é o `--name` informado ou o nome do repositório). Todos os `manifest.yaml` encontrados sob esse diretório viram comandos com o prefixo `mb <nome> ...`.
+
+Exemplo: repositório com as pastas `plugin-a/` e `plugin-b/`, cada uma com seu `manifest.yaml`. Ao instalar com `mb plugins add https://github.com/user/repo --name meurepo`, os comandos ficam **`mb meurepo plugin-a`** e **`mb meurepo plugin-b`**. O primeiro segmento é sempre o nome da instalação; a hierarquia de pastas no repo vira subcomandos. O mesmo vale para path local: `mb plugins add /caminho/para/repo --name X` registra a árvore inteira e gera `mb X <categoria> <comando>` conforme os manifests encontrados.
+
 ### Plugin criado manualmente no diretório de plugins
 
 Se você copiou ou criou o plugin diretamente em `~/.config/mb/plugins/<categoria>/<comando>/`:
@@ -130,4 +136,4 @@ mb plugins list
 mb tools meu-comando
 ```
 
-Para mais detalhes sobre os comandos `mb plugins` e sobre comandos de plugins no dia a dia, veja [Comandos de plugins](./comandos-plugins.md).
+Para mais detalhes sobre os comandos `mb plugins` e sobre comandos de plugins no dia a dia, veja [Comandos de plugins](./plugin-commands.md).

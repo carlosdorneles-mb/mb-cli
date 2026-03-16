@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Plugins (referência técnica)
 
-Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para como **criar** um plugin e usar os comandos `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](./creating-plugins.md) e [Comandos de plugins](./comandos-plugins.md).
+Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para como **criar** um plugin e usar os comandos `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](./creating-plugins.md) e [Comandos de plugins](./plugin-commands.md).
 
 ## Diretório de plugins e plugins locais
 
@@ -70,7 +70,7 @@ O processo do plugin (script ou binário) **nunca recebe flags na linha de coman
 ### O que o script/binário recebe
 
 - **Argumentos:** apenas os **posicionais** que sobraram depois de o CLI consumir as flags acima. Exemplo: `mb tools hello foo bar` → o script recebe `foo` e `bar` em `$1` e `$2`. Se o usuário passar `mb tools hello -v`, o `-v` é consumido pelo CLI (e vira `MB_VERBOSE=1` no env); o script recebe **nenhum** argumento posicional.
-- **Ambiente:** ambiente do sistema + arquivo de defaults + `--env-file` + `--env` + `MB_VERBOSE=1` e/ou `MB_QUIET=1` quando as flags globais forem usadas. Ver [Variáveis de ambiente](./variaveis-ambiente.md) e [Flags globais](./flags-globais.md).
+- **Ambiente:** ambiente do sistema + arquivo de defaults + `--env-file` + `--env` + `MB_VERBOSE=1` e/ou `MB_QUIET=1` quando as flags globais forem usadas. Ver [Variáveis de ambiente](./environment-variables.md) e [Flags globais](./global-flags.md).
 
 ### Quando você passa flags que **existem** (conhecidas pelo CLI)
 

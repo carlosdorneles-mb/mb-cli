@@ -38,6 +38,10 @@ mb tools meu-comando --readme
 
 Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de plugin (quais flags o CLI consome, o que o script recebe em `$1`, `$2`, etc., e o que ocorre quando se passam flags que não existem), veja a seção [Execução: flags e argumentos passados ao plugin](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin) na referência técnica.
 
+## Repositório com vários plugins
+
+Um único `mb plugins add <url>` ou `mb plugins add <path>` instala **toda a árvore** do diretório: todos os `manifest.yaml` encontrados viram comandos com prefixo `mb <nome> ...`, em que `<nome>` é o nome da instalação (repositório ou `--name`). Exemplo: repo com `tools/` e `infra/` instalado com `--name meurepo` gera `mb meurepo tools ...`, `mb meurepo infra ...`, etc.
+
 ## Plugin local vs remoto
 
 Na listagem (`mb plugins list`), a coluna **ORIGEM** indica se o plugin é **local** (instalado por path ou `.`) ou **remoto** (instalado por URL Git). No help (`mb help` ou `mb <categoria> <comando> --help`), comandos de plugins locais exibem **(local)** ao lado da descrição, para você saber que aquele comando vem de um plugin registrado localmente.
