@@ -2,7 +2,7 @@
 # Plugin: tools/hello
 . "$MB_HELPERS_PATH/all.sh"
 
-log info "Olá, Mundo!"
+log none "Olá, Mundo!"
 log debug "Mensagem de debug (visível só com mb -v tools hello)"
 log info "Oi essa é uma mensagem de informação indo para o gum log"
 log warn "Aviso de exemplo"

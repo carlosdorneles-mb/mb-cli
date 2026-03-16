@@ -15,6 +15,7 @@ help:
 	@echo "Executar localmente:"
 	@echo "  run            	build + ./bin/$(BINARY_NAME). Uso: make run [args...] ou make run ARGS=\"...\""
 	@echo "  run-local      	go run . (sem build). Uso: make run-local [args...] ou make run-local ARGS=\"...\""
+	@echo "                  	Flags como -v/-q: use ARGS (ex.: make run-local ARGS=\"tools hello -v\")"
 	@echo "  install-examples    	registra cada plugin em examples/plugins com 'mb plugins add' (não copia arquivos)"
 	@echo "  uninstall-examples  	remove os plugins de exemplo (infra, tools, etc.) do config do usuário"
 	@echo ""
