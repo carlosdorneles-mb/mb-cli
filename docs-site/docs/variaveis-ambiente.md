@@ -16,6 +16,17 @@ Da **menor** para a **maior** precedência:
 
 Ou seja: **`--env`** tem a última palavra para cada chave.
 
+## Tema padrão do gum
+
+O CLI injeta variáveis de ambiente **GUM_\*** para que os scripts dos plugins que usam [gum](https://github.com/charmbracelet/gum) (choose, input, confirm, spin, etc.) herdem as cores do MB: cabeçalhos/títulos em laranja (`#FFA500`) e opção selecionada/cursor em verde (`#00A86B`). Entre outras, são injetadas variáveis para:
+
+- **choose** — `GUM_CHOOSE_HEADER_FOREGROUND`, `GUM_CHOOSE_SELECTED_FOREGROUND`, `GUM_CHOOSE_CURSOR_FOREGROUND`
+- **input** — `GUM_INPUT_PROMPT_FOREGROUND`, `GUM_INPUT_HEADER_FOREGROUND`, `GUM_INPUT_CURSOR_FOREGROUND`
+- **confirm** — `GUM_CONFIRM_PROMPT_FOREGROUND` (título), `GUM_CONFIRM_SELECTED_FOREGROUND` / `GUM_CONFIRM_SELECTED_BACKGROUND`
+- **spin** — `GUM_SPIN_TITLE_FOREGROUND`, `GUM_SPIN_SPINNER_FOREGROUND`
+
+Esses defaults só são aplicados quando a chave ainda não existe no ambiente mesclado. Para usar suas próprias cores, defina as mesmas chaves em **`~/.config/mb/env.defaults`** (por exemplo com `mb self env set GUM_CHOOSE_HEADER_FOREGROUND 99`) ou na linha de comando com **`--env`**.
+
 ## Como usar
 
 ### Defaults persistentes: `mb self env`
