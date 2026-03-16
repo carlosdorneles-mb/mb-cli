@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,7 +73,7 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 					categoryCmd.GroupID = "plugin_commands"
 				}
 				if cat.ReadmePath != "" {
-					categoryCmd.Flags().Bool("readme", false, readmeFlagDesc)
+					categoryCmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 					categoryCmd.RunE = func(cmd *cobra.Command, _ []string) error {
 						if cmd.Flags().Lookup("readme").Changed {
 							return runReadmeWithGlow(cat.ReadmePath)
@@ -114,7 +115,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies) *
 			RunE:  runEntrypointCommand(plugin, deps),
 		}
 		if plugin.ReadmePath != "" {
-			cmd.Flags().Bool("readme", false, readmeFlagDesc)
+			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 		} else {
 			cmd.DisableFlagParsing = true
 		}
@@ -147,7 +148,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies) *
 		}
 	}
 	if plugin.ReadmePath != "" {
-		cmd.Flags().Bool("readme", false, readmeFlagDesc)
+		cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 	}
 	setHelpFang(cmd)
 	return cmd
@@ -234,10 +235,13 @@ func setHelpFang(c *cobra.Command) {
 
 func runReadmeWithGlow(path string) error {
 	if path == "" {
-		return nil
+		return errors.New("este comando não possui documentação (README) disponível")
 	}
 	if _, err := os.Stat(path); err != nil {
-		return err
+		if errors.Is(err, os.ErrNotExist) {
+			return errors.New("documentação não encontrada para este comando")
+		}
+		return fmt.Errorf("não foi possível abrir a documentação: %w", err)
 	}
 	return system.RenderMarkdown(context.Background(), path)
 }
