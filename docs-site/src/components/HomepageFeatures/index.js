@@ -1,35 +1,44 @@
 import clsx from 'clsx';
+import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
+    title: 'Comandos dinâmicos',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Plugins viram comandos <code>mb &lt;categoria&gt; &lt;comando&gt;</code> automaticamente.
+        Instale por URL Git ou registre um path local para desenvolvimento.
+        <br />
+        <Link to="/docs/comandos-plugins">Comandos de plugins</Link>
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Cache e sync',
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Cache SQLite guarda plugins e categorias; <code>mb self sync</code> atualiza
+        a partir do diretório de plugins e dos paths locais registrados.
+        <br />
+        <Link to="/docs/arquitetura">Arquitetura</Link>
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Ambiente e plugins',
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Variáveis mescladas (sistema, defaults, <code>--env</code>) e injetadas só no processo do plugin.
+        Crie plugins com <code>manifest.yaml</code> e scripts ou binários.
+        <br />
+        <Link to="/docs/variaveis-ambiente">Variáveis de ambiente</Link>
+        {' · '}
+        <Link to="/docs/creating-plugins">Criar um plugin</Link>
       </>
     ),
   },

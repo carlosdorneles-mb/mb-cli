@@ -24,10 +24,9 @@ const config = {
   // Set the /<baseUrl>/ pathname under which your site is served (GitHub Pages: /<projectName>/)
   baseUrl: '/cli-go/',
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  // GitHub pages deployment config (ajuste para o seu org/repo).
+  organizationName: 'your-org',
+  projectName: 'cli-go',
 
   onBrokenLinks: 'throw',
 
@@ -87,7 +86,7 @@ const config = {
           },
           {to: '/blog', label: 'Blog', position: 'left'},
           {
-            href: 'https://github.com/facebook/docusaurus',
+            href: 'https://github.com',
             label: 'GitHub',
             position: 'right',
           },
@@ -99,23 +98,16 @@ const config = {
           {
             title: 'Documentação',
             items: [
-              {
-                label: 'Introdução',
-                to: '/docs/intro',
-              },
+              { label: 'Introdução', to: '/docs/intro' },
+              { label: 'Começar', to: '/docs/getting-started' },
+              { label: 'Guia', to: '/docs/creating-plugins' },
             ],
           },
           {
             title: 'Mais',
             items: [
-              {
-                label: 'Blog',
-                to: '/blog',
-              },
-              {
-                label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
-              },
+              { label: 'Blog', to: '/blog' },
+              { label: 'GitHub', href: 'https://github.com' },
             ],
           },
         ],

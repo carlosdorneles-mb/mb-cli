@@ -16,7 +16,16 @@ O **MB CLI** é um CLI em Go para orquestrar plugins com UX em laranja, descober
 
 ## Próximos passos
 
+**Guia (uso do dia a dia)**
+
 - [Começar](getting-started) — pré-requisitos, build e instalação
-- [Gestão de plugins](plugins) — diretório, descoberta, cache e execução
 - [Criar um plugin](creating-plugins) — passo a passo com manifest e entrypoint
+- [Comandos de plugins](comandos-plugins) — como descobrir e executar comandos de plugins
+- [Flags globais](flags-globais) — `--verbose`, `--quiet`, `--env`
+- [Variáveis de ambiente](variaveis-ambiente) — ordem de precedência e como usar
+
+**Referência técnica**
+
+- [Arquitetura](arquitetura) — visão de alto nível do CLI (Cobra, cache, execução)
+- [Plugins](plugins) — como o CLI descobre, armazena e executa plugins
 - [Referência de comandos](reference) — tabela de comandos e flags

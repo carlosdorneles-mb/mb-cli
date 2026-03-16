@@ -7,10 +7,28 @@
 const sidebars = {
   docsSidebar: [
     'intro',
-    'getting-started',
-    'plugins',
-    'creating-plugins',
-    'reference',
+    {
+      type: 'category',
+      label: 'Guia',
+      collapsed: false,
+      items: [
+        'getting-started',
+        'creating-plugins',
+        'comandos-plugins',
+        'flags-globais',
+        'variaveis-ambiente',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Referência técnica',
+      collapsed: true,
+      items: [
+        'arquitetura',
+        'plugins',
+        'reference',
+      ],
+    },
   ],
 };
 

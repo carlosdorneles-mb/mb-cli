@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 3
 ---
 
 # Referência de comandos
@@ -8,28 +8,28 @@ sidebar_position: 5
 
 | Comando | Descrição |
 |--------|-----------|
-| `mb self sync` | Escaneia o diretório de plugins e atualiza o cache SQLite |
-| `mb plugins add <git-url> [--name N] [--tag TAG]` | Instala um plugin a partir de uma URL Git |
-| `mb plugins list [--check-updates]` | Lista plugins instalados (name, command, version, url) |
-| `mb plugins remove <name>` | Remove um plugin instalado (com confirmação) |
-| `mb plugins update [name \| --all]` | Atualiza um plugin ou todos |
+| `mb self sync` | Escaneia o diretório de plugins e os paths locais registrados e atualiza o cache SQLite |
+| `mb plugins add <url \| path \| .> [--name N] [--tag TAG]` | Instala um plugin: **URL Git** = remoto (clone); **path** ou **`.`** = local (registra o path, sem cópia). `--tag` só para remoto. |
+| `mb plugins list [--check-updates]` | Lista plugins instalados (nome, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
+| `mb plugins remove <name>` | Remove um plugin instalado (com confirmação). Se for local, só remove o registro. |
+| `mb plugins update [name \| --all]` | Atualiza um plugin remoto ou todos (plugins locais não são atualizados) |
 | `mb self env list` | Lista variáveis padrão |
 | `mb self env set KEY [VALUE]` | Define variável padrão |
 | `mb self env unset KEY` | Remove variável padrão |
-| `mb <categoria> <comando> [args...]` | Executa o plugin correspondente |
+| `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](./comandos-plugins.md)) |
 
 ## Completion de shell
 
-O CLI gera scripts de completion para bash, zsh, fish e powershell via `mb self completion <shell>`. O completion inclui os comandos built-in (por exemplo `self`, `help`, `self completion`) e também **todos os comandos e subcomandos de plugins** disponíveis no cache. Ou seja, após `mb self sync`, ao usar TAB no shell serão sugeridas as categorias e comandos de plugins (ex.: `tools`, `infra`, `tools hello`, `infra ci`).
+O CLI gera scripts de completion para bash, zsh, fish e powershell via `mb self completion <shell>`. O completion inclui os comandos built-in e **todos os comandos e subcomandos de plugins** disponíveis no cache. Após `mb self sync` (ou após instalar um plugin), use TAB para sugerir categorias e comandos de plugins.
 
-Para instalar o completion no seu shell, consulte a saída de `mb self completion --help` e os subcomandos `bash`, `zsh`, `fish`, `powershell`.
+Para instalar o completion no seu shell, consulte `mb self completion --help` e os subcomandos `bash`, `zsh`, `fish`, `powershell`.
 
 ## Flags globais
 
-- `--verbose` — saída mais verbosa
-- `--quiet` — reduz mensagens
-- `--env-file <path>` — arquivo de variáveis de ambiente
-- `--env KEY=VALUE` — injeta variável no processo do plugin (pode ser repetido)
+- **`--verbose` / `-v`** — Saída mais verbosa. Veja [Flags globais](./flags-globais.md).
+- **`--quiet` / `-q`** — Reduz mensagens. Veja [Flags globais](./flags-globais.md).
+- **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](./variaveis-ambiente.md).
+- **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](./variaveis-ambiente.md).
 
 ## Testar o CLI
 

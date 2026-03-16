@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 1
 ---
 
 # Começar
@@ -28,3 +28,5 @@ make run-local ARGS="self sync"   # sync usando código atual
 make run                          # build + ./bin/mb
 make run-sandbox ARGS="plugins list"  # usa config em /tmp/mb-sandbox (não mexe no seu ~/.config)
 ```
+
+Próximo passo: [Criar um plugin](creating-plugins) para montar seu primeiro plugin e rodá-lo com o MB.
