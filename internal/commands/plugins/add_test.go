@@ -44,7 +44,7 @@ func TestAddLocalRegistersPathOnly(t *testing.T) {
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatalf("mkdir source: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\nentrypoint: run.sh\n"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
@@ -104,7 +104,7 @@ func TestAddLocalWithDotUsesCwd(t *testing.T) {
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: x\ndescription: X\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: x\ndescription: X\nentrypoint: run.sh\n"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
@@ -194,7 +194,7 @@ func TestSyncIncludesLocalSources(t *testing.T) {
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: cmd\ndescription: C\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: cmd\ndescription: C\nentrypoint: run.sh\n"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
@@ -252,7 +252,7 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: gone\ndescription: G\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: gone\ndescription: G\nentrypoint: run.sh\n"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {

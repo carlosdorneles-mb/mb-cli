@@ -19,7 +19,7 @@ func TestScannerFindsManifestPlugins(t *testing.T) {
 		t.Fatalf("write script: %v", err)
 	}
 
-	manifest := []byte("command: deploy\ndescription: Deploy step\ntype: sh\nentrypoint: run.sh\nreadme: README.md\n")
+	manifest := []byte("command: deploy\ndescription: Deploy step\nentrypoint: run.sh\nreadme: README.md\n")
 	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestScannerSkipsInvalidManifest(t *testing.T) {
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	// entrypoint set but type missing -> validation error; also entrypoint file does not exist
+	// entrypoint set but file does not exist -> validation error
 	manifest := []byte("command: broken\ndescription: Broken plugin\nentrypoint: run.sh\n")
 	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
@@ -86,7 +86,7 @@ func TestScanDir(t *testing.T) {
 	if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatalf("write script: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\nentrypoint: run.sh\n"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 

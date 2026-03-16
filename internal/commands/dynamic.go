@@ -153,16 +153,21 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 		RunE:  runFlagsOnlyCommand(plugin, flagsMap, deps, pluginRoot),
 	}
 
+	usedShorts := make(map[string]bool)
 	for name, def := range flagsMap {
-		switch def.Type {
-		case "long":
+		useShort := def.Short != "" && len([]rune(def.Short)) == 1 && !usedShorts[def.Short]
+		if useShort {
+			usedShorts[def.Short] = true
+		}
+		switch {
+		case useShort:
+			cmd.Flags().BoolP(name, def.Short, false, "")
+		case def.Type == "long":
 			cmd.Flags().Bool(name, false, "")
-		case "short":
-			if len(name) == 1 {
-				cmd.Flags().BoolP(name, name, false, "")
-			} else {
-				cmd.Flags().Bool(name, false, "")
-			}
+		case def.Type == "short" && len(name) == 1:
+			cmd.Flags().BoolP(name, name, false, "")
+		case def.Type == "short":
+			cmd.Flags().Bool(name, false, "")
 		}
 	}
 	if plugin.ReadmePath != "" {
@@ -244,11 +249,12 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			baseDir = pluginRoot
 		}
 		execPath := filepath.Join(baseDir, chosenEntrypoint)
+		pluginType := plugins.PluginTypeFromEntrypoint(chosenEntrypoint)
 		syntheticPlugin := cache.Plugin{
 			CommandPath: plugin.CommandPath,
 			CommandName: plugin.CommandName,
 			ExecPath:    execPath,
-			PluginType:  "sh",
+			PluginType:  pluginType,
 			ConfigHash:  plugin.ConfigHash,
 		}
 

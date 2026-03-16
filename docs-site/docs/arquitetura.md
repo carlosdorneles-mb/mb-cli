@@ -35,7 +35,7 @@ O cache é **lido** na inicialização do CLI para montar a árvore de comandos 
 4. Para plugins com **entrypoint**: o `ExecPath` já está absoluto no cache (vindo do scan). O executor invoca o script ou binário com os argumentos e o ambiente mesclado (sistema + defaults + `--env-file` + `--env`).
 5. Para plugins **flags-only**: o handler monta o `exec_path` a partir do plugin root + segmentos do `command_path` + entrypoint da flag escolhida; em seguida chama o executor.
 
-O **executor** é o componente que, dado um `Plugin` (com `ExecPath` e `PluginType`), monta a linha de comando (por exemplo `/bin/sh` + script para `type: sh`) e executa o processo com o ambiente injetado.
+O **executor** é o componente que, dado um `Plugin` (com `ExecPath` e `PluginType`), monta a linha de comando (por exemplo `/bin/sh` + script quando o entrypoint termina em `.sh`) e executa o processo com o ambiente injetado.
 
 ## Diagrama de alto nível
 

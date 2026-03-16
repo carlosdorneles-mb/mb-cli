@@ -24,8 +24,7 @@ Crie `manifest.yaml` na pasta raiz do plugin (ou em subpastas, se quiser categor
 ```yaml
 command: meu-comando   # opcional; se omitido = nome da pasta
 description: "Descrição curta para o help"
-type: sh               # obrigatório se houver entrypoint: sh | bin
-entrypoint: run.sh     # script ou binário a executar (relativo à pasta do plugin)
+entrypoint: run.sh     # script ou binário (relativo à pasta do plugin); tipo inferido pelo sufixo
 readme: README.md      # opcional: flag --readme exibe com glow
 ```
 
@@ -33,20 +32,9 @@ readme: README.md      # opcional: flag --readme exibe com glow
 
 Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `meu-comando` → comando `mb tools meu-comando`. Útil quando você quer um nome diferente da pasta (ex.: pasta `deploy` em `infra/ci/deploy` continua como comando `deploy`).
 
-#### `type` (obrigatório quando há `entrypoint`)
-
-Define **como** o MB executa o programa:
-
-| Valor | Significado |
-|-------|-------------|
-| `sh`  | **Script shell** — o MB invoca o interpretador e passa o caminho do script. O arquivo deve ser executável (`chmod +x`). |
-| `bin` | **Executável** — o MB executa o arquivo diretamente (ex.: binário Go, Rust, C). Deve ser compilado para o SO/arquitetura do usuário. |
-
-Se você definir `entrypoint` sem `type`, ou com `type` diferente de `sh`/`bin`, o scanner reporta erro.
-
 #### `entrypoint` (para comando “folha” executável)
 
-Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. Quando definido, é obrigatório informar `type: sh` ou `type: bin`. O MB resolve o path de forma absoluta na execução.
+Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. O MB resolve o path de forma absoluta na execução. O **tipo de execução** é inferido pelo sufixo: se terminar em **`.sh`**, executa como script shell (`/bin/sh` + script); caso contrário, como binário. Não é necessário declarar `type` no manifesto.
 
 Para plugins que **só expõem flags** (sem um único programa), não use `entrypoint` no nível raiz do manifesto; use o campo `flags`, onde cada flag pode ter seu próprio `entrypoint` e um `type` opcional que define como a flag aparece no CLI:
 
@@ -55,23 +43,25 @@ Para plugins que **só expõem flags** (sem um único programa), não use `entry
 | `long` | Só a forma longa: `--nome` (ex.: `--deploy`). |
 | `short` | Se o nome da flag tiver **um caractere**, o usuário pode usar `-n` ou `--nome`; se tiver mais de um, comporta como `long`. |
 
+**`short`** (opcional): uma letra para a forma curta. Quando definido, o usuário pode usar tanto `--nome` quanto `-x` para a mesma ação. Ex.: chave `deploy` com `short: d` → `--deploy` e `-d` disparam o mesmo entrypoint. A letra deve ser única entre as flags do comando.
+
 Se omitir `type`, a flag **não** é registrada e o comando não aceita essa opção. Ex.:
 
 ```yaml
 command: do
 description: "Ações por flag (deploy, rollback)"
 flags:
-  deploy:  { type: long, entrypoint: deploy.sh }
-  rollback: { type: long, entrypoint: rollback.sh }
+  deploy:  { type: long, short: d, entrypoint: deploy.sh }
+  rollback: { type: long, short: r, entrypoint: rollback.sh }
 ```
 
-O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** roda `deploy.sh`, **`mb tools do --rollback`** roda `rollback.sh`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
+O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** ou **`mb tools do -d`** rodam `deploy.sh`; **`mb tools do --rollback`** ou **`mb tools do -r`** rodam `rollback.sh`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
 
 Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
 ## 3. Script ou binário
 
-Para `type: sh`, crie o script referido em `entrypoint` (ex.: `run.sh`):
+Se o entrypoint termina em **`.sh`**, crie o script nesse caminho (ex.: `run.sh`):
 
 ```bash
 #!/bin/sh
@@ -79,7 +69,7 @@ echo "Plugin rodando!"
 echo "Variável injetada: API_KEY=${API_KEY:-não definida}"
 ```
 
-Torne o script executável (`chmod +x run.sh`). Para `type: bin`, use um executável compilado (Go, Rust, etc.) e indique-o em `entrypoint`.
+Torne o script executável (`chmod +x run.sh`). Se o entrypoint não terminar em `.sh`, o MB trata como binário e executa o arquivo diretamente (ex.: executável Go, Rust, C).
 
 ### Usando os helpers do MB
 

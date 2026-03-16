@@ -75,7 +75,7 @@ O MB segue [Semantic Versioning](https://semver.org/) (SemVer). A versão é def
    - Plugin `name: lint`, `category: dev` → `mb dev lint`
 
 5. **Execução**  
-   Ao rodar `mb infra deploy`, o MB localiza o executável/script no cache, monta o ambiente (merge de env), e executa o processo. Você pode usar scripts shell (`type: sh`) ou binários (`type: bin`).
+   Ao rodar `mb infra deploy`, o MB localiza o executável/script no cache, monta o ambiente (merge de env), e executa o processo. O tipo de execução é inferido pelo entrypoint: se terminar em `.sh`, executa como script shell; caso contrário, como binário.
 
 ## Criar um plugin (passo a passo)
 
@@ -98,17 +98,16 @@ Crie `manifest.yaml` dentro da pasta do plugin:
 ```yaml
 name: meu-plugin      # nome do comando (ex.: mb tools meu-plugin)
 category: tools       # categoria = subcomando pai
-type: sh              # sh = script shell; bin = executável
-entrypoint: run.sh    # arquivo a executar (relativo à pasta do plugin)
+entrypoint: run.sh    # script ou binário (tipo inferido: .sh = shell, senão = binário)
 readme: README.md     # opcional: usado pelo mb ... --help (glow)
 ```
 
-Campos obrigatórios: `name`, `category`, `type`, `entrypoint`.  
+Campos obrigatórios: `name`, `category`, `entrypoint`. O tipo (script vs binário) é inferido pelo sufixo do entrypoint (`.sh` = shell).  
 `readme` é opcional; se existir, o `--help` do comando pode exibir o README via glow.
 
 ### 3. Criar o script ou binário
 
-Para `type: sh`, crie o script referido em `entrypoint` (ex.: `run.sh`):
+Se o entrypoint termina em `.sh`, crie o script nesse caminho (ex.: `run.sh`):
 
 ```bash
 #!/bin/sh
@@ -122,7 +121,7 @@ Torne o script executável:
 chmod +x ~/.config/mb/plugins/meu-plugin/run.sh
 ```
 
-Para `type: bin`, use um executável compilado (Go, Rust, etc.) e indique-o em `entrypoint`.
+Se o entrypoint não terminar em `.sh`, o MB trata como binário e executa o arquivo diretamente (ex.: Go, Rust, C).
 
 ### 4. (Opcional) README para ajuda
 

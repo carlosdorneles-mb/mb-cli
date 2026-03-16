@@ -1,13 +1,19 @@
 package commands
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/cache"
 	"mb/internal/commands/config"
+	"mb/internal/executor"
+	"mb/internal/plugins"
 )
 
 func TestAppendVerbosityEnv(t *testing.T) {
@@ -86,5 +92,185 @@ func TestParseRootVerbosityFlags(t *testing.T) {
 				t.Errorf("remaining = %v, want %v", remaining, tt.wantRemaining)
 			}
 		})
+	}
+}
+
+// TestFlagsOnlyWithShort verifies that a flag with Short in the manifest is registered
+// with both long (--deploy) and short (-d) forms, and that both trigger the same flag.
+func TestFlagsOnlyWithShort(t *testing.T) {
+	flagsWithShort := map[string]plugins.FlagDef{
+		"deploy":  {Type: "long", Short: "d", Entrypoint: "deploy.sh"},
+		"rollback": {Type: "long", Short: "r", Entrypoint: "rollback.sh"},
+	}
+	flagsJSON, err := json.Marshal(flagsWithShort)
+	if err != nil {
+		t.Fatalf("marshal flags: %v", err)
+	}
+
+	tmp := t.TempDir()
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	plugin := cache.Plugin{
+		CommandPath: "tools/do",
+		CommandName: "do",
+		Description: "Flags-only with short",
+		FlagsJSON:  string(flagsJSON),
+		ConfigHash:  "test",
+	}
+	if err := store.UpsertPlugin(plugin); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	// Category tools must exist for the command to attach under it
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		ExecPath:    "/bin/true",
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert tools/hello: %v", err)
+	}
+
+	runtime := &config.RuntimeConfig{
+		ConfigDir:  filepath.Join(tmp, "mb"),
+		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
+	}
+	deps := config.NewDependencies(
+		runtime,
+		store,
+		plugins.NewScanner(runtime.PluginsDir),
+		executor.New(),
+	)
+	root := NewRootCmd(deps)
+
+	var doCmd *cobra.Command
+	for _, c := range root.Commands() {
+		if c.Name() == "tools" {
+			for _, sub := range c.Commands() {
+				if sub.Name() == "do" {
+					doCmd = sub
+					break
+				}
+			}
+			break
+		}
+	}
+	if doCmd == nil {
+		t.Fatal("command 'tools do' not found")
+	}
+
+	deployFlag := doCmd.Flags().Lookup("deploy")
+	if deployFlag == nil {
+		t.Fatal("flag 'deploy' not registered")
+	}
+	if deployFlag.Shorthand != "d" {
+		t.Errorf("deploy flag Shorthand = %q, want \"d\"", deployFlag.Shorthand)
+	}
+
+	rollbackFlag := doCmd.Flags().Lookup("rollback")
+	if rollbackFlag == nil {
+		t.Fatal("flag 'rollback' not registered")
+	}
+	if rollbackFlag.Shorthand != "r" {
+		t.Errorf("rollback flag Shorthand = %q, want \"r\"", rollbackFlag.Shorthand)
+	}
+
+	// Both --deploy and -d should set the same flag
+	for _, args := range [][]string{{"--deploy"}, {"-d"}} {
+		doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
+		if err := doCmd.Flags().Parse(args); err != nil {
+			t.Errorf("Parse(%v): %v", args, err)
+		}
+		if !deployFlag.Changed {
+			t.Errorf("after Parse(%v), deploy flag not changed", args)
+		}
+		deployFlag.Changed = false
+	}
+}
+
+// TestFlagsOnlyWithoutShort verifies backward compatibility: flags with type long only
+// (no Short field) are still registered and work with the long form only.
+func TestFlagsOnlyWithoutShort(t *testing.T) {
+	flagsLongOnly := map[string]plugins.FlagDef{
+		"deploy": {Type: "long", Entrypoint: "deploy.sh"},
+	}
+	flagsJSON, err := json.Marshal(flagsLongOnly)
+	if err != nil {
+		t.Fatalf("marshal flags: %v", err)
+	}
+
+	tmp := t.TempDir()
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	plugin := cache.Plugin{
+		CommandPath: "tools/do",
+		CommandName: "do",
+		Description: "Flags-only long only",
+		FlagsJSON:  string(flagsJSON),
+		ConfigHash:  "test",
+	}
+	if err := store.UpsertPlugin(plugin); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		ExecPath:    "/bin/true",
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert tools/hello: %v", err)
+	}
+
+	runtime := &config.RuntimeConfig{
+		ConfigDir:  filepath.Join(tmp, "mb"),
+		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
+	}
+	deps := config.NewDependencies(
+		runtime,
+		store,
+		plugins.NewScanner(runtime.PluginsDir),
+		executor.New(),
+	)
+	root := NewRootCmd(deps)
+
+	var doCmd *cobra.Command
+	for _, c := range root.Commands() {
+		if c.Name() == "tools" {
+			for _, sub := range c.Commands() {
+				if sub.Name() == "do" {
+					doCmd = sub
+					break
+				}
+			}
+			break
+		}
+	}
+	if doCmd == nil {
+		t.Fatal("command 'tools do' not found")
+	}
+
+	deployFlag := doCmd.Flags().Lookup("deploy")
+	if deployFlag == nil {
+		t.Fatal("flag 'deploy' not registered")
+	}
+	if deployFlag.Shorthand != "" {
+		t.Errorf("deploy flag Shorthand = %q, want \"\" (long only)", deployFlag.Shorthand)
 	}
 }

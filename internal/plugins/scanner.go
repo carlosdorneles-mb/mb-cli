@@ -30,20 +30,13 @@ func NewScanner(pluginsDir string) *Scanner {
 // validateManifest returns a list of validation errors. Empty slice means valid.
 func validateManifest(manifest Manifest, baseDir string) []string {
 	var errs []string
-	if manifest.Type != "" && manifest.Type != "sh" && manifest.Type != "bin" {
-		errs = append(errs, "type deve ser sh ou bin")
-	}
 	if manifest.Entrypoint != "" {
-		if manifest.Type != "sh" && manifest.Type != "bin" {
-			errs = append(errs, "entrypoint exige type: sh ou bin")
-		} else {
-			execPath := filepath.Join(baseDir, manifest.Entrypoint)
-			if _, err := os.Stat(execPath); err != nil {
-				if os.IsNotExist(err) {
-					errs = append(errs, "entrypoint não encontrado: "+manifest.Entrypoint)
-				} else {
-					errs = append(errs, "entrypoint inacessível: "+manifest.Entrypoint)
-				}
+		execPath := filepath.Join(baseDir, manifest.Entrypoint)
+		if _, err := os.Stat(execPath); err != nil {
+			if os.IsNotExist(err) {
+				errs = append(errs, "entrypoint não encontrado: "+manifest.Entrypoint)
+			} else {
+				errs = append(errs, "entrypoint inacessível: "+manifest.Entrypoint)
 			}
 		}
 	}
@@ -98,15 +91,16 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 			readmePath = filepath.Join(baseDir, manifest.Readme)
 		}
 
-		// Leaf with entrypoint: has Type and Entrypoint; ignore Flags
-		if manifest.Entrypoint != "" && (manifest.Type == "sh" || manifest.Type == "bin") {
+		// Leaf with entrypoint: ignore Flags; type inferred from .sh suffix
+		if manifest.Entrypoint != "" {
 			execPath := filepath.Join(baseDir, manifest.Entrypoint)
+			pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
 			plugins = append(plugins, cache.Plugin{
 				CommandPath: commandPath,
 				CommandName: commandName,
 				Description: manifest.Description,
 				ExecPath:    execPath,
-				PluginType:  manifest.Type,
+				PluginType:  pluginType,
 				ConfigHash:  configHash,
 				ReadmePath:  readmePath,
 				FlagsJSON:   "",
@@ -204,14 +198,15 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 			readmePath = filepath.Join(baseDir, manifest.Readme)
 		}
 
-		if manifest.Entrypoint != "" && (manifest.Type == "sh" || manifest.Type == "bin") {
+		if manifest.Entrypoint != "" {
 			execPath := filepath.Join(baseDir, manifest.Entrypoint)
+			pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
 			plugins = append(plugins, cache.Plugin{
 				CommandPath: commandPath,
 				CommandName: commandName,
 				Description: manifest.Description,
 				ExecPath:    execPath,
-				PluginType:  manifest.Type,
+				PluginType:  pluginType,
 				ConfigHash:  configHash,
 				ReadmePath:  readmePath,
 				FlagsJSON:   "",

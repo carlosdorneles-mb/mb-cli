@@ -1,9 +1,15 @@
 command: do
 description: Ações por flag (deploy, rollback) — exemplo sem entrypoint único
 flags:
-  deploy:
-    type: long
+  - name: deploy
+    description: Deploy
     entrypoint: deploy.sh
-  rollback:
-    type: long
+    commands:
+      long: deploy
+      short: d
+  - name: rollback
+    description: Revert
     entrypoint: rollback.sh
+    commands:
+      long: rollback
+      short: r
