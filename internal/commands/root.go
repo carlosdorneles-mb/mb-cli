@@ -70,7 +70,7 @@ func NewRootCmd(deps Dependencies) RootCommand {
 	}
 
 	rootCmd.PersistentFlags().BoolVar(&deps.Runtime.Verbose, "verbose", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().BoolVar(&deps.Runtime.Quiet, "quiet", false, "Desativa banner e reduz saída")
+	rootCmd.PersistentFlags().BoolVar(&deps.Runtime.Quiet, "quiet", false, "Não exibir nenhuma mensagem.")
 	rootCmd.PersistentFlags().StringVar(&deps.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
 	rootCmd.PersistentFlags().StringArrayVar(&deps.Runtime.InlineEnvValues, "env", nil, "Define variável KEY=VALUE")
 
@@ -127,6 +127,8 @@ func NewRootCmd(deps Dependencies) RootCommand {
 	}
 	rootCmd.InitDefaultHelpFlag()
 	rootCmd.InitDefaultVersionFlag()
+	initDefaultHelpFlagRecursive(rootCmd)
+	setHelpFlagUsagePT(rootCmd)
 	if f := rootCmd.Flags().Lookup("help"); f != nil {
 		f.Usage = "Ajuda para MB CLI"
 	}
@@ -147,4 +149,24 @@ func findCommand(cmds []*cobra.Command, name string) *cobra.Command {
 		}
 	}
 	return nil
+}
+
+func initDefaultHelpFlagRecursive(cmd *cobra.Command) {
+	cmd.InitDefaultHelpFlag()
+	for _, sub := range cmd.Commands() {
+		initDefaultHelpFlagRecursive(sub)
+	}
+}
+
+func setHelpFlagUsagePT(cmd *cobra.Command) {
+	if f := cmd.Flags().Lookup("help"); f != nil {
+		displayName := cmd.DisplayName()
+		if displayName == "" {
+			displayName = "este comando"
+		}
+		f.Usage = "Ajuda para " + displayName
+	}
+	for _, sub := range cmd.Commands() {
+		setHelpFlagUsagePT(sub)
+	}
 }
