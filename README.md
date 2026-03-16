@@ -2,6 +2,8 @@
 
 CLI em Go para orquestrar plugins com descoberta dinâmica (cache SQLite) e injeção de variáveis de ambiente.
 
+<img title="MB CLI" alt="Alt text" src="mb-cli.png">
+
 ## Instalação
 
 ```bash
