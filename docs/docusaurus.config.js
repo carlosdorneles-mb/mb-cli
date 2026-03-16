@@ -20,13 +20,13 @@ const config = {
   },
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://carlosdorneles-mb.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served (GitHub Pages: /<projectName>/)
-  baseUrl: '/cli-go/',
+  baseUrl: '/mb-cli/',
 
   // GitHub pages deployment config (ajuste para o seu org/repo).
-  organizationName: 'your-org',
-  projectName: 'cli-go',
+  organizationName: 'mercadobitcoin',
+  projectName: 'mb-cli',
 
   onBrokenLinks: 'throw',
 
@@ -57,6 +57,10 @@ const config = {
       }),
     ],
   ],
+
+  themes: ['@docusaurus/theme-mermaid', '@easyops-cn/docusaurus-search-local'],
+
+  plugins: ['@r74tech/docusaurus-plugin-panzoom'],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -109,6 +113,12 @@ const config = {
       prism: {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
+      },
+      // Pan/zoom nos diagramas Mermaid (e SVG). Inclui controles de zoom in/out/reset.
+      zoom: {
+        selectors: ['div.mermaid[data-processed="true"]', 'div.docusaurus-mermaid-container'],
+        wrap: true,
+        timeout: 1000,
       },
     }),
 };

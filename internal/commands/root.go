@@ -74,6 +74,7 @@ func NewRootCmd(deps config.Dependencies) RootCommand {
 		_ = rootCmd.Flags().SetAnnotation("version", cobra.FlagSetByCobraAnnotation, []string{"true"})
 	}
 	rootCmd.InitDefaultVersionFlag()
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
 	initDefaultHelpFlagRecursive(rootCmd)
 	setHelpFlagUsagePT(rootCmd)
 	if f := rootCmd.Flags().Lookup("help"); f != nil {

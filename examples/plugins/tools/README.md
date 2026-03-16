@@ -24,4 +24,4 @@ mb tools do --deploy
 mb tools do -d
 ```
 
-Para mais detalhes sobre como criar plugins e definir entrypoints e flags, veja a documentação em [Criar um plugin](../../../docs-site/docs/creating-plugins.md).
+Para mais detalhes sobre como criar plugins e definir entrypoints e flags, veja a documentação em [Criar um plugin](../../../docs/docs/creating-plugins.md).

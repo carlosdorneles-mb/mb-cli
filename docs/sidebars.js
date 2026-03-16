@@ -29,6 +29,7 @@ const sidebars = {
         'plugins',
         'helpers-shell',
         'reference',
+        'versioning-and-release',
       ],
     },
   ],

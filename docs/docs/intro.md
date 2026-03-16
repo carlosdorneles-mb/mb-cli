@@ -30,3 +30,4 @@ O **MB CLI** é um CLI em Go para orquestrar plugins com injeção segura de var
 - [Arquitetura](architecture) — visão de alto nível do CLI (Cobra, cache, execução)
 - [Plugins](plugins) — como o CLI descobre, armazena e executa plugins
 - [Referência de comandos](reference) — tabela de comandos e flags
+- [Versionamento e release](versioning-and-release) — geração de versão (svu, tags) e de release (GoReleaser)

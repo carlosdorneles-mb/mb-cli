@@ -1,5 +1,5 @@
 {
-  "name": "docs-site",
+  "name": "docs",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -17,7 +17,9 @@
     "@docusaurus/core": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
+    "@easyops-cn/docusaurus-search-local": "^0.55.1",
     "@mdx-js/react": "^3.0.0",
+    "@r74tech/docusaurus-plugin-panzoom": "^2.4.2",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
