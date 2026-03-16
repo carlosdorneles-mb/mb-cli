@@ -6,16 +6,42 @@ sidebar_position: 1
 
 ## Pré-requisitos
 
-- Go 1.22+
-- Toolchain C (CGO) para `mattn/go-sqlite3`
+- Go 1.22+ (apenas se for compilar a partir do código)
 - Opcional: [gum](https://github.com/charmbracelet/gum) (tabelas/inputs), [glow](https://github.com/charmbracelet/glow) (help em Markdown)
 
-## Build e instalação
+## Instalação do CLI
+
+A forma recomendada é usar o **script de instalação**, que baixa o binário do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) para o seu sistema (Linux ou macOS, amd64 ou arm64), valida o download com o arquivo `checksums.txt` e instala em **`~/.local/bin`** (sem precisar de sudo).
+
+**Instalar:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+```
+
+Para uma versão específica:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash -s -- --version 0.0.5
+```
+
+Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sync` para atualizar o cache de plugins e os helpers de shell.
+
+**Remover o CLI:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
+```
+
+Ou remova manualmente: `rm -f ~/.local/bin/mb`. Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
+
+## Build e instalação (desenvolvedores)
+
+Se você for alterar o código ou contribuir:
 
 ```bash
 make build          # binário em bin/mb
 make install        # instala em $GOPATH/bin
-make cross          # Linux amd64 + macOS amd64/arm64
 ```
 
 ## Executar localmente

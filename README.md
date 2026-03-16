@@ -15,12 +15,33 @@ CLI em Go para orquestrar plugins com UX em laranja, descoberta dinâmica via ca
 - Go 1.22+
 - Opcional: [gum](https://github.com/charmbracelet/gum) (tabelas/inputs), [glow](https://github.com/charmbracelet/glow) (help em Markdown)
 
-## Build e instalação
+## Instalação (usuários)
+
+Para instalar o binário do MB sem compilar (Linux e macOS, amd64/arm64), use o script de instalação. A instalação é feita em `~/.local/bin` (não requer sudo). O download é validado com o arquivo `checksums.txt` do release.
+
+**Instalar (versão mais recente ou especificada):**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+# Ou com versão específica:
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash -s -- --version 0.0.5
+```
+
+Certifique-se de que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sync` para preparar o cache e os helpers de shell.
+
+**Remover o CLI:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
+```
+
+Ou remova manualmente o binário: `rm -f ~/.local/bin/mb`. Os dados do CLI (plugins, config) ficam em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados na desinstalação.
+
+## Build e instalação (desenvolvedores)
 
 ```bash
 make build          # binário em bin/mb
 make install        # instala em $GOPATH/bin
-make cross          # Linux amd64 + macOS amd64/arm64
 ```
 
 A versão exibida em `mb --version` vem do build: em desenvolvimento (`go run .` ou `make build`) aparece `dev`; em releases oficiais, a versão é injetada a partir da tag Git (ex.: `v1.0.0`).
@@ -34,8 +55,6 @@ O MB segue [Semantic Versioning](https://semver.org/) (SemVer). A versão é def
 1. Decidir a versão (ex.: `v1.0.0`).
 2. Criar e enviar a tag: `git tag v1.0.0 && git push origin v1.0.0`.
 3. O workflow de release dispara automaticamente e publica o release com os binários. O comando `mb --version` nos binários gerados exibirá essa versão.
-
-Para validar o pipeline de release sem publicar, use localmente: `make release-snapshot` (requer [goreleaser](https://goreleaser.com/install/) instalado).
 
 ## Como funciona a gestão de plugins
 
