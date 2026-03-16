@@ -236,6 +236,11 @@ func (s *Store) DeleteAllCategories() error {
 	return err
 }
 
+func (s *Store) DeleteAllPlugins() error {
+	_, err := s.db.Exec("DELETE FROM plugins")
+	return err
+}
+
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.db.Query(`
 SELECT path, COALESCE(description, ''), COALESCE(readme_path, '')

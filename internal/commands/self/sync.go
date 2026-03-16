@@ -45,6 +45,9 @@ func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.W
 		}
 	}
 
+	if err := deps.Store.DeleteAllPlugins(); err != nil {
+		return err
+	}
 	for _, plugin := range plugins {
 		if err := deps.Store.UpsertPlugin(plugin); err != nil {
 			return err

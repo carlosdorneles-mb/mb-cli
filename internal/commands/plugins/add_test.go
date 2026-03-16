@@ -231,3 +231,79 @@ func TestSyncIncludesLocalSources(t *testing.T) {
 		t.Errorf("sync should include plugin from local source; got %d plugins: %v", len(pluginList), pluginList)
 	}
 }
+
+// TestListExcludesPluginAfterRemove verifies that after removing a plugin source and running sync,
+// plugins list no longer shows that plugin (ensures DeleteAllPlugins in sync clears orphaned rows).
+func TestListExcludesPluginAfterRemove(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	cachePath := filepath.Join(tmp, "cache.db")
+	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	sourceDir := filepath.Join(tmp, "to-remove")
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: gone\ndescription: G\ntype: sh\nentrypoint: run.sh\n"), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+
+	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "to-remove", LocalPath: sourceDir}); err != nil {
+		t.Fatalf("upsert source: %v", err)
+	}
+
+	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
+	deps := config.NewDependencies(
+		runtime,
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
+	if err := self.RunSync(deps, nil, nil); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	list, err := store.ListPlugins()
+	if err != nil {
+		t.Fatalf("list plugins: %v", err)
+	}
+	var foundBefore bool
+	for _, p := range list {
+		if p.CommandPath == "to-remove" {
+			foundBefore = true
+			break
+		}
+	}
+	if !foundBefore {
+		t.Fatal("plugin should appear in list after sync")
+	}
+
+	if err := store.DeletePluginSource("to-remove"); err != nil {
+		t.Fatalf("delete plugin source: %v", err)
+	}
+	if err := self.RunSync(deps, nil, nil); err != nil {
+		t.Fatalf("sync after remove: %v", err)
+	}
+
+	list, err = store.ListPlugins()
+	if err != nil {
+		t.Fatalf("list plugins after remove: %v", err)
+	}
+	for _, p := range list {
+		if p.CommandPath == "to-remove" {
+			t.Errorf("plugin to-remove should not appear in list after remove+sync; got %v", list)
+			break
+		}
+	}
+}
