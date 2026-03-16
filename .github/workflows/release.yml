@@ -4,24 +4,40 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    # Allows bump-version.yml to trigger this workflow for the new tag (ref passed via API)
+  workflow_run:
+    workflows: ['Bump version']
+    types: [completed]
+    branches: [main, master]
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'push' && github.ref || github.event.workflow_run.head_branch }}
+
+      - name: Get tag (workflow_run only)
+        id: tag
+        if: github.event_name == 'workflow_run'
+        run: |
+          version=$(git tag -l 'v*' --sort=-creatordate | head -1)
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Releasing $version"
+
+      - name: Checkout tag (workflow_run only)
+        if: github.event_name == 'workflow_run'
+        run: git checkout "refs/tags/${{ steps.tag.outputs.version }}"
 
       - name: Set up Go
         uses: actions/setup-go@v5
