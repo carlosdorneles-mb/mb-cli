@@ -91,6 +91,7 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 					}
 				}
 				setHelpFang(categoryCmd)
+				categoryCmd.Hidden = cat.Hidden
 				parent.AddCommand(categoryCmd)
 				byPath[pathSoFar] = &node{cmd: categoryCmd}
 			}
@@ -113,6 +114,7 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 		}
 		isLocal := src != nil && src.LocalPath != ""
 		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps, pluginRoot, isLocal)
+		leafCmd.Hidden = plugin.Hidden
 		if parent == root {
 			leafCmd.GroupID = "plugin_commands"
 		}
@@ -181,7 +183,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 
 	var flagsMap map[string]plugins.FlagDef
 	if err := json.Unmarshal([]byte(plugin.FlagsJSON), &flagsMap); err != nil {
-		cmd := &cobra.Command{Use: use, Short: short + " (config de flags inválida)"}
+		cmd := &cobra.Command{Use: use, Short: short + " (config de flags inválida)", Hidden: plugin.Hidden}
 		return cmd
 	}
 

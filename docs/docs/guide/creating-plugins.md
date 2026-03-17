@@ -26,6 +26,7 @@ command: meu-comando   # obrigatório quando há entrypoint ou flags
 description: "Descrição curta para o help"
 entrypoint: run.sh     # script ou binário (relativo à pasta do plugin); tipo inferido pelo sufixo
 readme: README.md      # opcional: flag --readme exibe com glow
+hidden: false          # opcional: omite do help global (comando ainda funciona)
 ```
 
 #### `description` (opcional)
@@ -81,6 +82,7 @@ Você pode customizar a linha de uso, a quantidade de argumentos e o help do com
 | **`aliases`** | Lista de **strings**: nomes alternativos para invocar o mesmo comando. Ex.: `aliases: ["x", "run"]` permite `mb tools x` ou `mb tools run` em vez de `mb tools meu-comando`. |
 | **`example`** | String exibida como **exemplo** no help do comando. Ex.: `example: "mb tools meu-comando do"`. |
 | **`deprecated`** | Mensagem exibida quando o comando for **executado** (aviso de obsoleto). Ex.: `deprecated: "Use 'mb tools novo-comando' em vez disso."` O CLI mostra o aviso em português ("Comando \"&lt;nome&gt;\" está obsoleto: &lt;sua mensagem&gt;") e ainda executa o plugin. |
+| **`hidden`** | Se `true`, o comando (ou a **categoria**, em manifest só de categoria) **não aparece** no `mb --help` e nos helps dos pais, mas continua **invocável** (ex.: `mb tools meu-comando`). Útil para comandos internos ou experimentais. O **autocompletar do shell** pode ainda sugerir o nome, conforme a configuração do completion. |
 
 Exemplo de manifest com esses campos:
 
@@ -99,6 +101,7 @@ example: |
   "mb tools meu-comando"
   "mb tools x"
 deprecated: ""   # deixe vazio ou omita se não for obsoleto
+hidden: false
 ```
 
 Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando postman`** passam "postman" como primeiro argumento ao script. As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pelo CLI e não chegam ao script; `--help`/`-h` exibe o help do comando e não é repassado; os demais argumentos posicionais são repassados ao entrypoint. Detalhes em [Plugins (referência técnica)](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin).

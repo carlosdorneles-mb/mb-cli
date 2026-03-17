@@ -82,6 +82,7 @@ type Manifest struct {
 	Aliases          []string `yaml:"aliases"`           // optional; Cobra Aliases
 	Example          string   `yaml:"example"`            // optional; Cobra Example
 	Deprecated       string   `yaml:"deprecated"`        // optional; Cobra Deprecated message
+	Hidden           bool     `yaml:"hidden"`            // optional; omit from mb help (still invokable)
 }
 
 // PluginTypeFromEntrypoint returns "sh" if entrypoint ends with .sh, otherwise "bin".

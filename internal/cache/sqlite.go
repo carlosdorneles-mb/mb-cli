@@ -27,6 +27,7 @@ type Category struct {
 	Path        string
 	Description string
 	ReadmePath  string
+	Hidden      bool
 }
 
 type Plugin struct {
@@ -46,6 +47,7 @@ type Plugin struct {
 	LongDescription string // Cobra Long
 	Deprecated      string // Cobra Deprecated message
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
+	Hidden          bool   // Cobra Hidden: omit from help, still invokable
 }
 
 // PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
@@ -127,7 +129,10 @@ func (s *Store) migrateCobraPluginFields() error {
 			return err
 		}
 	}
-	return s.migratePluginDir()
+	if err := s.migratePluginDir(); err != nil {
+		return err
+	}
+	return s.migrateHiddenColumns()
 }
 
 func (s *Store) migratePluginDir() error {
@@ -140,6 +145,27 @@ func (s *Store) migratePluginDir() error {
 	}
 	_, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN plugin_dir TEXT")
 	return err
+}
+
+func (s *Store) migrateHiddenColumns() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='hidden'").Scan(&has); err != nil {
+		return err
+	}
+	if has == 0 {
+		if _, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"); err != nil {
+			return err
+		}
+	}
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='hidden'").Scan(&has); err != nil {
+		return err
+	}
+	if has == 0 {
+		if _, err := s.db.Exec("ALTER TABLE categories ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) migratePluginSourcesLocalPath() error {
@@ -211,9 +237,13 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 		}
 	}
 
+	hidden := 0
+	if plugin.Hidden {
+		hidden = 1
+	}
 	_, err := s.db.Exec(`
-INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
   command_name = excluded.command_name,
   description = excluded.description,
@@ -229,9 +259,10 @@ ON CONFLICT(command_path) DO UPDATE SET
   long_description = excluded.long_description,
   deprecated = excluded.deprecated,
   plugin_dir = excluded.plugin_dir,
+  hidden = excluded.hidden,
   updated_at = CURRENT_TIMESTAMP
 `, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
-		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir))
+		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden)
 	return err
 }
 
@@ -245,7 +276,7 @@ func nullEmpty(s string) interface{} {
 func (s *Store) ListPlugins() ([]Plugin, error) {
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0)
 FROM plugins
 ORDER BY command_path
 `)
@@ -264,7 +295,7 @@ func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
 	}
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0)
 FROM plugins
 WHERE command_path LIKE ? OR command_path = ?
 ORDER BY command_path
@@ -278,13 +309,18 @@ ORDER BY command_path
 }
 
 func (s *Store) UpsertCategory(cat Category) error {
+	h := 0
+	if cat.Hidden {
+		h = 1
+	}
 	_, err := s.db.Exec(`
-INSERT INTO categories (path, description, readme_path)
-VALUES (?, ?, ?)
+INSERT INTO categories (path, description, readme_path, hidden)
+VALUES (?, ?, ?, ?)
 ON CONFLICT(path) DO UPDATE SET
   description = excluded.description,
-  readme_path = excluded.readme_path
-`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath))
+  readme_path = excluded.readme_path,
+  hidden = excluded.hidden
+`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath), h)
 	return err
 }
 
@@ -300,7 +336,7 @@ func (s *Store) DeleteAllPlugins() error {
 
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.db.Query(`
-SELECT path, COALESCE(description, ''), COALESCE(readme_path, '')
+SELECT path, COALESCE(description, ''), COALESCE(readme_path, ''), COALESCE(hidden, 0)
 FROM categories
 ORDER BY path
 `)
@@ -312,9 +348,11 @@ ORDER BY path
 	var list []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath); err != nil {
+		var hid int
+		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath, &hid); err != nil {
 			return nil, err
 		}
+		c.Hidden = hid != 0
 		list = append(list, c)
 	}
 	return list, rows.Err()
@@ -381,6 +419,7 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 	plugins := []Plugin{}
 	for rows.Next() {
 		var plugin Plugin
+		var hidden int
 		if err := rows.Scan(
 			&plugin.ID,
 			&plugin.CommandPath,
@@ -398,9 +437,11 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 			&plugin.LongDescription,
 			&plugin.Deprecated,
 			&plugin.PluginDir,
+			&hidden,
 		); err != nil {
 			return nil, err
 		}
+		plugin.Hidden = hidden != 0
 		plugins = append(plugins, plugin)
 	}
 	return plugins, rows.Err()

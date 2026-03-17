@@ -246,6 +246,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				LongDescription: longD,
 				Deprecated:      dep,
 				PluginDir:       pluginDir,
+				Hidden:          manifest.Hidden,
 			})
 			return nil
 		}
@@ -278,6 +279,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				LongDescription: longD,
 				Deprecated:      dep,
 				PluginDir:       pluginDir,
+				Hidden:          manifest.Hidden,
 			})
 			return nil
 		}
@@ -293,6 +295,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 			Path:        catPath,
 			Description: manifest.Description,
 			ReadmePath:  readmePath,
+			Hidden:      manifest.Hidden,
 		})
 		return nil
 	})

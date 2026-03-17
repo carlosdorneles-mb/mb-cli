@@ -313,3 +313,28 @@ func TestScanDir(t *testing.T) {
 	}
 	_ = categories
 }
+
+func TestScannerManifestHidden(t *testing.T) {
+	tmp := t.TempDir()
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "secret")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("run.sh: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), []byte("command: secret\ndescription: X\nentrypoint: run.sh\nhidden: true\n"), 0o644); err != nil {
+		t.Fatalf("manifest: %v", err)
+	}
+	scanner := NewScanner(filepath.Join(tmp, "plugins"))
+	plugins, _, warnings, err := scanner.Scan()
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("warnings: %v", warnings)
+	}
+	if len(plugins) != 1 || !plugins[0].Hidden {
+		t.Fatalf("want Hidden true, got %#v", plugins)
+	}
+}

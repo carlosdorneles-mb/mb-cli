@@ -170,3 +170,51 @@ func TestPluginSourceLocalPath(t *testing.T) {
 		t.Fatalf("unexpected list: %#v", list)
 	}
 }
+
+func TestStorePluginHiddenRoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "hidden.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	p := Plugin{
+		CommandPath: "tools/secret",
+		CommandName: "secret",
+		ExecPath:    "/x/run.sh",
+		PluginType:  "sh",
+		ConfigHash:  "h",
+		Hidden:      true,
+	}
+	if err := store.UpsertPlugin(p); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	all, err := store.ListPlugins()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(all) != 1 || !all[0].Hidden {
+		t.Fatalf("want Hidden true, got %#v", all[0])
+	}
+}
+
+func TestStoreCategoryHiddenRoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "cathidden.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.UpsertCategory(Category{Path: "tools", Description: "T", Hidden: true}); err != nil {
+		t.Fatalf("upsert cat: %v", err)
+	}
+	list, err := store.ListCategories()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(list) != 1 || !list[0].Hidden || list[0].Path != "tools" {
+		t.Fatalf("got %#v", list)
+	}
+}
