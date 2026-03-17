@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
 	"mb/internal/commands/config"
 	"mb/internal/commands/self"
 	mbplugins "mb/internal/plugins"
@@ -29,20 +28,20 @@ func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sourceByDir := make(map[string]*cache.PluginSource)
-			for i := range sources {
-				sourceByDir[sources[i].InstallDir] = &sources[i]
-			}
-
 			sort.Slice(pluginList, func(i, j int) bool {
 				return pluginList[i].CommandPath < pluginList[j].CommandPath
 			})
 
 			rows := make([][]string, 0, len(pluginList))
 			for _, p := range pluginList {
-				installDir := self.FirstPathSegment(p.CommandPath)
-				src := sourceByDir[installDir]
-				name := installDir
+				src := self.SourceForPlugin(p, sources, deps.Runtime.PluginsDir)
+				name := p.CommandPath
+				if name == "" {
+					name = p.CommandName
+				}
+				if src != nil {
+					name = src.InstallDir
+				}
 				version := "-"
 				origem := "-"
 				url := "-"
@@ -59,7 +58,7 @@ func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
 
 				updateAvail := ""
 				if checkUpdates && src != nil && src.GitURL != "" && src.LocalPath == "" {
-					dir := filepath.Join(deps.Runtime.PluginsDir, installDir)
+					dir := filepath.Join(deps.Runtime.PluginsDir, src.InstallDir)
 					if mbplugins.IsGitRepo(dir) {
 						if src.RefType == "tag" {
 							_ = mbplugins.FetchTags(cmd.Context(), dir)

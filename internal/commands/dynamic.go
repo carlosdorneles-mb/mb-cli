@@ -101,14 +101,17 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 		if byPath[pathSoFar] != nil {
 			continue
 		}
-		installDir := self.FirstPathSegment(plugin.CommandPath)
-		src := sourceByDir[installDir]
-		pluginRoot := filepath.Join(deps.Runtime.PluginsDir, installDir)
-		isLocal := false
-		if src != nil && src.LocalPath != "" {
-			pluginRoot = src.LocalPath
-			isLocal = true
+		src := self.SourceForPlugin(plugin, sources, deps.Runtime.PluginsDir)
+		pluginRoot := plugin.PluginDir
+		if pluginRoot == "" {
+			installDir := self.FirstPathSegment(plugin.CommandPath)
+			s := sourceByDir[installDir]
+			pluginRoot = filepath.Join(deps.Runtime.PluginsDir, installDir)
+			if s != nil && s.LocalPath != "" {
+				pluginRoot = s.LocalPath
+			}
 		}
+		isLocal := src != nil && src.LocalPath != ""
 		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps, pluginRoot, isLocal)
 		if parent == root {
 			leafCmd.GroupID = "plugin_commands"
@@ -302,12 +305,14 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			return nil
 		}
 
-		segments := strings.Split(plugin.CommandPath, "/")
-		var baseDir string
-		if len(segments) > 1 {
-			baseDir = filepath.Join(pluginRoot, filepath.Join(segments[1:]...))
-		} else {
-			baseDir = pluginRoot
+		baseDir := plugin.PluginDir
+		if baseDir == "" {
+			segments := strings.Split(plugin.CommandPath, "/")
+			if len(segments) > 1 {
+				baseDir = filepath.Join(pluginRoot, filepath.Join(segments[1:]...))
+			} else {
+				baseDir = pluginRoot
+			}
 		}
 		execPath := filepath.Join(baseDir, chosenEntrypoint)
 		if err := safepath.ValidateUnderDir(execPath, baseDir); err != nil {

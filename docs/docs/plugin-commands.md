@@ -40,7 +40,7 @@ Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de
 
 ## Repositório com vários plugins
 
-Um único `mb plugins add <url>` ou `mb plugins add <path>` instala **toda a árvore** do diretório: todos os `manifest.yaml` encontrados viram comandos com prefixo `mb <nome> ...`, em que `<nome>` é o nome da instalação (repositório ou `--name`). Exemplo: repo com `tools/` e `infra/` instalado com `--name meurepo` gera `mb meurepo tools ...`, `mb meurepo infra ...`, etc.
+Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo nome da instalação. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **NOME** é o identificador da instalação (`--name` ou nome do diretório clone), usado em `mb plugins remove <nome>`.
 
 ## Plugin local vs remoto
 

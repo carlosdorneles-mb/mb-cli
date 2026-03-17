@@ -74,7 +74,7 @@ args: 1
 aliases:
   - x
   - run
-example: "mb tools mycmd dudu"
+example: "mb tools mycmd do"
 deprecated: "Use 'mb tools newcmd' instead."
 `
 	var m Manifest
@@ -93,7 +93,7 @@ deprecated: "Use 'mb tools newcmd' instead."
 	if len(m.Aliases) != 2 || m.Aliases[0] != "x" || m.Aliases[1] != "run" {
 		t.Errorf("aliases: %v", m.Aliases)
 	}
-	if m.Example != "mb tools mycmd dudu" {
+	if m.Example != "mb tools mycmd do" {
 		t.Errorf("example: %q", m.Example)
 	}
 	if m.Deprecated != "Use 'mb tools newcmd' instead." {

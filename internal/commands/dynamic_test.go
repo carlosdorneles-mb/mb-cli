@@ -414,7 +414,7 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 		UseTemplate:     "<name>",
 		ArgsCount:       1,
 		AliasesJSON:     `["x","run"]`,
-		Example:         "mb tools hello dudu",
+		Example:         "mb tools hello do",
 		LongDescription: "Long desc",
 		Deprecated:      "Use newcmd instead.",
 	}
@@ -460,8 +460,8 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	if len(helloCmd.Aliases) != 2 || helloCmd.Aliases[0] != "x" || helloCmd.Aliases[1] != "run" {
 		t.Errorf("Aliases = %v, want [x run]", helloCmd.Aliases)
 	}
-	if helloCmd.Example != "mb tools hello dudu" {
-		t.Errorf("Example = %q, want %q", helloCmd.Example, "mb tools hello dudu")
+	if helloCmd.Example != "mb tools hello do" {
+		t.Errorf("Example = %q, want %q", helloCmd.Example, "mb tools hello do")
 	}
 	if helloCmd.Long != "Long desc" {
 		t.Errorf("Long = %q, want %q", helloCmd.Long, "Long desc")

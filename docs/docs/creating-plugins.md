@@ -77,9 +77,9 @@ Você pode customizar a linha de uso, a quantidade de argumentos e o help do com
 | Campo | Descrição |
 |-------|-----------|
 | **`use`** | String da **linha de uso** no help (sufixo). O valor informado é **sempre prefixado pelo nome do comando** na linha de uso do Cobra. **Convenção:** use **`<nome>`** para argumento **obrigatório** e **`[nome]`** para **opcional**. Ex.: `command: meu-comando` e `use: "<name>"` resultam em `meu-comando <name>` no help; `use: "[env]"` → argumento opcional. Vários podem ser combinados, ex.: `use: "<name> [options]"`. |
-| **`args`** | Número **inteiro** de argumentos posicionais **obrigatórios**. Ex.: `args: 1` faz com que `mb tools meu-comando dudu` passe "dudu" como primeiro argumento ao script (e não como subcomando). Se omitido ou 0, não há validação de quantidade. |
+| **`args`** | Número **inteiro** de argumentos posicionais **obrigatórios**. Ex.: `args: 1` faz com que `mb tools meu-comando do` passe "do" como primeiro argumento ao script (e não como subcomando). Se omitido ou 0, não há validação de quantidade. |
 | **`aliases`** | Lista de **strings**: nomes alternativos para invocar o mesmo comando. Ex.: `aliases: ["x", "run"]` permite `mb tools x` ou `mb tools run` em vez de `mb tools meu-comando`. |
-| **`example`** | String exibida como **exemplo** no help do comando. Ex.: `example: "mb tools meu-comando dudu"`. |
+| **`example`** | String exibida como **exemplo** no help do comando. Ex.: `example: "mb tools meu-comando do"`. |
 | **`deprecated`** | Mensagem exibida quando o comando for **executado** (aviso de obsoleto). Ex.: `deprecated: "Use 'mb tools novo-comando' em vez disso."` O CLI mostra o aviso em português ("Comando \"&lt;nome&gt;\" está obsoleto: &lt;sua mensagem&gt;") e ainda executa o plugin. |
 
 Exemplo de manifest com esses campos:
@@ -95,7 +95,9 @@ use: "<name>"
 args: 1
 aliases:
   - x
-example: "mb tools meu-comando dudu"
+example: |
+  "mb tools meu-comando"
+  "mb tools x"
 deprecated: ""   # deixe vazio ou omita se não for obsoleto
 ```
 
@@ -157,17 +159,22 @@ Se o plugin está em um repositório, você ou outras pessoas podem instalar com
 mb plugins add https://github.com/sua-org/meu-plugin
 ```
 
-O CLI clona o repositório para o diretório de plugins e atualiza o cache. Use `--name` para escolher o nome do plugin e `--tag` para uma tag específica.
+O CLI clona o repositório para um subdiretório em `~/.config/mb/plugins/` e atualiza o cache. Use **`--name`** só para definir o **nome da instalação** (usado em `mb plugins list`, `mb plugins remove` e no path do clone); **não** altera o caminho dos comandos no CLI. Use `--tag` para uma tag específica.
 
 ### Repositório com vários plugins
 
-Um único `mb plugins add <url>` ou `mb plugins add <path>` trata **todo o diretório** como uma instalação (o nome é o `--name` informado ou o nome do repositório). Todos os `manifest.yaml` encontrados sob esse diretório viram comandos com o prefixo `mb <nome> ...`.
+Um único `mb plugins add <url>` ou `mb plugins add <path>` registra **toda a árvore** a partir da raiz do repositório ou do path. O caminho de cada comando no CLI (`mb …`) é montado **só** a partir dessa árvore:
 
-Exemplo: repositório com as pastas `plugin-a/` e `plugin-b/`, cada uma com seu `manifest.yaml`. Ao instalar com `mb plugins add https://github.com/user/repo --name meurepo`, os comandos ficam **`mb meurepo plugin-a`** e **`mb meurepo plugin-b`**. O primeiro segmento é sempre o nome da instalação; a hierarquia de pastas no repo vira subcomandos. O mesmo vale para path local: `mb plugins add /caminho/para/repo --name X` registra a árvore inteira e gera `mb X <categoria> <comando>` conforme os manifests encontrados.
+- Em cada nível de pasta, se existir `manifest.yaml` com **`command`** preenchido, esse valor vira um segmento do path; senão usa-se o **nome da pasta**.
+- Na pasta do comando executável (folha), o último segmento do path interno é sempre o **nome da pasta**; o nome do subcomando Cobra vem do `command` do manifest (obrigatório quando há `entrypoint` ou `flags`).
+
+Exemplo: repositório com `tools/postman/manifest.yaml` e `dev/kinfo/manifest.yaml` gera **`mb tools postman`** e **`mb dev kinfo`** — o mesmo vale para clone local com `mb plugins add .` na raiz desse repositório.
+
+Se duas fontes (dois `plugins add`) expuserem o **mesmo** caminho de comando, o `mb self sync` falha com mensagem de conflito até você remover ou ajustar uma das fontes.
 
 ### Plugin criado manualmente no diretório de plugins
 
-Se você copiou ou criou o plugin diretamente em `~/.config/mb/plugins/<categoria>/<comando>/`:
+Cada clone ou cópia fica em `~/.config/mb/plugins/<nome>/`. Os comandos seguem a estrutura **dentro** dessa pasta (ex.: `<nome>/tools/meu-comando/` → `mb tools meu-comando`). Se você copiou ou criou arquivos diretamente sob `~/.config/mb/plugins/<nome>/`:
 
 ```bash
 mb self sync

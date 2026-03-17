@@ -9,7 +9,7 @@ import (
 
 func TestScannerFindsManifestPlugins(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "infra", "ci", "deploy")
+	pluginDir := filepath.Join(tmp, "plugins", "myinstall", "infra", "ci", "deploy")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestScannerFindsManifestPlugins(t *testing.T) {
 
 func TestScannerCobraFieldsFromManifest(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "mycmd")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "mycmd")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -59,7 +59,7 @@ args: 1
 aliases:
   - x
   - run
-example: "mb tools mycmd dudu"
+example: "mb tools mycmd do"
 deprecated: "Use newcmd instead."
 `)
 	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
@@ -83,14 +83,14 @@ deprecated: "Use newcmd instead."
 	if p.AliasesJSON != `["x","run"]` {
 		t.Errorf("aliases_json=%q", p.AliasesJSON)
 	}
-	if p.Example != "mb tools mycmd dudu" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
+	if p.Example != "mb tools mycmd do" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
 		t.Errorf("example=%q long=%q deprecated=%q", p.Example, p.LongDescription, p.Deprecated)
 	}
 }
 
 func TestScannerRejectsMissingCommandForEntrypoint(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "no-cmd")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "no-cmd")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestScannerRejectsMissingCommandForEntrypoint(t *testing.T) {
 
 func TestScannerRejectsMissingCommandForFlags(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "flags-only")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "flags-only")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -156,7 +156,7 @@ flags:
 
 func TestScannerSkipsInvalidManifest(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "broken")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "broken")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestScannerSkipsInvalidManifest(t *testing.T) {
 
 func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "safe")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "safe")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
 		t.Fatalf("write outside script: %v", err)
 	}
 	// Manifest points to script outside plugin dir via .. (safe -> tools -> plugins -> tmp, then other/run.sh)
-	manifest := []byte("command: safe\ndescription: Safe\nentrypoint: ../../../other/run.sh\n")
+	manifest := []byte("command: safe\ndescription: Safe\nentrypoint: ../../../../other/run.sh\n")
 	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
 
 func TestScannerEntrypointAndFlags(t *testing.T) {
 	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "do")
+	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "do")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -302,8 +302,8 @@ func TestScanDir(t *testing.T) {
 	if len(plugins) != 1 {
 		t.Fatalf("expected 1 plugin, got %d", len(plugins))
 	}
-	if plugins[0].CommandPath != "myinstall" {
-		t.Errorf("CommandPath want myinstall, got %q", plugins[0].CommandPath)
+	if plugins[0].CommandPath != "hello" {
+		t.Errorf("CommandPath want hello (plugin na raiz da fonte), got %q", plugins[0].CommandPath)
 	}
 	if plugins[0].ExecPath != scriptPath {
 		t.Errorf("ExecPath want absolute path to run.sh, got %q", plugins[0].ExecPath)

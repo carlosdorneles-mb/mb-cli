@@ -19,21 +19,21 @@ Na inicialização, o CLI lê o cache SQLite, obtém a lista de plugins e catego
 
 O cache fica em `~/.config/mb/cache.db` (ou equivalente no macOS). Tabelas relevantes:
 
-- **plugins** — Um registro por comando de plugin: `command_path`, `command_name`, `description`, `exec_path`, `plugin_type`, `config_hash`, `readme_path`, `flags_json`. O `command_path` é o caminho lógico na árvore (ex.: `tools/hello`, `infra/ci/deploy`).
+- **plugins** — Inclui `command_path`, `command_name`, `plugin_dir` (pasta do manifest), `exec_path`, etc. O `command_path` reflete só a árvore do pacote, sem o nome da instalação.
 - **categories** — Uma por pasta que só tem manifesto de categoria (sem entrypoint): `path`, `description`, `readme_path`.
 - **plugin_sources** — Um registro por “instalação” (nome do plugin): `install_dir`, `git_url`, `ref_type`, `ref`, `version`, `local_path`. Quando `local_path` está preenchido, o plugin é local (o código fica nesse path; não em `PluginsDir`). Quando `git_url` está preenchido, o plugin foi instalado por clone Git em `PluginsDir`.
 
-O cache é **escrito** quando alguém roda `mb self sync` (ou após `plugins add/remove/update`). O sync primeiro garante os helpers de shell em `ConfigDir/lib/shell` (cria ou atualiza por checksum); em seguida escaneia o diretório de plugins e, para cada source com `local_path`, escaneia esse diretório; faz merge e upsert em `plugins` e `categories`, e atualiza `plugin_sources` para novos diretórios (preservando `local_path` e `git_url` existentes).
+O cache é **escrito** quando alguém roda `mb self sync` (ou após `plugins add/remove/update`). O sync garante os helpers; escaneia cada subdiretório de `PluginsDir` e cada `local_path`; faz merge; falha se houver **conflito** de `command_path` entre fontes; upsert em `plugins` e `categories`. **`plugin_sources` não é preenchido automaticamente pelo sync** a partir dos comandos descobertos.
 
-O cache é **lido** na inicialização do CLI para montar a árvore de comandos e, em tempo de execução, para resolver o path do executável (PluginsDir + command_path ou local_path, conforme o caso).
+O cache é **lido** na inicialização para montar a árvore; na execução usa-se `ExecPath`/`plugin_dir` absolutos.
 
 ## Fluxo de execução de um comando de plugin
 
 1. O usuário invoca `mb <categoria> <comando> [args...]`.
 2. Cobra roteia para o comando folha correspondente, que foi criado em **AttachDynamicCommands**.
-3. O handler do comando folha (entrypoint ou flags-only) obtém o **plugin root**: se o plugin tem `local_path` em `plugin_sources`, usa esse path; senão, usa `filepath.Join(PluginsDir, installDir)`.
-4. Para plugins com **entrypoint**: o `ExecPath` já está absoluto no cache (vindo do scan). O executor invoca o script ou binário com os argumentos e o ambiente mesclado (sistema + defaults + `--env-file` + `--env`).
-5. Para plugins **flags-only**: o handler monta o `exec_path` a partir do plugin root + segmentos do `command_path` + entrypoint da flag escolhida; em seguida chama o executor.
+3. O handler usa **`plugin_dir`** do cache como diretório raiz do plugin (fallback legado: derivação por `command_path` + fonte).
+4. Para plugins com **entrypoint**: `ExecPath` já é absoluto. O executor invoca o processo com o ambiente mesclado.
+5. Para plugins **flags-only**: o entrypoint da flag é resolvido dentro de `plugin_dir`.
 
 O **executor** é o componente que, dado um `Plugin` (com `ExecPath` e `PluginType`), monta a linha de comando (por exemplo **bash** + script quando o entrypoint termina em `.sh`) e executa o processo com o ambiente injetado.
 
@@ -49,11 +49,11 @@ flowchart TB
   subgraph sync [Sync]
     E[mb self sync] --> F[Scanner.Scan PluginsDir]
     F --> G[ScanDir para cada LocalPath]
-    G --> H[Merge plugins e categories]
-    H --> I[Upsert cache + updatePluginSourcesRegistry]
+    G --> H[Merge; erro se command_path duplicado]
+    H --> I[Upsert plugins e categories]
   end
   subgraph run [Execução comando plugin]
-    J[Comando folha] --> K[Plugin root = LocalPath ou PluginsDir/installDir]
+    J[Comando folha] --> K[plugin_dir absoluto]
     K --> L[Executor.Run com env mesclado]
   end
   init --> run

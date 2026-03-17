@@ -20,21 +20,21 @@ Além desse diretório, o CLI suporta **plugins locais**: em vez de clonar ou co
 O **scanner** percorre um diretório em busca de arquivos `manifest.yaml`. Para cada manifesto encontrado:
 
 - Validação: `type` deve ser `sh` ou `bin` se houver `entrypoint`; o arquivo do entrypoint deve existir.
-- A partir do path relativo ao root escaneado, o CLI monta o `command_path` (ex.: `tools/hello`, `infra/ci/deploy`).
+- A partir da árvore sob a **raiz da fonte** (cada subdiretório imediato de `PluginsDir`, ou o `local_path` registrado), o CLI monta o `command_path`: em cada nível usa `manifest.command` se existir, senão o nome da pasta; na folha, o último segmento é o nome da pasta do plugin.
 - Cada manifesto pode definir um **plugin** (com entrypoint ou com `flags`) ou apenas uma **categoria** (sem entrypoint e sem flags).
 
 Dois modos de scan:
 
-- **Scan(pluginsDir)** — Percorre apenas `PluginsDir`; usado para plugins instalados por Git (ou copiados manualmente) nesse diretório.
-- **ScanDir(rootPath, installName)** — Percorre um path arbitrário (ex.: um `local_path`) e prefixa todos os `command_path` com `installName`. Usado no sync para cada plugin source que tem `local_path` preenchido.
+- **Scan(pluginsDir)** — Para cada subdiretório de `PluginsDir` (cada clone/cópia), percorre essa árvore como raiz. O `command_path` **não** inclui o nome da pasta do clone.
+- **ScanDir(rootPath, installName)** — O segundo parâmetro é ignorado para o path no CLI; percorre `rootPath` (ex.: `local_path`) com a mesma regra. `installName` identifica só a fonte em `plugin_sources`.
 
-Os resultados (plugins e categories) usam paths absolutos para `ExecPath` e `ReadmePath` quando vêm do ScanDir, de modo que a execução funcione mesmo quando o plugin está fora de `PluginsDir`.
+Os resultados guardam `plugin_dir` (pasta do manifest), `ExecPath` e `ReadmePath` absolutos.
 
 ## Cache e sync
 
 O cache SQLite (`cache.db`) armazena:
 
-- **plugins** — Comando, descrição, exec_path, tipo, config_hash, readme_path, flags_json; e, quando definidos no manifest, use_template, args_count, aliases_json, example, long_description, deprecated (para Cobra).
+- **plugins** — command_path, command_name, plugin_dir, descrição, exec_path, tipo, config_hash, readme_path, flags_json; e campos Cobra (use_template, args_count, etc.).
 - **categories** — Path, descrição, readme_path.
 - **plugin_sources** — Por install_dir: git_url, ref, version (para remotos) ou local_path (para locais).
 
@@ -42,18 +42,18 @@ O **sync** (`mb self sync` ou após add/remove/update):
 
 1. Garante que os **helpers de shell** existem em `ConfigDir/lib/shell` (cria ou atualiza `all.sh`, `log.sh` e `.checksum`). Se falhar (ex.: permissão), o sync retorna erro.
 2. Chama o scanner em `PluginsDir` e obtém listas de plugins e categories.
-3. Obtém `ListPluginSources()`; para cada source com `local_path` não vazio, chama `ScanDir(local_path, installDir)` e faz **merge** (append) dos resultados.
-4. Faz upsert de todos os plugins e categories no cache (replace por `command_path` ou `path`).
-5. Atualiza **plugin_sources**: para cada top-level dir que apareceu no scan e ainda não tem linha no banco, insere uma linha (com git_url e local_path vazios). Linhas existentes são preservadas (incluindo `local_path` e `git_url`).
+3. Obtém `ListPluginSources()`; para cada source com `local_path` não vazio, chama `ScanDir` nesse path e faz **merge**. Se dois pacotes definem o mesmo `command_path`, o sync **falha** com erro de conflito.
+4. Faz upsert de todos os plugins e categories no cache.
+5. **plugin_sources** só é alterado por `plugins add/remove/update`, não pelo sync a partir dos comandos descobertos.
 
 Assim, a árvore de comandos reflete tanto o conteúdo de `PluginsDir` quanto dos diretórios registrados como locais.
 
 ## Execução: como o binário/script é localizado
 
 - Para plugins com **entrypoint** (um único script ou binário): o cache já guarda `ExecPath` absoluto (preenchido pelo scanner). O executor recebe esse path e o ambiente mesclado e invoca o processo (quando o entrypoint termina em `.sh`, invoca **bash** com o script como argumento; caso contrário, executa o binário diretamente).
-- Para plugins **flags-only** (várias ações por flag): o cache guarda `flags_json`. O handler do comando folha sabe qual flag foi escolhida e qual entrypoint corresponde; o **plugin root** é obtido assim: se há `plugin_sources[installDir].LocalPath`, usa esse path; senão, usa `filepath.Join(PluginsDir, installDir)`. O `baseDir` do comando é o plugin root + o sufixo do `command_path` (segmentos após o primeiro). O `exec_path` efetivo é `baseDir + entrypoint` da flag.
+- Para plugins **flags-only**: o `baseDir` da execução é o **`plugin_dir`** guardado no cache (pasta do manifest). O `exec_path` da flag é resolvido dentro desse diretório.
 
-A indicação **(local)** no Short do comando folha vem do fato de o plugin ter `local_path` preenchido em `plugin_sources`; o mesmo dado é usado para resolver o plugin root na execução.
+A indicação **(local)** no Short do comando folha quando a fonte do plugin tem `local_path` em `plugin_sources` (match pelo diretório do plugin).
 
 ## Execução: flags e argumentos passados ao plugin
 

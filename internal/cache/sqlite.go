@@ -45,6 +45,7 @@ type Plugin struct {
 	Example         string // Cobra Example
 	LongDescription string // Cobra Long
 	Deprecated      string // Cobra Deprecated message
+	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 }
 
 // PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
@@ -126,7 +127,19 @@ func (s *Store) migrateCobraPluginFields() error {
 			return err
 		}
 	}
-	return nil
+	return s.migratePluginDir()
+}
+
+func (s *Store) migratePluginDir() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='plugin_dir'").Scan(&has); err != nil {
+		return err
+	}
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN plugin_dir TEXT")
+	return err
 }
 
 func (s *Store) migratePluginSourcesLocalPath() error {
@@ -199,8 +212,8 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 	}
 
 	_, err := s.db.Exec(`
-INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
   command_name = excluded.command_name,
   description = excluded.description,
@@ -215,9 +228,10 @@ ON CONFLICT(command_path) DO UPDATE SET
   example = excluded.example,
   long_description = excluded.long_description,
   deprecated = excluded.deprecated,
+  plugin_dir = excluded.plugin_dir,
   updated_at = CURRENT_TIMESTAMP
 `, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
-		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated))
+		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir))
 	return err
 }
 
@@ -231,7 +245,7 @@ func nullEmpty(s string) interface{} {
 func (s *Store) ListPlugins() ([]Plugin, error) {
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, '')
 FROM plugins
 ORDER BY command_path
 `)
@@ -250,7 +264,7 @@ func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
 	}
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, '')
 FROM plugins
 WHERE command_path LIKE ? OR command_path = ?
 ORDER BY command_path
@@ -383,6 +397,7 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 			&plugin.Example,
 			&plugin.LongDescription,
 			&plugin.Deprecated,
+			&plugin.PluginDir,
 		); err != nil {
 			return nil, err
 		}

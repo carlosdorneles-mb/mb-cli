@@ -45,6 +45,10 @@ func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.W
 		}
 	}
 
+	if err := checkPluginPathCollisions(plugins); err != nil {
+		return err
+	}
+
 	if err := deps.Store.DeleteAllPlugins(); err != nil {
 		return err
 	}
@@ -63,43 +67,26 @@ func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.W
 		}
 	}
 
-	if err := updatePluginSourcesRegistry(deps, plugins, categories); err != nil {
-		return err
-	}
-
 	if outSuccess != nil {
 		outSuccess(fmt.Sprintf("%d plugin(s) foram sincronizados", len(plugins)))
 	}
 	return nil
 }
 
-// updatePluginSourcesRegistry ensures plugin_sources has a row for each top-level dir under PluginsDir.
-// Existing rows keep their git_url/ref_type/ref/version; new dirs get an empty row (manual install).
-func updatePluginSourcesRegistry(deps config.Dependencies, plugins []cache.Plugin, categories []cache.Category) error {
-	topLevelDirs := make(map[string]struct{})
+func checkPluginPathCollisions(plugins []cache.Plugin) error {
+	seen := make(map[string]string)
 	for _, p := range plugins {
-		dir := FirstPathSegment(p.CommandPath)
-		if dir != "" {
-			topLevelDirs[dir] = struct{}{}
+		key := p.CommandPath
+		if key == "" {
+			key = p.CommandName
 		}
-	}
-	for _, c := range categories {
-		dir := FirstPathSegment(c.Path)
-		if dir != "" {
-			topLevelDirs[dir] = struct{}{}
-		}
-	}
-	for dir := range topLevelDirs {
-		existing, err := deps.Store.GetPluginSource(dir)
-		if err != nil {
-			return err
-		}
-		if existing != nil {
+		if prevDir, ok := seen[key]; ok {
+			if prevDir != p.PluginDir {
+				return fmt.Errorf("conflito de plugins: o caminho de comando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes", key, prevDir, p.PluginDir)
+			}
 			continue
 		}
-		if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: dir}); err != nil {
-			return err
-		}
+		seen[key] = p.PluginDir
 	}
 	return nil
 }

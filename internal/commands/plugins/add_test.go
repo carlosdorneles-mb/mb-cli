@@ -222,7 +222,7 @@ func TestSyncIncludesLocalSources(t *testing.T) {
 	}
 	var found bool
 	for _, p := range pluginList {
-		if p.CommandPath == "local-src" {
+		if p.CommandPath == "cmd" {
 			found = true
 			break
 		}
@@ -280,7 +280,7 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 	}
 	var foundBefore bool
 	for _, p := range list {
-		if p.CommandPath == "to-remove" {
+		if p.CommandPath == "gone" {
 			foundBefore = true
 			break
 		}
@@ -301,9 +301,63 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 		t.Fatalf("list plugins after remove: %v", err)
 	}
 	for _, p := range list {
-		if p.CommandPath == "to-remove" {
-			t.Errorf("plugin to-remove should not appear in list after remove+sync; got %v", list)
+		if p.CommandPath == "gone" {
+			t.Errorf("plugin gone should not appear in list after remove+sync; got %v", list)
 			break
 		}
+	}
+}
+
+func TestSyncFailsOnDuplicateCommandPath(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	cachePath := filepath.Join(tmp, "cache.db")
+	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	mk := func(root, cmd string) {
+		d := filepath.Join(root, "tools", "dup")
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(d, "manifest.yaml"), []byte("command: "+cmd+"\ndescription: x\nentrypoint: run.sh\n"), 0o644); err != nil {
+			t.Fatalf("manifest: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(d, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatalf("run.sh: %v", err)
+		}
+	}
+	a := filepath.Join(tmp, "a")
+	b := filepath.Join(tmp, "b")
+	if err := os.MkdirAll(a, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(b, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mk(a, "dup")
+	mk(b, "dup")
+
+	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "a", LocalPath: a}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "b", LocalPath: b}); err != nil {
+		t.Fatal(err)
+	}
+
+	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
+	deps := config.NewDependencies(runtime, store, plugins.NewScanner(pluginsDir), executor.New())
+	err = self.RunSync(deps, nil, nil)
+	if err == nil {
+		t.Fatal("expected sync error on duplicate command path")
+	}
+	if !strings.Contains(err.Error(), "conflito") {
+		t.Fatalf("expected conflito in error, got: %v", err)
 	}
 }

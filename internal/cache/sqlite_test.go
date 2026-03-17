@@ -69,7 +69,7 @@ func TestStoreUpsertAndListCobraFields(t *testing.T) {
 		UseTemplate:     "<name>",
 		ArgsCount:       1,
 		AliasesJSON:     `["x","run"]`,
-		Example:         "mb tools mycmd dudu",
+		Example:         "mb tools mycmd do",
 		LongDescription: "Long desc",
 		Deprecated:      "Use newcmd instead.",
 	}
@@ -85,7 +85,7 @@ func TestStoreUpsertAndListCobraFields(t *testing.T) {
 	}
 	p := all[0]
 	if p.UseTemplate != "<name>" || p.ArgsCount != 1 || p.AliasesJSON != `["x","run"]` ||
-		p.Example != "mb tools mycmd dudu" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
+		p.Example != "mb tools mycmd do" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
 		t.Errorf("cobra fields: use=%q args=%d aliases=%q example=%q long=%q deprecated=%q",
 			p.UseTemplate, p.ArgsCount, p.AliasesJSON, p.Example, p.LongDescription, p.Deprecated)
 	}
