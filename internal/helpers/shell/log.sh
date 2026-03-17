@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Logs a message at the given level, respecting MB_QUIET and MB_VERBOSE.
 # Source via . "$MB_HELPERS_PATH/log.sh" or load everything via all.sh.

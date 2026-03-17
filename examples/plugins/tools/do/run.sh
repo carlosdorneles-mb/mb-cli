@@ -1,5 +1,5 @@
-#!/bin/sh
-# Plugin: tools/hello — exemplos de uso do gum (log, style, choose, input, confirm, spin, table, format)
+#!/bin/bash
+
 . "$MB_HELPERS_PATH/all.sh"
 
 # --- 1. Log (usa gum log via helper; respeita MB_QUIET e MB_VERBOSE) ---

@@ -34,7 +34,7 @@ Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `me
 
 #### `entrypoint` (para comando “folha” executável)
 
-Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. O MB resolve o path de forma absoluta na execução. O **tipo de execução** é inferido pelo sufixo: se terminar em **`.sh`**, executa como script shell (`/bin/sh` + script); caso contrário, como binário. Não é necessário declarar `type` no manifesto.
+Caminho do **arquivo a rodar**, relativo à pasta onde está o `manifest.yaml`. Ex.: `run.sh`, `bin/meu-plugin`. O MB resolve o path de forma absoluta na execução. O **tipo de execução** é inferido pelo sufixo: se terminar em **`.sh`**, executa com **bash** (script); caso contrário, como binário. Não é necessário declarar `type` no manifesto.
 
 É possível definir **entrypoint** e **flags** no mesmo manifest: ao executar o comando sem flag (ex.: `mb tools do`), o MB roda o entrypoint padrão; ao passar uma flag (ex.: `mb tools do --deploy`), roda o script daquela flag. Ex.: com `entrypoint: run.sh` e uma flag `deploy` com `entrypoint: deploy.sh`, `mb tools do` executa run.sh e `mb tools do --deploy` executa deploy.sh.
 

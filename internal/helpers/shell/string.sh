@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Replaces all occurrences of a substring in a string with another substring.
 # Usage:
@@ -88,7 +88,7 @@ str_parse_comma_separated() {
     for element in "${original_arr[@]}"; do
         if [[ "$element" == *","* ]]; then
             # Split on comma
-            IFS=',' read -rA split_arr <<< "$element"
+            IFS=',' read -ra split_arr <<< "$element"
             new_arr+=("${split_arr[@]}")
         else
             new_arr+=("$element")
@@ -125,8 +125,6 @@ str_join_to_comma_separated() {
     # Update the original array with single joined element
     eval "${arr_name}=(\"$joined\")"
 }
-
-# --- Boolean Helper Functions --- #
 
 # Converts a string to boolean. Returns 0 for true values (true, 1, on, yes), 1 for false.
 # Usage:

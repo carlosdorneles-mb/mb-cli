@@ -50,7 +50,7 @@ Assim, a árvore de comandos reflete tanto o conteúdo de `PluginsDir` quanto do
 
 ## Execução: como o binário/script é localizado
 
-- Para plugins com **entrypoint** (um único script ou binário): o cache já guarda `ExecPath` absoluto (preenchido pelo scanner). O executor recebe esse path e o ambiente mesclado e invoca o processo (quando o entrypoint termina em `.sh`, invoca `/bin/sh` + script como argumento; caso contrário, executa o binário diretamente).
+- Para plugins com **entrypoint** (um único script ou binário): o cache já guarda `ExecPath` absoluto (preenchido pelo scanner). O executor recebe esse path e o ambiente mesclado e invoca o processo (quando o entrypoint termina em `.sh`, invoca **bash** com o script como argumento; caso contrário, executa o binário diretamente).
 - Para plugins **flags-only** (várias ações por flag): o cache guarda `flags_json`. O handler do comando folha sabe qual flag foi escolhida e qual entrypoint corresponde; o **plugin root** é obtido assim: se há `plugin_sources[installDir].LocalPath`, usa esse path; senão, usa `filepath.Join(PluginsDir, installDir)`. O `baseDir` do comando é o plugin root + o sufixo do `command_path` (segmentos após o primeiro). O `exec_path` efetivo é `baseDir + entrypoint` da flag.
 
 A indicação **(local)** no Short do comando folha vem do fato de o plugin ter `local_path` preenchido em `plugin_sources`; o mesmo dado é usado para resolver o plugin root na execução.

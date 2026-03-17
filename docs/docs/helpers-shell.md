@@ -15,6 +15,11 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper de memória:** `. "$MB_HELPERS_PATH/memory.sh"`
 - **Só o helper de string:** `. "$MB_HELPERS_PATH/string.sh"`
 - **Só o helper de Kubernetes:** `. "$MB_HELPERS_PATH/kubernetes.sh"`
+- **Só o helper de OS:** `. "$MB_HELPERS_PATH/os.sh"`
+- **Só o helper de Snap:** `. "$MB_HELPERS_PATH/snap.sh"`
+- **Só o helper de Homebrew:** `. "$MB_HELPERS_PATH/homebrew.sh"`
+- **Só o helper de Flatpak:** `. "$MB_HELPERS_PATH/flatpak.sh"`
+- **Só o helper de GitHub:** `. "$MB_HELPERS_PATH/github.sh"`
 
 Exemplo:
 
@@ -174,4 +179,175 @@ kb_check_namespace_exists "production" "exit_on_error"
 # Informa o contexto em uso antes de aplicar mudanças
 kb_print_current_context
 kubectl apply -f manifests/
+```
+
+### os
+
+Helper para detecção de sistema operacional e distribuição Linux em scripts shell. Permite adaptar comportamentos de instalação e configuração ao ambiente do usuário.
+
+**Funções disponíveis:**
+
+- `get_simple_os` — imprime `linux`, `mac` ou `unknown`.
+- `is_mac` — retorna `0` se estiver no macOS, `1` caso contrário.
+- `is_linux` — retorna `0` se estiver no Linux, `1` caso contrário.
+- `is_linux_debian` — retorna `0` em distros Debian-based (Ubuntu, Mint, Pop, etc.).
+- `is_linux_redhat` — retorna `0` em distros RedHat-based (Fedora, RHEL, CentOS, Rocky, etc.).
+- `is_linux_arch` — retorna `0` em distros Arch-based (Manjaro, EndeavourOS, etc.).
+- `get_debian_pkg_manager` — imprime `apt-get` ou `apt`.
+- `get_redhat_pkg_manager` — imprime `dnf` ou `yum`.
+- `get_arch_pkg_manager` — imprime `pacman` ou `unknown`.
+- `get_distro_id` — imprime o `$ID` de `/etc/os-release` (ex.: `ubuntu`, `fedora`, `arch`).
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/os.sh"
+
+os=$(get_simple_os)
+log info "Sistema operacional: $os"
+
+if is_linux_debian; then
+  pkg=$(get_debian_pkg_manager)
+  sudo "$pkg" install -y curl
+elif is_linux_redhat; then
+  pkg=$(get_redhat_pkg_manager)
+  sudo "$pkg" install -y curl
+elif is_mac; then
+  brew install curl
+fi
+```
+
+### snap
+
+Helper para instalar, atualizar, remover e consultar aplicações via Snap Store. Compatível com sistemas Linux onde o `snapd` está disponível. Carrega `log.sh` automaticamente ao ser importado.
+
+> **Requisito:** `snap` precisa estar instalado no sistema. As funções verificam sua disponibilidade e logam um erro se não encontrado.
+
+**Funções disponíveis:**
+
+- `snap_is_available` — retorna `0` se o `snap` está instalado.
+- `snap_refresh_metadata` — atualiza os metadados do Snap Store (não crítico; retorna `0` sempre).
+- `snap_is_installed <app_name>` — retorna `0` se a aplicação está instalada.
+- `snap_get_installed_version <app_name>` — imprime a versão instalada ou `unknown`.
+- `snap_get_latest_version <app_name>` — imprime a versão mais recente disponível ou `unknown`.
+- `snap_install <app_name> [friendly_name] [channel] [classic]` — instala a aplicação; `classic` aceita `true`/`false` (padrão: `false`).
+- `snap_update <app_name> [friendly_name] [channel]` — atualiza a aplicação.
+- `snap_uninstall <app_name> [friendly_name]` — remove a aplicação.
+- `snap_info <app_name>` — imprime informações detalhadas do pacote.
+- `snap_list_installed` — lista todos os pacotes Snap instalados.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/snap.sh"
+
+if ! snap_is_installed "podman-desktop"; then
+  snap_install "podman-desktop" "Podman Desktop"
+else
+  snap_update "podman-desktop" "Podman Desktop"
+fi
+```
+
+### homebrew
+
+Helper para instalar, atualizar, remover e consultar casks e fórmulas via Homebrew no macOS. Carrega `log.sh` automaticamente ao ser importado.
+
+> **Requisito:** `brew` precisa estar instalado. Para casks, as funções usam `brew install --cask`; para fórmulas, `brew install`.
+
+**Funções de cask:**
+
+- `homebrew_is_available` — retorna `0` se o `brew` está instalado.
+- `homebrew_update_metadata` — executa `brew update` para atualizar os formulae.
+- `homebrew_is_installed <cask_name>` — retorna `0` se o cask está instalado.
+- `homebrew_get_installed_version <cask_name>` — imprime a versão instalada ou `unknown`.
+- `homebrew_get_latest_version <cask_name>` — imprime a versão mais recente disponível ou `unknown`.
+- `homebrew_install <cask_name> [friendly_name]` — instala o cask.
+- `homebrew_update <cask_name> [friendly_name]` — atualiza o cask.
+- `homebrew_uninstall <cask_name> [friendly_name]` — remove o cask (com `--zap`).
+
+**Funções de fórmula:**
+
+- `homebrew_is_installed_formula <formula_name>` — retorna `0` se a fórmula está instalada.
+- `homebrew_get_installed_version_formula <formula_name>` — imprime a versão instalada ou `unknown`.
+- `homebrew_get_latest_version_formula <formula_name>` — imprime a versão mais recente ou `unknown`.
+- `homebrew_install_formula <formula_name> [friendly_name]` — instala a fórmula.
+- `homebrew_update_formula <formula_name> [friendly_name]` — atualiza a fórmula.
+- `homebrew_uninstall_formula <formula_name> [friendly_name]` — remove a fórmula.
+- `homebrew_link_formula <formula_name> [force]` — cria os links simbólicos para os binários da fórmula.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/homebrew.sh"
+
+homebrew_install "visual-studio-code" "VS Code"
+homebrew_install_formula "libpq" "PostgreSQL client"
+homebrew_link_formula "libpq" "true"
+```
+
+### flatpak
+
+Helper para instalar, atualizar, remover e consultar aplicações via Flatpak a partir do Flathub. Compatível com sistemas Linux onde o `flatpak` está disponível. Carrega `log.sh` automaticamente ao ser importado.
+
+> **Requisito:** `flatpak` precisa estar instalado. A função `flatpak_ensure_flathub` configure o repositório Flathub automaticamente se não estiver presente.
+
+**Funções disponíveis:**
+
+- `flatpak_is_available` — retorna `0` se o `flatpak` está instalado.
+- `flatpak_ensure_flathub` — garante que o repositório Flathub está configurado (nível `--user`).
+- `flatpak_update_metadata` — atualiza os metadados do Flathub (não crítico; retorna `0` sempre).
+- `flatpak_is_installed <app_id>` — retorna `0` se a aplicação está instalada.
+- `flatpak_get_installed_version <app_id>` — imprime a versão instalada ou `unknown`.
+- `flatpak_get_latest_version <app_id>` — imprime a versão mais recente via Flathub API ou `unknown`.
+- `flatpak_install <app_id> [friendly_name]` — instala a aplicação de Flathub.
+- `flatpak_update <app_id> [friendly_name]` — atualiza a aplicação.
+- `flatpak_uninstall <app_id> [friendly_name]` — remove a aplicação e seus dados.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/flatpak.sh"
+
+flatpak_ensure_flathub
+if ! flatpak_is_installed "io.podman_desktop.PodmanDesktop"; then
+  flatpak_install "io.podman_desktop.PodmanDesktop" "Podman Desktop"
+else
+  flatpak_update "io.podman_desktop.PodmanDesktop" "Podman Desktop"
+fi
+```
+
+### github
+
+Helper para buscar versões, baixar e instalar releases do GitHub. Compatível com Linux e macOS. Carrega `log.sh` automaticamente ao ser importado.
+
+> **Dependências:** `curl` (obrigatório), `jq` (opcional, usado em `github_get_version_from_raw`), `tar` (para `github_extract_tarball`). Variáveis opcionais: `GITHUB_API_MAX_TIME` (padrão: `10`) e `GITHUB_API_CONNECT_TIMEOUT` (padrão: `5`).
+
+**Funções disponíveis:**
+
+- `github_get_latest_version <owner/repo> [strip_prefix]` — imprime o tag da última release. Com `strip_prefix=true`, remove o prefixo `v`.
+- `github_get_version_from_raw <owner/repo> [branch] <file_path> [json_field]` — imprime um campo de versão de um arquivo JSON raw no repositório.
+- `github_get_latest_version_with_fallback <owner/repo> [branch] [file_path] [json_field]` — tenta a API primeiro; em fallback, usa o raw. Imprime `versão|método` (ex.: `1.0.0|api`).
+- `github_detect_os_arch [format]` — imprime `os:arch` do sistema atual (ex.: `linux:x64`, `macos:arm64`).
+- `github_build_download_url <owner/repo> <version> <os> <arch> <file_pattern>` — monta a URL substituindo `{version}`, `{os}` e `{arch}` no padrão.
+- `github_download_release <url> <output_file> [description]` — baixa um arquivo de release.
+- `github_verify_checksum <file> <checksum_file_or_hash> [algorithm]` — verifica checksum (`sha256`, `sha512` ou `md5`).
+- `github_download_and_verify <owner/repo> <version> <url> <output_file> <checksum_filename> [algorithm]` — baixa e verifica usando a convenção de releases do GitHub.
+- `github_extract_tarball <tar_file> [extract_dir]` — extrai um `.tar.gz` e imprime o diretório extraído.
+- `github_install_binary <extracted_dir> <binary_name> <install_dir>` — localiza e instala o binário do arquivo extraído.
+- `github_install_release <owner/repo> <version> <binary_name> <install_dir> <file_pattern> [checksum_pattern] [algorithm]` — pipeline completo: detecta OS/arch, baixa, verifica e instala.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/github.sh"
+
+version=$(github_get_latest_version "cli/cli" "true")
+os_arch=$(github_detect_os_arch)
+os_name="${os_arch%:*}"
+arch="${os_arch#*:}"
+
+url=$(github_build_download_url "cli/cli" "v${version}" "$os_name" "$arch" "gh_{version}_{os}_{arch}.tar.gz")
+github_download_and_verify "cli/cli" "v${version}" "$url" "/tmp/gh.tar.gz" "gh_${version}_checksums.txt"
+dir=$(github_extract_tarball "/tmp/gh.tar.gz")
+github_install_binary "$dir" "gh" "/usr/local/bin"
 ```

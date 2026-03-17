@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # MB CLI simple memory helper (key/value), persisted in TMPDIR.
 # Compatible with Linux and macOS (POSIX sh).

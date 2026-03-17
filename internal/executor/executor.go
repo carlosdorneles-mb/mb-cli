@@ -29,7 +29,7 @@ func (e *Executor) Run(ctx context.Context, plugin cache.Plugin, args []string, 
 	command := plugin.ExecPath
 	commandArgs := args
 	if plugin.PluginType == "sh" {
-		command = "/bin/sh"
+		command = "bash"
 		commandArgs = append([]string{plugin.ExecPath}, args...)
 	}
 

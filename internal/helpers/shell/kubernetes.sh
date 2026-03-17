@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 . "$MB_HELPERS_PATH/log.sh"
 
