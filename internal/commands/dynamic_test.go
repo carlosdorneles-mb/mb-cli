@@ -468,3 +468,150 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	}
 	// Deprecated: não setamos cmd.Deprecated; a mensagem em português é exibida via wrap do RunE ao executar.
 }
+
+// TestEntrypointCommandHelpShowsHelp verifies that --help on an entrypoint-only plugin shows Cobra help instead of passing --help to the script.
+func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	pluginDir := filepath.Join(pluginsDir, "tools", "hello")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		Description: "Short",
+		ExecPath:    filepath.Join(pluginDir, "run.sh"),
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
+	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
+	root := NewRootCmd(deps)
+	var out strings.Builder
+	root.SetOut(&out)
+	root.SetArgs([]string{"tools", "hello", "--help"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if out.Len() == 0 {
+		t.Fatal("expected help output, got nothing")
+	}
+	if !strings.Contains(out.String(), "Usage") && !strings.Contains(out.String(), "Short") {
+		t.Errorf("help output should contain Usage or Short, got: %s", out.String())
+	}
+}
+
+// TestEntrypointCommandGlobalFlagsNotPassedToPlugin verifies that -v (and other global flags) are not passed to the plugin script.
+func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	pluginDir := filepath.Join(pluginsDir, "tools", "hello")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	argsFile := filepath.Join(tmp, "args.txt")
+	// Script: first arg is output file, rest are written to it; so we pass argsFile then "foo" and expect only "foo" (no -v)
+	script := "#!/bin/sh\nout=\"$1\"\nshift\necho \"$@\" > \"$out\"\n"
+	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte(script), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		ExecPath:    filepath.Join(pluginDir, "run.sh"),
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
+	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
+	root := NewRootCmd(deps)
+	root.SetArgs([]string{"tools", "hello", "-v", argsFile, "foo"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	raw, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	got := strings.TrimSpace(string(raw))
+	if strings.Contains(got, "-v") {
+		t.Errorf("plugin should not receive -v, got %q", got)
+	}
+	if got != "foo" {
+		t.Errorf("plugin args = %q, want %q", got, "foo")
+	}
+}
+
+// TestEntrypointCommandPositionalArgsPassedToPlugin verifies that positional arguments are passed to the plugin (via cmd.Flags().Args()).
+func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	pluginDir := filepath.Join(pluginsDir, "tools", "hello")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	argsFile := filepath.Join(tmp, "args.txt")
+	script := "#!/bin/sh\nout=\"$1\"\nshift\necho \"$@\" > \"$out\"\n"
+	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte(script), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+	if err := store.UpsertPlugin(cache.Plugin{
+		CommandPath: "tools/hello",
+		CommandName: "hello",
+		ExecPath:    filepath.Join(pluginDir, "run.sh"),
+		PluginType:  "sh",
+		ConfigHash:  "h",
+	}); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
+	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
+	root := NewRootCmd(deps)
+	root.SetArgs([]string{"tools", "hello", argsFile, "foo", "bar"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	raw, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	got := strings.TrimSpace(string(raw))
+	if got != "foo bar" {
+		t.Errorf("plugin args = %q, want %q", got, "foo bar")
+	}
+}

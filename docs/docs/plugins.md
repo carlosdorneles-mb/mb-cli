@@ -76,12 +76,16 @@ O processo do plugin (script ou binário) **nunca recebe flags na linha de coman
 
 As flags listadas na tabela acima são reconhecidas e **não** aparecem em `$1`, `$2`, … O comportamento é o descrito: globais afetam o ambiente; `--readme` abre o README; flags do manifesto (no caso de plugin com `flags`) escolhem o entrypoint. Os argumentos posicionais restantes são os únicos passados ao entrypoint.
 
+### --help / -h
+
+Em **qualquer** comando de plugin, `--help` ou `-h` exibe o help do Cobra (descrição, uso, flags conhecidas) e **não** é repassado ao script. O entrypoint não é executado quando o usuário pede help.
+
 ### Quando você passa flags que **não existem**
 
-- **Plugin com um único entrypoint e sem README no manifesto:** o comando do plugin tem `DisableFlagParsing = true`. Nada é interpretado como flag; **tudo** que vier depois do nome do comando é repassado ao script como argumentos posicionais. Exemplo: `mb tools hello --foo=bar -x` → o script recebe `$1=--foo=bar`, `$2=-x`. O script pode interpretar isso como quiser (por exemplo, com `getopts` ou um parser próprio).
-- **Plugin com README ou com `flags` no manifesto:** o comando do plugin faz parsing de flags (só as que o CLI declarou). Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
+- **Plugin com um único entrypoint (com ou sem README):** o CLI faz parsing das flags globais (`-v`, `-q`, `--env-file`, `-e`) e, se houver README, da flag `--readme`. Essas flags são sempre consumidas pelo CLI e não chegam ao script. Os **argumentos posicionais** restantes são repassados ao entrypoint. Flags não declaradas (desconhecidas) podem não ser repassadas ao script, dependendo do analisador de argumentos; para máxima compatibilidade, use apenas argumentos posicionais ou declare flags no manifesto.
+- **Plugin com `flags` no manifesto:** o comando do plugin faz parsing das flags declaradas. Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
 
-Resumindo: em plugins “simples” (um entrypoint, sem README), qualquer coisa após o comando vira argumento do script. Em plugins com README ou com flags no manifesto, apenas as flags conhecidas são aceitas; o resto gera erro antes de rodar o plugin.
+Resumindo: as flags globais e `--help` são sempre tratadas pelo CLI; apenas os argumentos posicionais (e, quando aplicável, flags não mapeadas) são repassados ao entrypoint.
 
 ## Segurança
 

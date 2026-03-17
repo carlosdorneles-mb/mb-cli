@@ -170,9 +170,8 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 		applyCobraPluginFields(cmd, plugin, use)
 		if plugin.ReadmePath != "" {
 			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
-		} else {
-			cmd.DisableFlagParsing = true
 		}
+		cmd.Flags().ParseErrorsWhitelist.UnknownFlags = true
 		setHelpFang(cmd)
 		return cmd
 	}
@@ -233,11 +232,7 @@ func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies, pluginR
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
-		args = parseRootVerbosityFlags(cmd, args)
-		argsToPass := args
-		if cmd.Flags().Lookup("readme") != nil {
-			argsToPass = cmd.Flags().Args()
-		}
+		argsToPass := cmd.Flags().Args()
 		cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
 		if err != nil {
 			return err
@@ -282,10 +277,7 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 
 		if chosenFlag == "" || chosenEntrypoint == "" {
 			if plugin.ExecPath != "" {
-				argsToPass := args
-				if cmd.Flags().Lookup("readme") != nil {
-					argsToPass = cmd.Flags().Args()
-				}
+				argsToPass := cmd.Flags().Args()
 				cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
 				if err != nil {
 					return err
@@ -348,7 +340,7 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
 			defer cancel()
 		}
-		return deps.Executor.Run(ctx, syntheticPlugin, args, merged, pluginRoot)
+		return deps.Executor.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
 	}
 }
 

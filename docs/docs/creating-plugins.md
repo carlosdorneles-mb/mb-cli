@@ -99,7 +99,7 @@ example: "mb tools meu-comando dudu"
 deprecated: ""   # deixe vazio ou omita se não for obsoleto
 ```
 
-Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando dudu`** passam "dudu" como primeiro argumento ao script.
+Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando postman`** passam "postman" como primeiro argumento ao script. As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pelo CLI e não chegam ao script; `--help`/`-h` exibe o help do comando e não é repassado; os demais argumentos posicionais são repassados ao entrypoint. Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
 ## 3. Script ou binário
 
