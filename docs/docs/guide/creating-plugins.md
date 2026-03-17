@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Criar um plugin
 
-Este guia mostra o passo a passo para criar um plugin do MB CLI. Para uma visão técnica de como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](./plugins.md).
+Este guia mostra o passo a passo para criar um plugin do MB CLI. Para uma visão técnica de como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](../technical-reference/plugins.md).
 
 Há **plugins de exemplo** no repositório: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins). Use-os como referência ou registre com `make install-examples` na raiz do repo e depois `mb self sync`.
 
@@ -68,7 +68,7 @@ flags:
 
 O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** ou **`mb tools do -d`** rodam `deploy.sh`; **`mb tools do --rollback`** ou **`mb tools do -r`** rodam `rollback.sh`. As descrições aparecem ao rodar `mb tools do --help`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
 
-Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
+Detalhes em [Plugins (referência técnica)](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
 #### Uso, argumentos e ajuda (Cobra)
 
@@ -101,7 +101,7 @@ example: |
 deprecated: ""   # deixe vazio ou omita se não for obsoleto
 ```
 
-Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando postman`** passam "postman" como primeiro argumento ao script. As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pelo CLI e não chegam ao script; `--help`/`-h` exibe o help do comando e não é repassado; os demais argumentos posicionais são repassados ao entrypoint. Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
+Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando postman`** passam "postman" como primeiro argumento ao script. As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pelo CLI e não chegam ao script; `--help`/`-h` exibe o help do comando e não é repassado; os demais argumentos posicionais são repassados ao entrypoint. Detalhes em [Plugins (referência técnica)](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
 ## 3. Script ou binário
 
@@ -124,7 +124,7 @@ Os helpers são instalados quando você roda **`mb self sync`** (ou ao adicionar
 log info "Processando..."
 ```
 
-Para carregar só o helper de log: `. "$MB_HELPERS_PATH/log.sh"`. Veja [Helpers de shell](./helpers-shell.md) para a lista de helpers e [Flags globais](./global-flags.md) para o efeito de `-v` e `-q`.
+Para carregar só o helper de log: `. "$MB_HELPERS_PATH/log.sh"`. Veja [Helpers de shell](../technical-reference/helpers-shell.md) para a lista de helpers e [Flags globais](./global-flags.md) para o efeito de `-v` e `-q`.
 
 Além dos helpers, você pode usar os comandos do [gum](https://github.com/charmbracelet/gum) nos scripts do plugin (ex.: `gum choose`, `gum input`, `gum confirm`, `gum filter`) para criar interfaces interativas. O gum é opcional; se estiver instalado no sistema, os scripts podem chamá-lo normalmente.
 

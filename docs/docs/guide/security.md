@@ -50,4 +50,4 @@ O CLI suporta um tempo máximo de execução por plugin (`PluginTimeout`). Quand
 3. **Plugins locais** — ao registrar um path local com `mb plugins add <path>`, o CLI não copia arquivos; ele usa esse diretório como raiz do plugin. Certifique-se de que o path aponta para um projeto em que você confia.
 4. **Variáveis de ambiente** — use `--env-file` ou `--env` para injetar apenas o que o plugin precisa; evite expor credenciais desnecessárias ao processo do plugin.
 
-Para mais detalhes sobre como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](./plugins.md).
+Para mais detalhes sobre como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](../technical-reference/plugins.md).

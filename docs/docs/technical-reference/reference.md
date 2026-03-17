@@ -16,7 +16,7 @@ sidebar_position: 3
 | `mb self env list` | Lista variáveis padrão |
 | `mb self env set KEY [VALUE]` | Define variável padrão |
 | `mb self env unset KEY` | Remove variável padrão |
-| `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](./plugin-commands.md)) |
+| `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](../guide/plugin-commands.md)) |
 
 ## Completion de shell
 
@@ -26,10 +26,10 @@ Para instalar o completion no seu shell, consulte `mb self completion --help` e 
 
 ## Flags globais
 
-- **`--verbose` / `-v`** — Saída mais verbosa. Veja [Flags globais](./global-flags.md).
-- **`--quiet` / `-q`** — Reduz mensagens. Veja [Flags globais](./global-flags.md).
-- **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](./environment-variables.md).
-- **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](./environment-variables.md).
+- **`--verbose` / `-v`** — Saída mais verbosa. Veja [Flags globais](../guide/global-flags.md).
+- **`--quiet` / `-q`** — Reduz mensagens. Veja [Flags globais](../guide/global-flags.md).
+- **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](../guide/environment-variables.md).
+- **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](../guide/environment-variables.md).
 
 ## Testar o CLI
 

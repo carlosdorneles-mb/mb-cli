@@ -1,6 +1,6 @@
 # MB CLI
 
-CLI em Go para orquestrar plugins com descoberta dinâmica (cache SQLite) e injeção de variáveis de ambiente.
+CLI para orquestrar plugins com descoberta dinâmica e injeção de variáveis de ambiente. **Implementação:** Go; árvore de comandos (Cobra), cache local (SQLite), UI no terminal (Charm / Fang). Documentação de uso: site abaixo; detalhes técnicos em [Arquitetura](https://carlosdorneles-mb.github.io/mb-cli/docs/architecture).
 
 <img title="MB CLI" alt="Alt text" src="mb-cli.png">
 

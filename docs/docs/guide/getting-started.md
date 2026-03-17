@@ -4,11 +4,6 @@ sidebar_position: 1
 
 # Começar
 
-## Pré-requisitos
-
-- Go 1.22+ (apenas se for compilar a partir do código)
-- O **script de instalação** instala o [gum](https://github.com/charmbracelet/gum), o [glow](https://github.com/charmbracelet/glow), o [jq](https://github.com/jqlang/jq) e o [fzf](https://github.com/junegunn/fzf) em `~/.local/bin` junto com o MB (sem root). O glow é necessário para a flag `--readme` dos plugins (help em Markdown).
-
 ## Instalação do CLI
 
 A forma recomendada é usar o **script de instalação**, que baixa o binário do MB CLI, o **gum**, o **glow**, o **jq** e o **fzf** (dependências) do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) (e dos repositórios charmbracelet/gum, charmbracelet/glow, jqlang/jq e junegunn/fzf), valida os downloads com `checksums.txt` quando disponível e instala em **`~/.local/bin`** (sem precisar de sudo).
@@ -37,6 +32,10 @@ Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow
 
 ## Para desenvolvedores
 
+### Pré-requisitos
+
+- Go 1.22+ (apenas se for compilar a partir do código)
+
 ### Build e instalação
 
 Se você for alterar o código ou contribuir:
@@ -58,4 +57,4 @@ make run self sync          # build + ./bin/mb; idem: make run [args...] ou make
 
 Para usar os plugins de exemplo do repositório: **`make install-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run self sync`** (ou `mb self sync`).
 
-Próximo passo: [Criar um plugin](creating-plugins) para montar seu primeiro plugin e rodá-lo com o MB.
+Próximo passo: [Criar um plugin](./creating-plugins.md) para montar seu primeiro plugin e rodá-lo com o MB.

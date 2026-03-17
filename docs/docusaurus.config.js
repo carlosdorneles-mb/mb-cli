@@ -60,7 +60,21 @@ const config = {
 
   themes: ['@docusaurus/theme-mermaid', '@easyops-cn/docusaurus-search-local'],
 
-  plugins: ['@r74tech/docusaurus-plugin-panzoom'],
+  plugins: [
+    '@r74tech/docusaurus-plugin-panzoom',
+    function webpackIgnoreWarnings() {
+      return {
+        name: 'webpack-ignore-critical-dep',
+        configureWebpack() {
+          return {
+            ignoreWarnings: [
+              /Critical dependency: require function is used in a way/,
+            ],
+          };
+        },
+      };
+    },
+  ],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -97,8 +111,8 @@ const config = {
             title: 'Documentação',
             items: [
               { label: 'Introdução', to: '/docs/intro' },
-              { label: 'Começar', to: '/docs/getting-started' },
-              { label: 'Guia', to: '/docs/creating-plugins' },
+              { label: 'Começar', to: '/docs/guide/getting-started' },
+              { label: 'Criar um plugin', to: '/docs/guide/creating-plugins' },
             ],
           },
           {
@@ -108,7 +122,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} MB CLI. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} MB CLI.`,
       },
       prism: {
         theme: prismThemes.github,

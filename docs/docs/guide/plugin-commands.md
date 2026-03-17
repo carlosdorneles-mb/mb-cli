@@ -36,7 +36,7 @@ Se o plugin declarou um README no manifesto, o comando ganha a flag **`--readme`
 mb tools meu-comando --readme
 ```
 
-Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de plugin (quais flags o CLI consome, o que o script recebe em `$1`, `$2`, etc., e o que ocorre quando se passam flags que não existem), veja a seção [Execução: flags e argumentos passados ao plugin](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin) na referência técnica.
+Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de plugin (quais flags o CLI consome, o que o script recebe em `$1`, `$2`, etc., e o que ocorre quando se passam flags que não existem), veja a seção [Execução: flags e argumentos passados ao plugin](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin) na referência técnica.
 
 ## Repositório com vários plugins
 
@@ -46,4 +46,4 @@ Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvo
 
 Na listagem (`mb plugins list`), a coluna **ORIGEM** indica se o plugin é **local** (instalado por path ou `.`) ou **remoto** (instalado por URL Git). No help (`mb help` ou `mb <categoria> <comando> --help`), comandos de plugins locais exibem **(local)** ao lado da descrição, para você saber que aquele comando vem de um plugin registrado localmente.
 
-Para detalhes de como o CLI descobre e executa os plugins (cache, sync, resolução de paths), veja [Plugins (referência técnica)](./plugins.md).
+Para detalhes de como o CLI descobre e executa os plugins (cache, sync, resolução de paths), veja [Plugins (referência técnica)](../technical-reference/plugins.md).

@@ -68,4 +68,4 @@ echo "API_KEY está definida? ${API_KEY:-não}"
 
 Se você definiu `API_KEY` com `mb self env set API_KEY` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
 
-Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](./plugins.md).
+Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](../technical-reference/plugins.md).
