@@ -10,26 +10,65 @@ import (
 	"strings"
 )
 
-func Table(ctx context.Context, headers []string, rows [][]string, out io.Writer) error {
+// sanitizeTableCell removes characters that would break tab-separated columns in gum table.
+func sanitizeTableCell(s string) string {
+	s = strings.ReplaceAll(s, "\t", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return s
+}
+
+// GumTable renders data with `gum table --print` (bordas arredondadas). Sem gum no PATH,
+// imprime TSV simples.
+func GumTable(ctx context.Context, headers []string, rows [][]string, out io.Writer) error {
 	if out == nil {
 		out = os.Stdout
 	}
+	if len(headers) == 0 {
+		return nil
+	}
+	cleanHeaders := make([]string, len(headers))
+	for i, h := range headers {
+		cleanHeaders[i] = sanitizeTableCell(h)
+	}
+	cleanRows := make([][]string, len(rows))
+	for i, row := range rows {
+		cleanRows[i] = make([]string, len(row))
+		for j, c := range row {
+			if j < len(headers) {
+				cleanRows[i][j] = sanitizeTableCell(c)
+			}
+		}
+	}
+
 	gumPath, err := exec.LookPath("gum")
 	if err != nil {
-		// Fallback plain output when gum is unavailable.
-		fmt.Fprintln(out, strings.Join(headers, "\t"))
-		for _, row := range rows {
-			fmt.Fprintln(out, strings.Join(row, "\t"))
+		fmt.Fprintln(out, strings.Join(cleanHeaders, "\t"))
+		for _, row := range cleanRows {
+			for len(row) < len(cleanHeaders) {
+				row = append(row, "")
+			}
+			fmt.Fprintln(out, strings.Join(row[:len(cleanHeaders)], "\t"))
 		}
 		return nil
 	}
 
-	args := []string{"table", "--print"}
-	args = append(args, "--separator", "\t", "--columns", strings.Join(headers, ","))
+	args := []string{
+		"table", "--print",
+		"--separator", "\t",
+		"--columns", strings.Join(cleanHeaders, ","),
+		"--border", "rounded",
+	}
 
 	var input bytes.Buffer
-	for _, row := range rows {
-		input.WriteString(strings.Join(row, "\t"))
+	for _, row := range cleanRows {
+		line := make([]string, len(cleanHeaders))
+		for j := range cleanHeaders {
+			if j < len(row) {
+				line[j] = row[j]
+			}
+		}
+		input.WriteString(strings.Join(line, "\t"))
 		input.WriteString("\n")
 	}
 
@@ -37,6 +76,7 @@ func Table(ctx context.Context, headers []string, rows [][]string, out io.Writer
 	cmd.Stdin = &input
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
 	return cmd.Run()
 }
 

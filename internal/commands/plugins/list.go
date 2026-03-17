@@ -1,7 +1,6 @@
 package plugincmd
 
 import (
-	"context"
 	"path/filepath"
 	"sort"
 
@@ -85,7 +84,7 @@ func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
 					rows[i] = rows[i][:6]
 				}
 			}
-			return system.Table(context.Background(), headers, rows, cmd.OutOrStdout())
+			return system.GumTable(cmd.Context(), headers, rows, cmd.OutOrStdout())
 		},
 	}
 
