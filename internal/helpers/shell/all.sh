@@ -1,6 +1,10 @@
-# Helpers de shell do MB CLI. Carrega todos os helpers.
+#!/bin/sh
+
+# MB CLI shell helpers. Loads all helpers.
 # Ex.: . "$MB_HELPERS_PATH/all.sh"
-# Usa MB_HELPERS_PATH (e não dirname "$0") porque, ao ser sourceado, $0 é o script do plugin.
+# Uses MB_HELPERS_PATH (and not dirname "$0") because when sourced, $0 is the plugin script.
 
 . "${MB_HELPERS_PATH}/log.sh"
+. "${MB_HELPERS_PATH}/string.sh"
 . "${MB_HELPERS_PATH}/memory.sh"
+. "${MB_HELPERS_PATH}/kubernetes.sh"

@@ -23,7 +23,7 @@ func TestEnsureShellHelpers(t *testing.T) {
 		t.Errorf("path = %q, want directory %q", path, shellDir)
 	}
 
-	for _, name := range []string{"all.sh", "log.sh", "memory.sh"} {
+	for _, name := range []string{"all.sh", "log.sh", "memory.sh", "string.sh", "kubernetes.sh"} {
 		full := filepath.Join(shellDir, name)
 		if _, err := os.Stat(full); err != nil {
 			t.Errorf("file %s: %v", name, err)
@@ -55,6 +55,12 @@ func TestEnsureShellHelpers(t *testing.T) {
 	if !strings.Contains(string(allData), "memory.sh") {
 		t.Errorf("all.sh should source memory.sh, got: %s", allData)
 	}
+	if !strings.Contains(string(allData), "string.sh") {
+		t.Errorf("all.sh should source string.sh, got: %s", allData)
+	}
+	if !strings.Contains(string(allData), "kubernetes.sh") {
+		t.Errorf("all.sh should source kubernetes.sh, got: %s", allData)
+	}
 	logPath := filepath.Join(shellDir, "log.sh")
 	logData, _ := os.ReadFile(logPath)
 	if !strings.Contains(string(logData), "log()") {
@@ -64,6 +70,16 @@ func TestEnsureShellHelpers(t *testing.T) {
 	memoryData, _ := os.ReadFile(memoryPath)
 	if !strings.Contains(string(memoryData), "mem_set()") {
 		t.Errorf("memory.sh should define mem_set(), got: %s", memoryData)
+	}
+	stringPath := filepath.Join(shellDir, "string.sh")
+	stringData, _ := os.ReadFile(stringPath)
+	if !strings.Contains(string(stringData), "str_to_upper()") {
+		t.Errorf("string.sh should define str_to_upper(), got: %s", stringData)
+	}
+	kubernetesPath := filepath.Join(shellDir, "kubernetes.sh")
+	kubernetesData, _ := os.ReadFile(kubernetesPath)
+	if !strings.Contains(string(kubernetesData), "kb_check_installed()") {
+		t.Errorf("kubernetes.sh should define kb_check_installed(), got: %s", kubernetesData)
 	}
 
 	// Idempotent: second call returns same path
@@ -114,6 +130,12 @@ func TestEnsureShellHelpers_overwritesWhenChecksumDiffers(t *testing.T) {
 	}
 	if !strings.Contains(string(allData), "memory.sh") {
 		t.Errorf("all.sh should have been overwritten with embed content (sources memory.sh), got: %s", allData)
+	}
+	if !strings.Contains(string(allData), "string.sh") {
+		t.Errorf("all.sh should have been overwritten with embed content (sources string.sh), got: %s", allData)
+	}
+	if !strings.Contains(string(allData), "kubernetes.sh") {
+		t.Errorf("all.sh should have been overwritten with embed content (sources kubernetes.sh), got: %s", allData)
 	}
 	checksumData, _ := os.ReadFile(checksumPath)
 	checksumStr := strings.TrimSpace(string(checksumData))

@@ -4,6 +4,14 @@ Scripts de shell embutidos no MB CLI e copiados para `~/.config/mb/lib/shell` no
 
 **Documentação:** [Helpers de shell](../../../docs/docs/helpers-shell.md) — como carregar nos plugins e lista de helpers disponíveis.
 
+Helpers atuais:
+
+- `all.sh`
+- `log.sh`
+- `memory.sh`
+- `string.sh`
+- `kubernetes.sh`
+
 ---
 
 ## Adicionar um novo arquivo `.sh`

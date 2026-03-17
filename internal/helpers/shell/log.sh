@@ -1,8 +1,15 @@
-# Helper de log do MB CLI. Sourcear via . "$MB_HELPERS_PATH/log.sh" ou tudo via all.sh.
-# Uso: log <level> <mensagem...>
-# Níveis: none, debug, info, warn, error, fatal
-# - MB_QUIET=1: só exibe error e fatal
-# - MB_VERBOSE=1: exibe todos (incluindo debug); caso contrário debug é omitido
+#!/bin/sh
+
+# Logs a message at the given level, respecting MB_QUIET and MB_VERBOSE.
+# Source via . "$MB_HELPERS_PATH/log.sh" or load everything via all.sh.
+# Levels: none, debug, info, warn, error, fatal.
+# - MB_QUIET=1: shows only error and fatal.
+# - MB_VERBOSE=1: shows all levels (including debug); otherwise debug is omitted.
+# Usage:
+#   log <level> <message...>
+# Example:
+#   log info "Deployment started"
+#   log error "Something went wrong"
 log() {
   level=$1
   shift

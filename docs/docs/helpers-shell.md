@@ -13,6 +13,8 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Todos os helpers:** `. "$MB_HELPERS_PATH/all.sh"`
 - **Só o helper de log:** `. "$MB_HELPERS_PATH/log.sh"`
 - **Só o helper de memória:** `. "$MB_HELPERS_PATH/memory.sh"`
+- **Só o helper de string:** `. "$MB_HELPERS_PATH/string.sh"`
+- **Só o helper de Kubernetes:** `. "$MB_HELPERS_PATH/kubernetes.sh"`
 
 Exemplo:
 
@@ -24,7 +26,7 @@ Exemplo:
 log info "Olá!"
 ```
 
-O diretório e os arquivos (`all.sh`, `log.sh`, `memory.sh`) são criados ou atualizados quando você executa **`mb self sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Se os helpers ainda não existirem, execute `mb self sync` antes de usá-los nos seus plugins. Ao atualizar o CLI para uma versão que altere os helpers, o próximo `mb self sync` atualiza os arquivos em `lib/shell` automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
+O diretório e os arquivos são criados ou atualizados quando você executa **`mb self sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Se os helpers ainda não existirem, execute `mb self sync` antes de usá-los nos seus plugins. Ao atualizar o CLI para uma versão que altere os helpers, o próximo `mb self sync` atualiza os arquivos em `lib/shell` automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
 
 ## Helpers disponíveis
 
@@ -110,3 +112,66 @@ Observações:
 
 - Esses dados ficam em `tmp` e podem ser removidos pelo sistema (por exemplo, em reboot ou limpeza automática).
 - `namespace` e `key` aceitam somente letras, números, `.`, `_` e `-`.
+
+### string
+
+Helper de utilitários para manipulação de texto em scripts shell. Cobre substituição, conversão de case, trim, testes de conteúdo, manipulação de arrays CSV e conversão de booleano.
+
+**Funções disponíveis:**
+
+- `str_replace <input> <search> <replace>` — substitui todas as ocorrências de `search` por `replace` em `input` e imprime o resultado.
+- `str_to_upper <texto>` — imprime o texto convertido para maiúsculas.
+- `str_to_lower <texto>` — imprime o texto convertido para minúsculas.
+- `str_trim <texto>` — imprime o texto sem espaços no início e no fim.
+- `str_contains <texto> <substring>` — retorna `0` se `texto` contém `substring`, `1` caso contrário.
+- `str_starts_with <texto> <prefixo>` — retorna `0` se `texto` começa com `prefixo`, `1` caso contrário.
+- `str_parse_comma_separated <nome_array>` — percorre o array referenciado e divide cada elemento que contenha vírgula em elementos separados (modifica o array in-place).
+- `str_join_to_comma_separated <nome_array>` — junta todos os elementos do array em um único elemento separado por vírgula (modifica o array in-place).
+- `str_to_bool <valor>` — retorna `0` para valores verdadeiros (`true`, `1`, `on`, `yes`) e `1` para os demais.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/string.sh"
+
+# Substituição e conversão
+tag=$(str_to_lower "$(str_trim "  My-App  ")")
+log info "Tag: $tag"  # my-app
+
+# Testes condicionais
+if str_starts_with "$tag" "my"; then
+  log info "Tag começa com 'my'"
+fi
+
+# Booleano a partir de variável de ambiente
+if str_to_bool "${DRY_RUN:-false}"; then
+  log warn "Dry-run ativo, nenhuma alteração será feita"
+fi
+```
+
+### kubernetes
+
+Helper para operações básicas com `kubectl`: verificar se está instalado, checar existência de namespace e inspecionar o contexto ativo. Carrega `log.sh` automaticamente ao ser importado.
+
+> **Requisito:** `kubectl` precisa estar instalado e configurado no `PATH`. Caso contrário, as funções logam um erro e, se `exit_on_error` for passado, encerram o script com `exit 1`.
+
+**Funções disponíveis:**
+
+- `kb_check_installed [exit_on_error]` — verifica se `kubectl` está disponível no `PATH`. Retorna `0` se encontrado, `1` se não. Com `exit_on_error`, encerra o script se não estiver instalado.
+- `kb_check_namespace_exists <namespace> [exit_on_error]` — verifica se o namespace existe no cluster do contexto atual. Retorna `0` se existir, `1` se não. Com `exit_on_error`, encerra o script se não existir.
+- `kb_get_current_context` — imprime o nome do contexto kubectl ativo (`kubectl config current-context`).
+- `kb_print_current_context` — imprime o contexto atual no console com uma mensagem legível.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/kubernetes.sh"
+
+# Garante que kubectl existe e que o namespace alvo também
+kb_check_installed "exit_on_error"
+kb_check_namespace_exists "production" "exit_on_error"
+
+# Informa o contexto em uso antes de aplicar mudanças
+kb_print_current_context
+kubectl apply -f manifests/
+```
