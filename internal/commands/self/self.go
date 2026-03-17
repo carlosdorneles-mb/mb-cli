@@ -22,6 +22,9 @@ func NewSelfCmd(deps config.Dependencies) *cobra.Command {
 	envCmd := newSelfEnvCmd(deps)
 	envCmd.GroupID = "commands"
 	selfCmd.AddCommand(envCmd)
+	updateCmd := newSelfUpdateCmd(deps)
+	updateCmd.GroupID = "commands"
+	selfCmd.AddCommand(updateCmd)
 
 	selfCmd.InitDefaultCompletionCmd()
 	customizeCompletionPT(selfCmd)

@@ -9,6 +9,7 @@ sidebar_position: 3
 | Comando | Descrição |
 |--------|-----------|
 | `mb self sync` | Garante os helpers de shell em `~/.config/mb/lib/shell`; escaneia o diretório de plugins e os paths locais registrados e atualiza o cache SQLite |
+| `mb self update` | Consulta a última release estável no GitHub; se for mais nova que a versão instalada, baixa o binário `mb` (SHA256), substitui o executável no mesmo diretório e pede para rodar `mb` de novo. Se já estiver atualizado, informa. |
 | `mb plugins add <url \| path \| .> [--name N] [--tag TAG]` | Instala um plugin: **URL Git** = remoto (clone); **path** ou **`.`** = local (registra o path, sem cópia). **`--name`** = id. da instalação (list/remove/clone), não muda o path do comando. `--tag` só para remoto. |
 | `mb plugins list [--check-updates]` | Lista plugins instalados (nome, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
 | `mb plugins remove <name>` | Remove um plugin instalado (com confirmação). Se for local, só remove o registro. O cache é atualizado e o plugin deixa de aparecer em `plugins list`. |

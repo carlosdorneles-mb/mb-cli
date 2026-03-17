@@ -39,6 +39,7 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 | Comando | Descrição |
 |--------|-----------|
 | `mb self sync` | Atualiza cache de plugins |
+| `mb self update` | Atualiza o binário `mb` a partir da última release no GitHub |
 | `mb plugins add <url \| path>` | Instala plugin |
 | `mb plugins list` | Lista plugins |
 | `mb <categoria> <comando>` | Executa plugin |
