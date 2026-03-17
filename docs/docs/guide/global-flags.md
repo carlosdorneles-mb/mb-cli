@@ -35,6 +35,7 @@ Exemplo:
 ```bash
 mb -q plugins list
 mb --quiet self sync
+mb -q self update --check-only   # só código de saída (ex.: 2 = há atualização), sem texto em stdout
 mb -q tools meu-comando
 ```
 

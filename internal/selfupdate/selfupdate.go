@@ -337,6 +337,36 @@ func DestExecutablePath() (string, error) {
 	return filepath.EvalSymlinks(exe)
 }
 
+// ExitCodeUpdateAvailable is returned by RunCheckOnly (and mb self update --check-only) when a newer release exists.
+const ExitCodeUpdateAvailable = 2
+
+// MessageNoUpdateNeeded returns the user-facing message when ShouldFetchNewRelease is false.
+func MessageNoUpdateNeeded(localVersion, tag string) string {
+	lt := tag
+	if !strings.HasPrefix(lt, "v") {
+		lt = "v" + strings.TrimPrefix(lt, "v")
+	}
+	if lv, ok := CanonicalSemver(localVersion); ok && semver.IsValid(lt) && semver.Compare(lt, lv) < 0 {
+		return fmt.Sprintf("Sua versão (%s) é mais recente que a última release estável (%s). Nenhuma ação necessária.\n", strings.TrimSpace(localVersion), tag)
+	}
+	return fmt.Sprintf("MB CLI já está na versão mais recente (%s).\n", tag)
+}
+
+// RunCheckOnly queries GitHub and compares versions without downloading. exitCode is ExitCodeUpdateAvailable when an update exists, else 0.
+func RunCheckOnly(ctx context.Context, cfg *Config, localVersion string) (stdout string, exitCode int, err error) {
+	tag, err := FetchLatestTag(ctx, cfg)
+	if err != nil {
+		return "", 0, err
+	}
+	if ShouldFetchNewRelease(localVersion, tag) {
+		return fmt.Sprintf(
+			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb self update\n",
+			strings.TrimSpace(localVersion), tag,
+		), ExitCodeUpdateAvailable, nil
+	}
+	return MessageNoUpdateNeeded(localVersion, tag), 0, nil
+}
+
 // Run checks GitHub, downloads if needed, and installs. Returns messages for stdout (already updated / up to date).
 func Run(ctx context.Context, cfg *Config, localVersion string) (stdout string, err error) {
 	goos, goarch, err := Platform()
@@ -348,14 +378,7 @@ func Run(ctx context.Context, cfg *Config, localVersion string) (stdout string, 
 		return "", err
 	}
 	if !ShouldFetchNewRelease(localVersion, tag) {
-		lt := tag
-		if !strings.HasPrefix(lt, "v") {
-			lt = "v" + strings.TrimPrefix(lt, "v")
-		}
-		if lv, ok := CanonicalSemver(localVersion); ok && semver.IsValid(lt) && semver.Compare(lt, lv) < 0 {
-			return fmt.Sprintf("Sua versão (%s) é mais recente que a última release estável (%s). Nenhuma ação necessária.\n", strings.TrimSpace(localVersion), tag), nil
-		}
-		return fmt.Sprintf("MB CLI já está na versão mais recente (%s).\n", tag), nil
+		return MessageNoUpdateNeeded(localVersion, tag), nil
 	}
 	tarball, err := DownloadReleaseArtifact(ctx, cfg, tag, goos, goarch)
 	if err != nil {

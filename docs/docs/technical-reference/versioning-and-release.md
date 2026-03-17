@@ -11,6 +11,7 @@ Esta página descreve como a **versão** do MB CLI é definida e como os **relea
 - O MB segue [Semantic Versioning](https://semver.org/) (SemVer): **MAJOR.MINOR.PATCH** (ex.: `v1.2.3`).
 - A versão é definida por **tags Git** no repositório. Não existe arquivo `VERSION` nem versão hardcoded no código: o número vem sempre da tag usada no build.
 - O binário exibe a versão em `mb -V` ou `mb --version`. Esse valor é injetado em tempo de **build** via ldflags (variável `mb/internal/version.Version`). Em desenvolvimento (`go run` ou `make build` sem tag), o CLI mostra `dev`.
+- **`mb self update`** (e `--check-only`) só funcionam quando essa variável está definida — ou seja, binários publicados no GitHub Releases. Builds locais recebem um aviso e devem usar `install.sh` ou o asset da release.
 
 ## Geração da próxima versão (svu)
 

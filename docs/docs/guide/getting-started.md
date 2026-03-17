@@ -22,7 +22,9 @@ curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/instal
 
 Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sync` para atualizar o cache de plugins e os helpers de shell.
 
-Para **atualizar só o binário do MB CLI** a partir da última release no GitHub (sem passar de novo pelo `install.sh` completo), use **`mb self update`**. O comando compara a versão instalada com a release estável, valida o download e substitui o executável (Linux/macOS, amd64/arm64). Builds locais (`dev`) são tratadas como desatualizadas e recebem a última release.
+Para **atualizar só o binário do MB CLI** depois de ter instalado pela release oficial, use **`mb self update`**. Só aplica a binários com versão embutida (GitHub Release); se compilaste localmente ou usaste `go install`, o comando indica que uses `install.sh`. Linux/macOS, amd64/arm64.
+
+**`mb self update --check-only`** — mesma condição; saída **`2`** se houver release mais nova (útil em scripts; usar throttle para a API do GitHub).
 
 **Remover o CLI:**
 

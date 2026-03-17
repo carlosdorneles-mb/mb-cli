@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -215,5 +216,66 @@ func TestPlatform_unsupportedOS(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestRunCheckOnly_updateAvailable(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v2.0.0"}`))
+	}))
+	t.Cleanup(srv.Close)
+	cfg := &Config{LatestReleaseURL: srv.URL}
+	out, code, err := RunCheckOnly(context.Background(), cfg, "v1.0.0")
+	if err != nil || code != ExitCodeUpdateAvailable {
+		t.Fatalf("err=%v code=%d", err, code)
+	}
+	if !strings.Contains(out, "Atualização disponível") || !strings.Contains(out, "v2.0.0") {
+		t.Fatalf("unexpected out: %q", out)
+	}
+}
+
+func TestRunCheckOnly_alreadyLatest(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v1.0.0"}`))
+	}))
+	t.Cleanup(srv.Close)
+	cfg := &Config{LatestReleaseURL: srv.URL}
+	out, code, err := RunCheckOnly(context.Background(), cfg, "v1.0.0")
+	if err != nil || code != 0 {
+		t.Fatalf("err=%v code=%d", err, code)
+	}
+	if !strings.Contains(out, "versão mais recente") {
+		t.Fatalf("out=%q", out)
+	}
+}
+
+func TestRunCheckOnly_newerLocalThanRelease(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v1.0.0"}`))
+	}))
+	t.Cleanup(srv.Close)
+	cfg := &Config{LatestReleaseURL: srv.URL}
+	out, code, err := RunCheckOnly(context.Background(), cfg, "v2.0.0")
+	if err != nil || code != 0 {
+		t.Fatalf("err=%v code=%d", err, code)
+	}
+	if !strings.Contains(out, "mais recente que a última release") {
+		t.Fatalf("out=%q", out)
+	}
+}
+
+func TestRunCheckOnly_apiError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+	cfg := &Config{LatestReleaseURL: srv.URL}
+	_, _, err := RunCheckOnly(context.Background(), cfg, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }

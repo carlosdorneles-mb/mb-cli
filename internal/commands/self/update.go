@@ -3,7 +3,7 @@ package self
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,35 +13,60 @@ import (
 	"mb/internal/version"
 )
 
-func newSelfUpdateCmd(_ config.Dependencies) *cobra.Command {
-	return &cobra.Command{
+const selfUpdateNonReleaseMsg = `Este binário não veio da release oficial do MB CLI (build local, go install, etc.).
+O comando mb self update só atualiza binários instalados a partir do GitHub Releases (versão embutida no executável).
+
+Para instalar ou atualizar a versão estável:
+  curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+
+Releases: https://github.com/carlosdorneles-mb/mb-cli/releases
+`
+
+func newSelfUpdateCmd(deps config.Dependencies) *cobra.Command {
+	var checkOnly bool
+	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Atualiza o MB CLI para a última release estável do GitHub",
-		Long: `Consulta o repositório oficial no GitHub, compara com a versão instalada e,
-se existir uma release mais recente, baixa o binário (com verificação SHA256) e substitui o executável atual.
+		Long: `Só se aplica a binários da release oficial (versão definida no build). Builds locais recebem uma mensagem a orientar o install.sh.
 
-Só atualiza o binário mb (não reinstala gum, glow, jq nem fzf). Suportado em Linux e macOS, amd64 e arm64.`,
+Consulta o GitHub, compara com a versão embutida e, se houver release mais nova, baixa o binário mb (SHA256) e substitui o executável.
+
+Só atualiza o binário mb (não reinstala gum, glow, jq nem fzf). Linux/macOS, amd64/arm64.
+
+Com --check-only apenas verifica se há release mais nova (sem download). Códigos de saída: 0 = ok; 2 = há atualização; 1 = erro.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			quiet := deps.Runtime != nil && deps.Runtime.Quiet
+			if !version.IsReleaseBuild() {
+				if !quiet {
+					fmt.Fprint(cmd.OutOrStdout(), selfUpdateNonReleaseMsg)
+				}
+				return nil
+			}
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
 			}
-			local := localCLIVersion()
+			local := strings.TrimSpace(version.Version)
+			if checkOnly {
+				out, code, err := selfupdate.RunCheckOnly(ctx, &selfupdate.Config{}, local)
+				if out != "" && !quiet {
+					fmt.Fprint(cmd.OutOrStdout(), out)
+				}
+				if err != nil {
+					return err
+				}
+				if code == selfupdate.ExitCodeUpdateAvailable {
+					os.Exit(selfupdate.ExitCodeUpdateAvailable)
+				}
+				return nil
+			}
 			out, err := selfupdate.Run(ctx, &selfupdate.Config{}, local)
-			if out != "" {
+			if out != "" && !quiet {
 				fmt.Fprint(cmd.OutOrStdout(), out)
 			}
 			return err
 		},
 	}
-}
-
-func localCLIVersion() string {
-	if v := strings.TrimSpace(version.Version); v != "" {
-		return v
-	}
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
-		return info.Main.Version
-	}
-	return "dev"
+	cmd.Flags().BoolVar(&checkOnly, "check-only", false, "Só verifica se há atualização (sem baixar)")
+	return cmd
 }
