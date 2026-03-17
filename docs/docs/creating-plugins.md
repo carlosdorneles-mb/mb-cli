@@ -80,7 +80,7 @@ Você pode customizar a linha de uso, a quantidade de argumentos e o help do com
 | **`args`** | Número **inteiro** de argumentos posicionais **obrigatórios**. Ex.: `args: 1` faz com que `mb tools meu-comando dudu` passe "dudu" como primeiro argumento ao script (e não como subcomando). Se omitido ou 0, não há validação de quantidade. |
 | **`aliases`** | Lista de **strings**: nomes alternativos para invocar o mesmo comando. Ex.: `aliases: ["x", "run"]` permite `mb tools x` ou `mb tools run` em vez de `mb tools meu-comando`. |
 | **`example`** | String exibida como **exemplo** no help do comando. Ex.: `example: "mb tools meu-comando dudu"`. |
-| **`deprecated`** | Mensagem exibida quando o comando for **executado** (aviso de obsoleto). Ex.: `deprecated: "Use 'mb tools novo-comando' em vez disso."` O CLI mostra o aviso mas ainda executa o plugin. |
+| **`deprecated`** | Mensagem exibida quando o comando for **executado** (aviso de obsoleto). Ex.: `deprecated: "Use 'mb tools novo-comando' em vez disso."` O CLI mostra o aviso em português ("Comando \"&lt;nome&gt;\" está obsoleto: &lt;sua mensagem&gt;") e ainda executa o plugin. |
 
 Exemplo de manifest com esses campos:
 

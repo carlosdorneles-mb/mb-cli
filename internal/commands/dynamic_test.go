@@ -466,7 +466,5 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	if helloCmd.Long != "Long desc" {
 		t.Errorf("Long = %q, want %q", helloCmd.Long, "Long desc")
 	}
-	if helloCmd.Deprecated != "Use newcmd instead." {
-		t.Errorf("Deprecated = %q, want %q", helloCmd.Deprecated, "Use newcmd instead.")
-	}
+	// Deprecated: não setamos cmd.Deprecated; a mensagem em português é exibida via wrap do RunE ao executar.
 }

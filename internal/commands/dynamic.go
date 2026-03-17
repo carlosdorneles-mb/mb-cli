@@ -141,8 +141,14 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse 
 	if plugin.LongDescription != "" {
 		cmd.Long = plugin.LongDescription
 	}
-	if plugin.Deprecated != "" {
-		cmd.Deprecated = plugin.Deprecated
+	if plugin.Deprecated != "" && cmd.RunE != nil {
+		oldRunE := cmd.RunE
+		deprecatedMsg := plugin.Deprecated
+		cmdName := defaultUse
+		cmd.RunE = func(c *cobra.Command, args []string) error {
+			fmt.Fprintf(c.ErrOrStderr(), "Comando %q está obsoleto: %s\n", cmdName, deprecatedMsg)
+			return oldRunE(c, args)
+		}
 	}
 }
 
