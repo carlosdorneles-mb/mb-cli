@@ -381,3 +381,92 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		t.Errorf("deploy flag Shorthand = %q, want \"\" (long only)", deployFlag.Shorthand)
 	}
 }
+
+// TestCobraPluginFieldsInjected verifies that plugin UseTemplate, ArgsCount, Aliases, Example, Long, Deprecated are applied to the leaf command.
+func TestCobraPluginFieldsInjected(t *testing.T) {
+	tmp := t.TempDir()
+	pluginsDir := filepath.Join(tmp, "plugins")
+	pluginDir := filepath.Join(pluginsDir, "tools", "hello")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+
+	cachePath := filepath.Join(tmp, "mb", "cache.db")
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	store, err := cache.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	plugin := cache.Plugin{
+		CommandPath:     "tools/hello",
+		CommandName:     "hello",
+		Description:     "Short",
+		ExecPath:        filepath.Join(pluginDir, "run.sh"),
+		PluginType:      "sh",
+		ConfigHash:      "h",
+		UseTemplate:     "<name>",
+		ArgsCount:       1,
+		AliasesJSON:     `["x","run"]`,
+		Example:         "mb tools hello dudu",
+		LongDescription: "Long desc",
+		Deprecated:      "Use newcmd instead.",
+	}
+	if err := store.UpsertPlugin(plugin); err != nil {
+		t.Fatalf("upsert plugin: %v", err)
+	}
+
+	runtime := &config.RuntimeConfig{
+		ConfigDir:  filepath.Join(tmp, "mb"),
+		PluginsDir: pluginsDir,
+	}
+	deps := config.NewDependencies(
+		runtime,
+		store,
+		plugins.NewScanner(runtime.PluginsDir),
+		executor.New(),
+	)
+	root := NewRootCmd(deps)
+
+	var helloCmd *cobra.Command
+	for _, c := range root.Commands() {
+		if c.Name() == "tools" {
+			for _, sub := range c.Commands() {
+				// Use is "command + use" = "hello <name>"
+				if sub.Use == "hello <name>" {
+					helloCmd = sub
+					break
+				}
+			}
+			break
+		}
+	}
+	if helloCmd == nil {
+		t.Fatal("command 'tools hello' (Use hello <name>) not found")
+	}
+
+	if helloCmd.Use != "hello <name>" {
+		t.Errorf("Use = %q, want %q", helloCmd.Use, "hello <name>")
+	}
+	if helloCmd.Args == nil {
+		t.Error("Args should be set (ExactArgs(1))")
+	}
+	if len(helloCmd.Aliases) != 2 || helloCmd.Aliases[0] != "x" || helloCmd.Aliases[1] != "run" {
+		t.Errorf("Aliases = %v, want [x run]", helloCmd.Aliases)
+	}
+	if helloCmd.Example != "mb tools hello dudu" {
+		t.Errorf("Example = %q, want %q", helloCmd.Example, "mb tools hello dudu")
+	}
+	if helloCmd.Long != "Long desc" {
+		t.Errorf("Long = %q, want %q", helloCmd.Long, "Long desc")
+	}
+	if helloCmd.Deprecated != "Use newcmd instead." {
+		t.Errorf("Deprecated = %q, want %q", helloCmd.Deprecated, "Use newcmd instead.")
+	}
+}

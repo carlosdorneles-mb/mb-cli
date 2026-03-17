@@ -51,6 +51,46 @@ func TestStoreUpsertAndList(t *testing.T) {
 	}
 }
 
+func TestStoreUpsertAndListCobraFields(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "cache2.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	plugin := Plugin{
+		CommandPath:     "tools/mycmd",
+		CommandName:     "mycmd",
+		Description:     "Short",
+		ExecPath:        "/tmp/run.sh",
+		PluginType:      "sh",
+		ConfigHash:      "h1",
+		UseTemplate:     "<name>",
+		ArgsCount:       1,
+		AliasesJSON:     `["x","run"]`,
+		Example:         "mb tools mycmd dudu",
+		LongDescription: "Long desc",
+		Deprecated:      "Use newcmd instead.",
+	}
+	if err := store.UpsertPlugin(plugin); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	all, err := store.ListPlugins()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(all) != 1 {
+		t.Fatalf("expected 1 plugin, got %d", len(all))
+	}
+	p := all[0]
+	if p.UseTemplate != "<name>" || p.ArgsCount != 1 || p.AliasesJSON != `["x","run"]` ||
+		p.Example != "mb tools mycmd dudu" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
+		t.Errorf("cobra fields: use=%q args=%d aliases=%q example=%q long=%q deprecated=%q",
+			p.UseTemplate, p.ArgsCount, p.AliasesJSON, p.Example, p.LongDescription, p.Deprecated)
+	}
+}
+
 func TestPluginSourcesCRUD(t *testing.T) {
 	tmp := t.TempDir()
 	store, err := NewStore(filepath.Join(tmp, "cache.db"))

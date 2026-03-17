@@ -58,7 +58,26 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 			}
 		}
 	}
+	if (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) && strings.TrimSpace(manifest.Command) == "" {
+		errs = append(errs, "command é obrigatório quando há entrypoint ou flags")
+	}
 	return errs
+}
+
+// cobraFieldsFromManifest returns UseTemplate, ArgsCount, AliasesJSON, Example, LongDescription, Deprecated for cache.Plugin.
+func cobraFieldsFromManifest(manifest Manifest) (useTemplate string, argsCount int, aliasesJSON, example, longDescription, deprecated string, err error) {
+	argsCount = manifest.Args
+	if argsCount < 0 {
+		argsCount = 0
+	}
+	if len(manifest.Aliases) > 0 {
+		b, err := json.Marshal(manifest.Aliases)
+		if err != nil {
+			return "", 0, "", "", "", "", err
+		}
+		aliasesJSON = string(b)
+	}
+	return manifest.Use, argsCount, aliasesJSON, manifest.Example, manifest.LongDescription, manifest.Deprecated, nil
 }
 
 func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
@@ -122,15 +141,27 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 				}
 				flagsJSON = string(flagsJSONBytes)
 			}
+			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+				return fmt.Errorf("cobra fields %s: %w", path, err)
+			} else {
+				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+			}
 			plugins = append(plugins, cache.Plugin{
-				CommandPath: commandPath,
-				CommandName: commandName,
-				Description: manifest.Description,
-				ExecPath:    execPath,
-				PluginType:  pluginType,
-				ConfigHash:  configHash,
-				ReadmePath:  readmePath,
-				FlagsJSON:   flagsJSON,
+				CommandPath:     commandPath,
+				CommandName:     commandName,
+				Description:     manifest.Description,
+				ExecPath:        execPath,
+				PluginType:      pluginType,
+				ConfigHash:      configHash,
+				ReadmePath:      readmePath,
+				FlagsJSON:       flagsJSON,
+				UseTemplate:     useT,
+				ArgsCount:       argsC,
+				AliasesJSON:     aliasesJ,
+				Example:         ex,
+				LongDescription: longD,
+				Deprecated:      dep,
 			})
 			return nil
 		}
@@ -142,15 +173,27 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 			if err != nil {
 				return fmt.Errorf("marshal flags %s: %w", path, err)
 			}
+			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+				return fmt.Errorf("cobra fields %s: %w", path, err)
+			} else {
+				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+			}
 			plugins = append(plugins, cache.Plugin{
-				CommandPath: commandPath,
-				CommandName: commandName,
-				Description: manifest.Description,
-				ExecPath:    "",
-				PluginType:  "",
-				ConfigHash:  configHash,
-				ReadmePath:  readmePath,
-				FlagsJSON:   string(flagsJSON),
+				CommandPath:     commandPath,
+				CommandName:     commandName,
+				Description:     manifest.Description,
+				ExecPath:        "",
+				PluginType:      "",
+				ConfigHash:      configHash,
+				ReadmePath:      readmePath,
+				FlagsJSON:       string(flagsJSON),
+				UseTemplate:     useT,
+				ArgsCount:       argsC,
+				AliasesJSON:     aliasesJ,
+				Example:         ex,
+				LongDescription: longD,
+				Deprecated:      dep,
 			})
 			return nil
 		}
@@ -238,15 +281,27 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 				}
 				flagsJSON = string(flagsJSONBytes)
 			}
+			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+				return fmt.Errorf("cobra fields %s: %w", path, err)
+			} else {
+				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+			}
 			plugins = append(plugins, cache.Plugin{
-				CommandPath: commandPath,
-				CommandName: commandName,
-				Description: manifest.Description,
-				ExecPath:    execPath,
-				PluginType:  pluginType,
-				ConfigHash:  configHash,
-				ReadmePath:  readmePath,
-				FlagsJSON:   flagsJSON,
+				CommandPath:     commandPath,
+				CommandName:     commandName,
+				Description:     manifest.Description,
+				ExecPath:        execPath,
+				PluginType:      pluginType,
+				ConfigHash:      configHash,
+				ReadmePath:      readmePath,
+				FlagsJSON:       flagsJSON,
+				UseTemplate:     useT,
+				ArgsCount:       argsC,
+				AliasesJSON:     aliasesJ,
+				Example:         ex,
+				LongDescription: longD,
+				Deprecated:      dep,
 			})
 			return nil
 		}
@@ -257,15 +312,27 @@ func (s *Scanner) ScanDir(rootPath, installName string) ([]cache.Plugin, []cache
 			if err != nil {
 				return fmt.Errorf("marshal flags %s: %w", path, err)
 			}
+			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+				return fmt.Errorf("cobra fields %s: %w", path, err)
+			} else {
+				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+			}
 			plugins = append(plugins, cache.Plugin{
-				CommandPath: commandPath,
-				CommandName: commandName,
-				Description: manifest.Description,
-				ExecPath:    "",
-				PluginType:  "",
-				ConfigHash:  configHash,
-				ReadmePath:  readmePath,
-				FlagsJSON:   string(flagsJSON),
+				CommandPath:     commandPath,
+				CommandName:     commandName,
+				Description:     manifest.Description,
+				ExecPath:        "",
+				PluginType:      "",
+				ConfigHash:      configHash,
+				ReadmePath:      readmePath,
+				FlagsJSON:       string(flagsJSON),
+				UseTemplate:     useT,
+				ArgsCount:       argsC,
+				AliasesJSON:     aliasesJ,
+				Example:         ex,
+				LongDescription: longD,
+				Deprecated:      dep,
 			})
 			return nil
 		}

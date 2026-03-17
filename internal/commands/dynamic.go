@@ -118,6 +118,34 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 	}
 }
 
+// applyCobraPluginFields sets Use, Args, Aliases, Example, Long, Deprecated on cmd from plugin when present.
+// When UseTemplate is set, Cobra Use is "command + use" (e.g. "mycmd <name>").
+func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse string) {
+	if plugin.UseTemplate != "" {
+		cmd.Use = defaultUse + " " + strings.TrimSpace(plugin.UseTemplate)
+	} else {
+		cmd.Use = defaultUse
+	}
+	if plugin.ArgsCount > 0 {
+		cmd.Args = cobra.ExactArgs(plugin.ArgsCount)
+	}
+	if plugin.AliasesJSON != "" {
+		var aliases []string
+		if err := json.Unmarshal([]byte(plugin.AliasesJSON), &aliases); err == nil {
+			cmd.Aliases = aliases
+		}
+	}
+	if plugin.Example != "" {
+		cmd.Example = plugin.Example
+	}
+	if plugin.LongDescription != "" {
+		cmd.Long = plugin.LongDescription
+	}
+	if plugin.Deprecated != "" {
+		cmd.Deprecated = plugin.Deprecated
+	}
+}
+
 func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, pluginRoot string, isLocal bool) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
@@ -133,6 +161,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 			Short: short,
 			RunE:  runEntrypointCommand(plugin, deps, pluginRoot),
 		}
+		applyCobraPluginFields(cmd, plugin, use)
 		if plugin.ReadmePath != "" {
 			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 		} else {
@@ -153,6 +182,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 		Short: short,
 		RunE:  runFlagsOnlyCommand(plugin, flagsMap, deps, pluginRoot),
 	}
+	applyCobraPluginFields(cmd, plugin, use)
 
 	usedShorts := make(map[string]bool)
 	for name, def := range flagsMap {

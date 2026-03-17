@@ -61,6 +61,61 @@ rollback:
 	}
 }
 
+func TestManifestCobraFields(t *testing.T) {
+	yamlDoc := `
+command: mycmd
+description: Short desc
+long_description: |
+  Long description line one.
+  Line two.
+entrypoint: run.sh
+use: "<name> [options]"
+args: 1
+aliases:
+  - x
+  - run
+example: "mb tools mycmd dudu"
+deprecated: "Use 'mb tools newcmd' instead."
+`
+	var m Manifest
+	if err := yaml.Unmarshal([]byte(yamlDoc), &m); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if m.Command != "mycmd" || m.Description != "Short desc" {
+		t.Errorf("command/description: %q / %q", m.Command, m.Description)
+	}
+	if m.LongDescription != "Long description line one.\nLine two.\n" {
+		t.Errorf("long_description: %q", m.LongDescription)
+	}
+	if m.Use != "<name> [options]" || m.Args != 1 {
+		t.Errorf("use=%q args=%d", m.Use, m.Args)
+	}
+	if len(m.Aliases) != 2 || m.Aliases[0] != "x" || m.Aliases[1] != "run" {
+		t.Errorf("aliases: %v", m.Aliases)
+	}
+	if m.Example != "mb tools mycmd dudu" {
+		t.Errorf("example: %q", m.Example)
+	}
+	if m.Deprecated != "Use 'mb tools newcmd' instead." {
+		t.Errorf("deprecated: %q", m.Deprecated)
+	}
+}
+
+func TestManifestCobraFieldsEmpty(t *testing.T) {
+	yamlDoc := `command: x
+description: X
+entrypoint: run.sh
+`
+	var m Manifest
+	if err := yaml.Unmarshal([]byte(yamlDoc), &m); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if m.Use != "" || m.Args != 0 || m.Aliases != nil || m.Example != "" || m.Deprecated != "" || m.LongDescription != "" {
+		t.Errorf("cobra fields should be zero: use=%q args=%d aliases=%v example=%q deprecated=%q long_description=%q",
+			m.Use, m.Args, m.Aliases, m.Example, m.Deprecated, m.LongDescription)
+	}
+}
+
 func TestPluginTypeFromEntrypoint(t *testing.T) {
 	tests := []struct {
 		entrypoint string

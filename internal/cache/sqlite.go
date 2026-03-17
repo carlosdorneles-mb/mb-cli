@@ -30,15 +30,21 @@ type Category struct {
 }
 
 type Plugin struct {
-	ID          int64
-	CommandPath string // e.g. "infra/ci/deploy"
-	CommandName string
-	Description string
-	ExecPath    string // empty for flags-only
-	PluginType  string // "sh"|"bin" or "" for flags-only
-	ConfigHash  string
-	ReadmePath  string
-	FlagsJSON   string // for flags-only: JSON map of flag name -> {type, entrypoint}
+	ID              int64
+	CommandPath     string // e.g. "infra/ci/deploy"
+	CommandName     string
+	Description     string
+	ExecPath        string // empty for flags-only
+	PluginType      string // "sh"|"bin" or "" for flags-only
+	ConfigHash      string
+	ReadmePath      string
+	FlagsJSON       string // for flags-only: JSON map of flag name -> {type, entrypoint}
+	UseTemplate     string // Cobra Use (optional)
+	ArgsCount       int    // Cobra ExactArgs (0 = no validation)
+	AliasesJSON     string // JSON array of strings for Cobra Aliases
+	Example         string // Cobra Example
+	LongDescription string // Cobra Long
+	Deprecated      string // Cobra Deprecated message
 }
 
 // PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
@@ -92,7 +98,35 @@ func (s *Store) InitSchema() error {
 	if _, err := s.db.Exec(schemaPluginSourcesSQL); err != nil {
 		return err
 	}
-	return s.migratePluginSourcesLocalPath()
+	if err := s.migratePluginSourcesLocalPath(); err != nil {
+		return err
+	}
+	return s.migrateCobraPluginFields()
+}
+
+// migrateCobraPluginFields adds use_template, args_count, aliases_json, example, long_description, deprecated to plugins if missing.
+func (s *Store) migrateCobraPluginFields() error {
+	columns := []struct{ name, typ string }{
+		{"use_template", "TEXT"},
+		{"args_count", "INTEGER"},
+		{"aliases_json", "TEXT"},
+		{"example", "TEXT"},
+		{"long_description", "TEXT"},
+		{"deprecated", "TEXT"},
+	}
+	for _, c := range columns {
+		var has int
+		if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name=?", c.name).Scan(&has); err != nil {
+			return err
+		}
+		if has > 0 {
+			continue
+		}
+		if _, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN " + c.name + " " + c.typ); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) migratePluginSourcesLocalPath() error {
@@ -165,8 +199,8 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 	}
 
 	_, err := s.db.Exec(`
-INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
   command_name = excluded.command_name,
   description = excluded.description,
@@ -175,8 +209,15 @@ ON CONFLICT(command_path) DO UPDATE SET
   config_hash = excluded.config_hash,
   readme_path = excluded.readme_path,
   flags_json = excluded.flags_json,
+  use_template = excluded.use_template,
+  args_count = excluded.args_count,
+  aliases_json = excluded.aliases_json,
+  example = excluded.example,
+  long_description = excluded.long_description,
+  deprecated = excluded.deprecated,
   updated_at = CURRENT_TIMESTAMP
-`, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON))
+`, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
+		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated))
 	return err
 }
 
@@ -189,7 +230,8 @@ func nullEmpty(s string) interface{} {
 
 func (s *Store) ListPlugins() ([]Plugin, error) {
 	rows, err := s.db.Query(`
-SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, '')
+SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, '')
 FROM plugins
 ORDER BY command_path
 `)
@@ -207,7 +249,8 @@ func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
 		pattern = prefix + "/%"
 	}
 	rows, err := s.db.Query(`
-SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, '')
+SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, '')
 FROM plugins
 WHERE command_path LIKE ? OR command_path = ?
 ORDER BY command_path
@@ -334,6 +377,12 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 			&plugin.ConfigHash,
 			&plugin.ReadmePath,
 			&plugin.FlagsJSON,
+			&plugin.UseTemplate,
+			&plugin.ArgsCount,
+			&plugin.AliasesJSON,
+			&plugin.Example,
+			&plugin.LongDescription,
+			&plugin.Deprecated,
 		); err != nil {
 			return nil, err
 		}

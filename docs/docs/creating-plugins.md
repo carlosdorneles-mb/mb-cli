@@ -22,15 +22,23 @@ Você pode criar o plugin em qualquer lugar para desenvolvimento e depois instal
 Crie `manifest.yaml` na pasta raiz do plugin (ou em subpastas, se quiser categorias aninhadas):
 
 ```yaml
-command: meu-comando   # opcional; se omitido = nome da pasta
+command: meu-comando   # obrigatório quando há entrypoint ou flags
 description: "Descrição curta para o help"
 entrypoint: run.sh     # script ou binário (relativo à pasta do plugin); tipo inferido pelo sufixo
 readme: README.md      # opcional: flag --readme exibe com glow
 ```
 
-#### `command` (opcional)
+#### `description` (opcional)
 
-Nome do comando no CLI. Se omitido, o MB usa o **nome da pasta**. Ex.: pasta `meu-comando` → comando `mb tools meu-comando`. Útil quando você quer um nome diferente da pasta (ex.: pasta `deploy` em `infra/ci/deploy` continua como comando `deploy`).
+Descrição **curta** do comando, exibida na listagem e no resumo do `--help` (Cobra **Short**). Se omitida, o CLI usa algo como "Executa &lt;caminho&gt;".
+
+#### `long_description` (opcional)
+
+Texto **longo** exibido no help do comando (Cobra **Long**). Pode ter várias linhas no YAML (use `|` ou `>`). Útil para explicar uso, exemplos ou requisitos.
+
+#### `command` (obrigatório para comandos executáveis)
+
+Nome do comando no CLI. **É obrigatório** quando o manifest define um plugin executável (tem `entrypoint` ou `flags`). Se omitido nesses casos, o plugin é **ignorado** no scan e um aviso de validação é exibido ("command é obrigatório quando há entrypoint ou flags"). Para pastas que são só categoria (sem entrypoint e sem flags), o nome da pasta continua sendo usado quando `command` não é informado.
 
 #### `entrypoint` (para comando “folha” executável)
 
@@ -61,6 +69,37 @@ flags:
 O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`** ou **`mb tools do -d`** rodam `deploy.sh`; **`mb tools do --rollback`** ou **`mb tools do -r`** rodam `rollback.sh`. As descrições aparecem ao rodar `mb tools do --help`. Se rodar sem nenhuma flag (`mb tools do`), o CLI exibe o help e não executa script. Há um exemplo completo em [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
 
 Detalhes em [Plugins (referência técnica)](./plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
+
+#### Uso, argumentos e ajuda (Cobra)
+
+Você pode customizar a linha de uso, a quantidade de argumentos e o help do comando com estes campos opcionais:
+
+| Campo | Descrição |
+|-------|-----------|
+| **`use`** | String da **linha de uso** no help (sufixo). O valor informado é **sempre prefixado pelo nome do comando** na linha de uso do Cobra. **Convenção:** use **`<nome>`** para argumento **obrigatório** e **`[nome]`** para **opcional**. Ex.: `command: meu-comando` e `use: "<name>"` resultam em `meu-comando <name>` no help; `use: "[env]"` → argumento opcional. Vários podem ser combinados, ex.: `use: "<name> [options]"`. |
+| **`args`** | Número **inteiro** de argumentos posicionais **obrigatórios**. Ex.: `args: 1` faz com que `mb tools meu-comando dudu` passe "dudu" como primeiro argumento ao script (e não como subcomando). Se omitido ou 0, não há validação de quantidade. |
+| **`aliases`** | Lista de **strings**: nomes alternativos para invocar o mesmo comando. Ex.: `aliases: ["x", "run"]` permite `mb tools x` ou `mb tools run` em vez de `mb tools meu-comando`. |
+| **`example`** | String exibida como **exemplo** no help do comando. Ex.: `example: "mb tools meu-comando dudu"`. |
+| **`deprecated`** | Mensagem exibida quando o comando for **executado** (aviso de obsoleto). Ex.: `deprecated: "Use 'mb tools novo-comando' em vez disso."` O CLI mostra o aviso mas ainda executa o plugin. |
+
+Exemplo de manifest com esses campos:
+
+```yaml
+command: meu-comando
+description: "Descrição curta"
+long_description: |
+  Texto longo no help.
+  Pode ter várias linhas.
+entrypoint: run.sh
+use: "<name>"
+args: 1
+aliases:
+  - x
+example: "mb tools meu-comando dudu"
+deprecated: ""   # deixe vazio ou omita se não for obsoleto
+```
+
+Com `use: "<name>"` e `args: 1`, invocações como **`mb tools meu-comando dudu`** passam "dudu" como primeiro argumento ao script.
 
 ## 3. Script ou binário
 

@@ -8,5 +8,11 @@ CREATE TABLE IF NOT EXISTS plugins (
     config_hash TEXT NOT NULL,
     readme_path TEXT,
     flags_json TEXT,
+    use_template TEXT,
+    args_count INTEGER,
+    aliases_json TEXT,
+    example TEXT,
+    long_description TEXT,
+    deprecated TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

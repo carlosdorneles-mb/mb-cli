@@ -34,7 +34,7 @@ Os resultados (plugins e categories) usam paths absolutos para `ExecPath` e `Rea
 
 O cache SQLite (`cache.db`) armazena:
 
-- **plugins** — Comando, descrição, exec_path, tipo, config_hash, readme_path, flags_json.
+- **plugins** — Comando, descrição, exec_path, tipo, config_hash, readme_path, flags_json; e, quando definidos no manifest, use_template, args_count, aliases_json, example, long_description, deprecated (para Cobra).
 - **categories** — Path, descrição, readme_path.
 - **plugin_sources** — Por install_dir: git_url, ref, version (para remotos) ou local_path (para locais).
 
