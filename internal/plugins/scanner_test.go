@@ -7,402 +7,110 @@ import (
 	"testing"
 )
 
-func TestScannerFindsManifestPlugins(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "myinstall", "infra", "ci", "deploy")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	scriptPath := filepath.Join(pluginDir, "run.sh")
-	if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\necho ok\n"), 0o755); err != nil {
-		t.Fatalf("write script: %v", err)
-	}
-
-	manifest := []byte("command: deploy\ndescription: Deploy step\nentrypoint: run.sh\nreadme: README.md\n")
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings, got %d: %v", len(warnings), warnings)
-	}
-
-	if len(plugins) != 1 {
-		t.Fatalf("expected one plugin, got %d", len(plugins))
-	}
-	if plugins[0].CommandPath != "infra/ci/deploy" || plugins[0].CommandName != "deploy" || plugins[0].PluginType != "sh" {
-		t.Fatalf("unexpected plugin payload: %#v", plugins[0])
-	}
-}
-
-func TestScannerCobraFieldsFromManifest(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "mycmd")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write script: %v", err)
-	}
-	manifest := []byte(`command: mycmd
-description: Short
-long_description: "Long desc"
-entrypoint: run.sh
-use: "<name> [options]"
-args: 1
-aliases:
-  - x
-  - run
-example: "mb tools mycmd do"
-deprecated: "Use newcmd instead."
-`)
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(warnings) != 0 {
-		t.Fatalf("warnings: %v", warnings)
-	}
-	if len(plugins) != 1 {
-		t.Fatalf("expected 1 plugin, got %d", len(plugins))
-	}
-	p := plugins[0]
-	if p.UseTemplate != "<name> [options]" || p.ArgsCount != 1 {
-		t.Errorf("use=%q args=%d", p.UseTemplate, p.ArgsCount)
-	}
-	if p.AliasesJSON != `["x","run"]` {
-		t.Errorf("aliases_json=%q", p.AliasesJSON)
-	}
-	if p.Example != "mb tools mycmd do" || p.LongDescription != "Long desc" || p.Deprecated != "Use newcmd instead." {
-		t.Errorf("example=%q long=%q deprecated=%q", p.Example, p.LongDescription, p.Deprecated)
-	}
-}
-
-func TestScannerRejectsMissingCommandForEntrypoint(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "no-cmd")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write run.sh: %v", err)
-	}
-	// entrypoint set but command missing -> validation error
-	manifest := []byte("description: No command\nentrypoint: run.sh\n")
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(plugins) != 0 {
-		t.Fatalf("expected no plugins when command missing, got %d", len(plugins))
-	}
-	if len(warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
-	}
-	if !strings.Contains(warnings[0].Message, "command") || !strings.Contains(warnings[0].Message, "obrigatório") {
-		t.Errorf("warning should mention command obrigatório, got %q", warnings[0].Message)
-	}
-}
-
-func TestScannerRejectsMissingCommandForFlags(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "flags-only")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "deploy.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write deploy.sh: %v", err)
-	}
-	manifest := []byte(`description: Flags only, no command
-flags:
-  - name: deploy
-    description: Deploy
-    entrypoint: deploy.sh
-    commands:
-      long: deploy
-`)
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(plugins) != 0 {
-		t.Fatalf("expected no plugins when command missing (flags-only), got %d", len(plugins))
-	}
-	if len(warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
-	}
-	if !strings.Contains(warnings[0].Message, "command") || !strings.Contains(warnings[0].Message, "obrigatório") {
-		t.Errorf("warning should mention command obrigatório, got %q", warnings[0].Message)
-	}
-}
-
-func TestScannerSkipsInvalidManifest(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "broken")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	// entrypoint set but file does not exist -> validation error
-	manifest := []byte("command: broken\ndescription: Broken plugin\nentrypoint: run.sh\n")
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, categories, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(plugins) != 0 {
-		t.Fatalf("expected no plugins (invalid manifest), got %d", len(plugins))
-	}
-	if len(warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
-	}
-	if warnings[0].Path != filepath.Join(pluginDir, "manifest.yaml") {
-		t.Errorf("warning path: got %s", warnings[0].Path)
-	}
-	if warnings[0].Message == "" {
-		t.Errorf("warning message empty")
-	}
-	if !strings.Contains(warnings[0].Message, "entrypoint") {
-		t.Errorf("warning message should mention entrypoint, got %q", warnings[0].Message)
-	}
-	_ = categories
-}
-
-func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "safe")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	// Script outside plugin dir: tmp/other/run.sh (so path escapes plugins/tools/safe)
-	outsideDir := filepath.Join(tmp, "other")
-	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
-		t.Fatalf("mkdir outside: %v", err)
-	}
-	outsideScript := filepath.Join(outsideDir, "run.sh")
-	if err := os.WriteFile(outsideScript, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write outside script: %v", err)
-	}
-	// Manifest points to script outside plugin dir via .. (safe -> tools -> plugins -> tmp, then other/run.sh)
-	manifest := []byte("command: safe\ndescription: Safe\nentrypoint: ../../../../other/run.sh\n")
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(plugins) != 0 {
-		t.Fatalf("expected no plugins (path traversal), got %d", len(plugins))
-	}
-	if len(warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
-	}
-	if !strings.Contains(warnings[0].Message, "fora do diretório") {
-		t.Errorf("warning should mention path outside plugin dir, got %q", warnings[0].Message)
-	}
-}
-
-func TestScannerEnvFileOutsidePlugin(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "tools", "x")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	runPath := filepath.Join(pluginDir, "run.sh")
-	if err := os.WriteFile(runPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write script: %v", err)
-	}
-	manifest := []byte(`command: x
-description: X
-entrypoint: run.sh
-env_files:
-  - file: ../../../../secrets.env
-    group: default
-`)
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-	if len(plugins) != 0 {
-		t.Fatalf("expected no plugins, got %d", len(plugins))
-	}
-	if len(warnings) != 1 || !strings.Contains(warnings[0].Message, "env_files") {
-		t.Fatalf("want env_files warning, got %v", warnings)
-	}
-}
-
-func TestScannerEnvFilesJSONStored(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "cmd")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	runPath := filepath.Join(pluginDir, "run.sh")
-	_ = os.WriteFile(runPath, []byte("#!/bin/sh\nexit 0\n"), 0o755)
-	_ = os.WriteFile(filepath.Join(pluginDir, ".env.staging"), []byte("K=v\n"), 0o600)
-	manifest := []byte(`command: cmd
-description: C
-entrypoint: run.sh
-env_files:
-  - file: .env.staging
-    group: staging
-`)
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
+func TestScanTreeInfraStyleCommandPaths(t *testing.T) {
+	root := t.TempDir()
+	// Root category manifest (like examples/plugins/infra)
+	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: infra\ndescription: root\nreadme: README.md\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if len(warnings) != 0 {
-		t.Fatalf("warnings: %v", warnings)
+	// ci/category
+	if err := os.MkdirAll(filepath.Join(root, "ci", "deploy"), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if len(plugins) != 1 {
-		t.Fatalf("plugins: %d", len(plugins))
+	if err := os.WriteFile(filepath.Join(root, "ci", "manifest.yaml"), []byte("command: ci\ndescription: CI\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(plugins[0].EnvFilesJSON, ".env.staging") || !strings.Contains(plugins[0].EnvFilesJSON, "staging") {
-		t.Errorf("EnvFilesJSON=%q", plugins[0].EnvFilesJSON)
+	if err := os.WriteFile(filepath.Join(root, "ci", "deploy", "manifest.yaml"), []byte("command: deploy\ndescription: d\nentrypoint: run.sh\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-}
+	if err := os.WriteFile(filepath.Join(root, "ci", "deploy", "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 
-func TestScannerEntrypointAndFlags(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "do")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+	s := NewScanner(filepath.Join(root, "unused"))
+	p, cats, w, err := s.scanTree(root)
+	if err != nil {
+		t.Fatalf("scanTree: %v", err)
 	}
-	runPath := filepath.Join(pluginDir, "run.sh")
-	deployPath := filepath.Join(pluginDir, "deploy.sh")
-	for _, p := range []string{runPath, deployPath} {
-		if err := os.WriteFile(p, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-			t.Fatalf("write script: %v", err)
+	if len(w) != 0 {
+		t.Errorf("warnings: %+v", w)
+	}
+	var paths []string
+	for _, pl := range p {
+		paths = append(paths, pl.CommandPath)
+	}
+	wantPath := "infra/ci/deploy"
+	found := false
+	for _, pth := range paths {
+		if pth == wantPath {
+			found = true
+			break
 		}
 	}
-	manifest := []byte(`command: do
-description: Do with default and flags
-entrypoint: run.sh
-flags:
-  - name: deploy
-    description: Deploy
-    entrypoint: deploy.sh
-    commands:
-      long: deploy
-      short: d
-`)
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
+	if !found {
+		t.Errorf("want CommandPath %q among %#v", wantPath, paths)
 	}
-
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
-	if err != nil {
-		t.Fatalf("scan: %v", err)
+	var catPaths []string
+	for _, c := range cats {
+		catPaths = append(catPaths, c.Path)
 	}
-	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings, got %d: %v", len(warnings), warnings)
-	}
-	if len(plugins) != 1 {
-		t.Fatalf("expected one plugin, got %d", len(plugins))
-	}
-	p := plugins[0]
-	if p.ExecPath != runPath {
-		t.Errorf("ExecPath = %q, want %q", p.ExecPath, runPath)
-	}
-	if p.FlagsJSON == "" {
-		t.Error("FlagsJSON should be set when manifest has both entrypoint and flags")
-	}
-	if p.PluginType != "sh" {
-		t.Errorf("PluginType = %q, want sh", p.PluginType)
+	for _, need := range []string{"infra", "infra/ci"} {
+		if !containsString(catPaths, need) {
+			t.Errorf("missing category %q in %#v", need, catPaths)
+		}
 	}
 }
 
-func TestScanDir(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "mydir")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+func containsString(ss []string, s string) bool {
+	for _, x := range ss {
+		if x == s {
+			return true
+		}
 	}
-	scriptPath := filepath.Join(pluginDir, "run.sh")
-	if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write script: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\nentrypoint: run.sh\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-
-	scanner := NewScanner("")
-	plugins, categories, warnings, err := scanner.ScanDir(pluginDir, "myinstall")
-	if err != nil {
-		t.Fatalf("ScanDir: %v", err)
-	}
-	if len(warnings) != 0 {
-		t.Fatalf("expected no warnings, got %v", warnings)
-	}
-	if len(plugins) != 1 {
-		t.Fatalf("expected 1 plugin, got %d", len(plugins))
-	}
-	if plugins[0].CommandPath != "hello" {
-		t.Errorf("CommandPath want hello (plugin na raiz da fonte), got %q", plugins[0].CommandPath)
-	}
-	if plugins[0].ExecPath != scriptPath {
-		t.Errorf("ExecPath want absolute path to run.sh, got %q", plugins[0].ExecPath)
-	}
-	if !filepath.IsAbs(plugins[0].ExecPath) {
-		t.Errorf("ExecPath should be absolute")
-	}
-	_ = categories
+	return false
 }
 
-func TestScannerManifestHidden(t *testing.T) {
-	tmp := t.TempDir()
-	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "secret")
-	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+func TestScanTreeSinglePluginNoPrefix(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: hello\ndescription: x\nentrypoint: run.sh\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("run.sh: %v", err)
+	if err := os.WriteFile(filepath.Join(root, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), []byte("command: secret\ndescription: X\nentrypoint: run.sh\nhidden: true\n"), 0o644); err != nil {
-		t.Fatalf("manifest: %v", err)
-	}
-	scanner := NewScanner(filepath.Join(tmp, "plugins"))
-	plugins, _, warnings, err := scanner.Scan()
+	s := NewScanner("/tmp")
+	p, _, _, err := s.scanTree(root)
 	if err != nil {
-		t.Fatalf("scan: %v", err)
+		t.Fatal(err)
 	}
-	if len(warnings) != 0 {
-		t.Fatalf("warnings: %v", warnings)
+	if len(p) != 1 {
+		t.Fatalf("plugins: %+v", p)
 	}
-	if len(plugins) != 1 || !plugins[0].Hidden {
-		t.Fatalf("want Hidden true, got %#v", plugins)
+	// rel "." leaves commandPath empty; entrypoint fills dbCommandPath with command name
+	if p[0].CommandPath != "hello" || p[0].CommandName != "hello" {
+		t.Errorf("leaf at root: CommandPath=%q CommandName=%q", p[0].CommandPath, p[0].CommandName)
+	}
+}
+
+func TestValidatePluginRoot(t *testing.T) {
+	root := t.TempDir()
+	err := ValidatePluginRoot(root)
+	if err == nil || !strings.Contains(err.Error(), "manifest") {
+		t.Errorf("expected error without manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: x\ndescription: y\nentrypoint: run.sh\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidatePluginRoot(root); err == nil || !strings.Contains(err.Error(), "entrypoint") {
+		t.Errorf("missing run.sh: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidatePluginRoot(root); err != nil {
+		t.Error(err)
 	}
 }

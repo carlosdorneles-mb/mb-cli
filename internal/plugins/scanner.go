@@ -80,7 +80,15 @@ func commandPathForPluginDir(rootPath, baseDir string) (string, error) {
 		segs = append(segs, seg)
 	}
 	segs = append(segs, parts[len(parts)-1])
-	return strings.Join(segs, "/"), nil
+	inner := strings.Join(segs, "/")
+	rootSeg, err := pathSegmentForDir(rootPath)
+	if err != nil {
+		return "", err
+	}
+	if rootSeg == "" {
+		return inner, nil
+	}
+	return rootSeg + "/" + inner, nil
 }
 
 // categoryPathForDir builds the category path for a directory that has a category-only manifest.
@@ -110,7 +118,28 @@ func categoryPathForDir(rootPath, baseDir string) (string, error) {
 		}
 		segs = append(segs, seg)
 	}
-	return strings.Join(segs, "/"), nil
+	inner := strings.Join(segs, "/")
+	rootSeg, err := pathSegmentForDir(rootPath)
+	if err != nil {
+		return "", err
+	}
+	if rootSeg == "" {
+		return inner, nil
+	}
+	return rootSeg + "/" + inner, nil
+}
+
+// ValidatePluginRoot returns an error if dir/manifest.yaml is missing or invalid.
+func ValidatePluginRoot(dir string) error {
+	mp := filepath.Join(dir, "manifest.yaml")
+	manifest, _, err := LoadManifest(mp)
+	if err != nil {
+		return err
+	}
+	if errs := validateManifest(manifest, dir); len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
 }
 
 // validateManifest returns a list of validation errors. Empty slice means valid.
@@ -341,6 +370,36 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	rootManifestPath := filepath.Join(rootPath, "manifest.yaml")
+	if raw, err := os.ReadFile(rootManifestPath); err == nil {
+		var m Manifest
+		if err := yaml.Unmarshal(raw, &m); err == nil && m.Entrypoint == "" && m.Flags.Len() == 0 {
+			seg, err := pathSegmentForDir(rootPath)
+			if err == nil && seg != "" {
+				readmePath := ""
+				if m.Readme != "" {
+					readmePath = filepath.Join(rootPath, m.Readme)
+				}
+				dup := false
+				for _, c := range categories {
+					if c.Path == seg {
+						dup = true
+						break
+					}
+				}
+				if !dup {
+					categories = append(categories, cache.Category{
+						Path:        seg,
+						Description: m.Description,
+						ReadmePath:  readmePath,
+						Hidden:      m.Hidden,
+					})
+				}
+			}
+		}
+	}
+
 	return plugins, categories, warnings, nil
 }
 

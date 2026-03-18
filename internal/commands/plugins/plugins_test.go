@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,8 +41,12 @@ func testPluginsDeps(t *testing.T) deps.Dependencies {
 }
 
 func writeMinimalRunnablePlugin(t *testing.T, dir string) {
+	writeMinimalRunnablePluginNamed(t, dir, "ptest")
+}
+
+func writeMinimalRunnablePluginNamed(t *testing.T, dir, command string) {
 	t.Helper()
-	manifest := "command: ptest\ndescription: test plugin\nentrypoint: run.sh\n"
+	manifest := fmt.Sprintf("command: %s\ndescription: test plugin\nentrypoint: run.sh\n", command)
 	if err := os.WriteFile(filepath.Join(dir, "manifest.yaml"), []byte(manifest), 0o644); err != nil {
 		t.Fatalf("manifest: %v", err)
 	}

@@ -1,10 +1,10 @@
 package plugins
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -120,21 +120,6 @@ func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, nam
 	return nil
 }
 
-var errManifestFound = errors.New("manifest found")
-
-func dirHasManifest(dir string) bool {
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && d.Name() == "manifest.yaml" {
-			return errManifestFound
-		}
-		return nil
-	})
-	return errors.Is(err, errManifestFound)
-}
-
 func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, pathArg string, name string) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
@@ -163,9 +148,79 @@ func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, pathArg string, nam
 	if !info.IsDir() {
 		return fmt.Errorf("não é um diretório: %s", absPath)
 	}
-	if !dirHasManifest(absPath) {
-		return fmt.Errorf("diretório não é um plugin válido: não contém manifest.yaml")
+
+	rootManifest := filepath.Join(absPath, "manifest.yaml")
+	if _, err := os.Stat(rootManifest); os.IsNotExist(err) {
+		return runAddLocalCollection(cmd, deps, absPath, name)
 	}
+	return runAddLocalSingle(cmd, deps, absPath, name)
+}
+
+func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath string, name string) error {
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
+		return err
+	}
+	type candidate struct {
+		path       string
+		installDir string
+	}
+	var candidates []candidate
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		child := filepath.Join(absPath, e.Name())
+		if _, err := os.Stat(filepath.Join(child, "manifest.yaml")); os.IsNotExist(err) {
+			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: ignorando %q: sem manifest.yaml na raiz do subdiretório\n", e.Name())
+			continue
+		}
+		if err := mbplugins.ValidatePluginRoot(child); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: ignorando %q: %v\n", e.Name(), err)
+			continue
+		}
+		candidates = append(candidates, candidate{path: child, installDir: e.Name()})
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].installDir < candidates[j].installDir
+	})
+	if len(candidates) == 0 {
+		return fmt.Errorf("nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido")
+	}
+	if name != "" && len(candidates) > 1 {
+		return fmt.Errorf("--name não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)", len(candidates))
+	}
+
+	added := 0
+	for _, c := range candidates {
+		installDir := c.installDir
+		if len(candidates) == 1 && name != "" {
+			installDir = name
+		}
+		existing, _ := deps.Store.GetPluginSource(installDir)
+		if existing != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: plugin %q já registrado, ignorando\n", installDir)
+			continue
+		}
+		if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
+			_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
+		}
+		if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: installDir, LocalPath: c.path}); err != nil {
+			return err
+		}
+		added++
+		fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q registrado localmente em %s", installDir, c.path)))
+	}
+	if added == 0 {
+		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
+	}
+	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, absPath string, name string) error {
 	installDir := name
 	if installDir == "" {
 		installDir = filepath.Base(absPath)
