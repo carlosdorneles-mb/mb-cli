@@ -15,9 +15,9 @@ sidebar_position: 3
 | `mb plugins list [--check-updates]` | Lista plugins instalados (nome, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
 | `mb plugins remove <name>` | Remove um plugin instalado (com confirmação). Se for local, só remove o registro. O cache é atualizado e o plugin deixa de aparecer em `plugins list`. |
 | `mb plugins update [name \| --all]` | Atualiza um plugin remoto ou todos (plugins locais não são atualizados) |
-| `mb self env list` | Lista variáveis padrão |
-| `mb self env set <KEY> <VALUE>` | Define variável padrão |
-| `mb self env unset <KEY>` | Remove variável padrão |
+| `mb self env list [--group G]` | Lista variáveis em tabela (VAR, GRUPO); com `--group`, só o arquivo `.env.G` |
+| `mb self env set <KEY> <VALUE> [--group G]` | Define em `env.defaults` ou em `.env.G` |
+| `mb self env unset <KEY> [--group G]` | Remove de `env.defaults` ou de `.env.G` |
 | `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](../guide/plugin-commands.md)) |
 
 ## Completion de shell
@@ -32,6 +32,7 @@ Para instalar o completion no seu shell, consulte `mb self completion --help` e 
 - **`--quiet` / `-q`** — Reduz mensagens. Veja [Flags globais](../guide/global-flags.md).
 - **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](../guide/environment-variables.md).
 - **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](../guide/environment-variables.md).
+- **`--env-group <nome>`** — Sobrepõe `env.defaults` com `~/.config/mb/.env.<nome>` ao executar plugins. Veja [Variáveis de ambiente](../guide/environment-variables.md).
 - **`--doc`** — Abre a documentação em https://carlosdorneles-mb.github.io/mb-cli/ no navegador (apenas com `mb --doc`, sem subcomando). Veja [Flags globais](../guide/global-flags.md).
 
 ## Testar o CLI

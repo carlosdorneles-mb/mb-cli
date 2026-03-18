@@ -57,6 +57,18 @@ Para a função `log` e outros helpers, veja a [Referência: Helpers de shell](.
 
 Para a ordem completa de precedência e como usar defaults com `mb self env`, veja [Variáveis de ambiente](./environment-variables.md).
 
+## --env-group
+
+**O que faz:** Ao executar plugins, depois de carregar `~/.config/mb/env.defaults`, mescla por cima o arquivo `~/.config/mb/.env.<nome>` (valores do grupo sobrescrevem chaves iguais do default).
+
+**Quando usar:** Para alternar entre ambientes (ex.: `staging`, `prod`) sem trocar o conteúdo de `env.defaults`.
+
+```bash
+mb --env-group staging tools deploy
+```
+
+O nome do grupo segue as mesmas regras que em `mb self env set --group`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
+
 ## --doc
 
 **O que faz:** Abre a [documentação publicada](https://carlosdorneles-mb.github.io/mb-cli/) no navegador padrão do sistema e encerra o CLI com código `0`.

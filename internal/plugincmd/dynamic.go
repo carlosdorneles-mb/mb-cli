@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
@@ -389,26 +388,5 @@ func runReadmeWithGlow(path string) error {
 }
 
 func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
-	merged := map[string]string{}
-
-	defaultValues, err := deps.LoadDefaultEnvValues(rt.DefaultEnvPath)
-	if err != nil {
-		return nil, err
-	}
-	for key, value := range defaultValues {
-		merged[key] = value
-	}
-
-	envFilePath := rt.EnvFilePath
-	if envFilePath != "" {
-		fileValues, readErr := godotenv.Read(envFilePath)
-		if readErr != nil {
-			return nil, readErr
-		}
-		for key, value := range fileValues {
-			merged[key] = value
-		}
-	}
-
-	return merged, nil
+	return deps.BuildEnvFileValues(rt)
 }

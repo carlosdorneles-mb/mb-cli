@@ -59,6 +59,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
 	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
 	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
+	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvGroup, "env-group", "", "Carrega as váriaveis de um grupo específico")
 	rootCmd.PersistentFlags().StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
