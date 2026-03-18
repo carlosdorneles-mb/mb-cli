@@ -59,7 +59,9 @@ func TestCompletionIncludesPluginCommands(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("root should have a 'tools' command from plugins (completion will suggest it); AttachDynamicCommands may not be adding plugin commands")
+		t.Error(
+			"root should have a 'tools' command from plugins (completion will suggest it); AttachDynamicCommands may not be adding plugin commands",
+		)
 	}
 }
 

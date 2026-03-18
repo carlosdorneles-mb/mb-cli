@@ -1,6 +1,7 @@
 package safepath
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 )
@@ -44,7 +45,13 @@ func TestValidateUnderDir(t *testing.T) {
 	if err := ValidateUnderDir(script, sub); err != nil {
 		t.Errorf("ValidateUnderDir(script, sub): %v", err)
 	}
-	if err := ValidateUnderDir(filepath.Join(sub, "..", "x"), sub); err != ErrPathOutsideDir {
+	if err := ValidateUnderDir(
+		filepath.Join(sub, "..", "x"),
+		sub,
+	); !errors.Is(
+		err,
+		ErrPathOutsideDir,
+	) {
 		t.Errorf("ValidateUnderDir(escape): got %v, want ErrPathOutsideDir", err)
 	}
 }

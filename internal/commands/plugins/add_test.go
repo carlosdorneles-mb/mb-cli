@@ -131,7 +131,11 @@ func TestAddCollectionSkipsInvalidSubdir(t *testing.T) {
 	writeMinimalRunnablePlugin(t, good)
 	bad := filepath.Join(parent, "bad")
 	_ = os.MkdirAll(bad, 0o755)
-	_ = os.WriteFile(filepath.Join(bad, "manifest.yaml"), []byte("command: x\ndescription: y\nentrypoint: missing.sh\n"), 0o644)
+	_ = os.WriteFile(
+		filepath.Join(bad, "manifest.yaml"),
+		[]byte("command: x\ndescription: y\nentrypoint: missing.sh\n"),
+		0o644,
+	)
 
 	var errBuf bytes.Buffer
 	cmd := newPluginsAddCmd(d)

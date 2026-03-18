@@ -30,7 +30,11 @@ func PluginDirUnderRoot(root, dir string) bool {
 
 // SourceForPlugin finds the plugin_sources row whose install root contains the plugin directory.
 // Prefers the longest matching LocalPath or clone root when multiple match.
-func SourceForPlugin(p cache.Plugin, sources []cache.PluginSource, pluginsDir string) *cache.PluginSource {
+func SourceForPlugin(
+	p cache.Plugin,
+	sources []cache.PluginSource,
+	pluginsDir string,
+) *cache.PluginSource {
 	if p.PluginDir != "" {
 		var best *cache.PluginSource
 		bestLen := -1

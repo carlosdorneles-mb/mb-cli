@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/deps"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
 )
@@ -21,10 +21,10 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 	var tag string
 
 	cmd := &cobra.Command{
-		Use:   "add <git-url|path|.>",
+		Use:     "add <git-url|path|.>",
 		Aliases: []string{"install", "i", "a"},
-		Short: "Instala um plugin a partir de uma URL Git (remoto) ou de um diretório local (path ou .)",
-		Args:  cobra.ExactArgs(1),
+		Short:   "Instala um plugin a partir de uma URL Git (remoto) ou de um diretório local (path ou .)",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			arg := strings.TrimSpace(args[0])
 			// URL = remoto; path ou "." = local
@@ -37,12 +37,20 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&name, "name", "", "Nome do plugin (diretório de instalação). Se não informado, usa o nome do repositório ou do diretório.")
-	cmd.Flags().StringVar(&tag, "tag", "", "Instalar uma tag específica (apenas para plugin remoto).")
+	cmd.Flags().
+		StringVar(&name, "name", "", "Nome do plugin (diretório de instalação). Se não informado, usa o nome do repositório ou do diretório.")
+	cmd.Flags().
+		StringVar(&tag, "tag", "", "Instalar uma tag específica (apenas para plugin remoto).")
 	return cmd
 }
 
-func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, name string, tag string) error {
+func runAddRemote(
+	cmd *cobra.Command,
+	deps deps.Dependencies,
+	gitURL string,
+	name string,
+	tag string,
+) error {
 	ctx := cmd.Context()
 
 	repoName, normalizedURL, err := mbplugins.ParseGitURL(gitURL)
@@ -122,7 +130,13 @@ func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, nam
 	return nil
 }
 
-func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, pathArg string, name string) error {
+func runAddLocal(
+	cmd *cobra.Command,
+	deps deps.Dependencies,
+	log *system.Logger,
+	pathArg string,
+	name string,
+) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
 	}
@@ -158,7 +172,13 @@ func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger,
 	return runAddLocalSingle(cmd, deps, log, absPath, name)
 }
 
-func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, absPath string, name string) error {
+func runAddLocalCollection(
+	cmd *cobra.Command,
+	deps deps.Dependencies,
+	log *system.Logger,
+	absPath string,
+	name string,
+) error {
 	ctx := cmd.Context()
 	entries, err := os.ReadDir(absPath)
 	if err != nil {
@@ -188,10 +208,15 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *syst
 		return candidates[i].installDir < candidates[j].installDir
 	})
 	if len(candidates) == 0 {
-		return fmt.Errorf("nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido")
+		return fmt.Errorf(
+			"nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido",
+		)
 	}
 	if name != "" && len(candidates) > 1 {
-		return fmt.Errorf("--name não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)", len(candidates))
+		return fmt.Errorf(
+			"--name não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)",
+			len(candidates),
+		)
 	}
 
 	added := 0
@@ -208,7 +233,9 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *syst
 		if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
 			_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 		}
-		if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: installDir, LocalPath: c.path}); err != nil {
+		if err := deps.Store.UpsertPluginSource(
+			cache.PluginSource{InstallDir: installDir, LocalPath: c.path},
+		); err != nil {
 			return err
 		}
 		added++
@@ -223,7 +250,13 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *syst
 	return nil
 }
 
-func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, absPath string, name string) error {
+func runAddLocalSingle(
+	cmd *cobra.Command,
+	deps deps.Dependencies,
+	log *system.Logger,
+	absPath string,
+	name string,
+) error {
 	ctx := cmd.Context()
 	installDir := name
 	if installDir == "" {
@@ -236,7 +269,9 @@ func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *system.L
 	if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
 		_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 	}
-	if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: installDir, LocalPath: absPath}); err != nil {
+	if err := deps.Store.UpsertPluginSource(
+		cache.PluginSource{InstallDir: installDir, LocalPath: absPath},
+	); err != nil {
 		return err
 	}
 	if err := self.RunSync(ctx, deps, log, false); err != nil {

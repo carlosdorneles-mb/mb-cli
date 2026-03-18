@@ -20,7 +20,7 @@ func GumThemeDefaults() map[string]string {
 		"GUM_INPUT_CURSOR_FOREGROUND":      grey,
 		"GUM_INPUT_PLACEHOLDER_FOREGROUND": "240",
 		// confirm (título laranja, opções sem rosa)
-		"GUM_CONFIRM_PROMPT_FOREGROUND":      orange,
+		"GUM_CONFIRM_PROMPT_FOREGROUND":     orange,
 		"GUM_CONFIRM_SELECTED_FOREGROUND":   green,
 		"GUM_CONFIRM_SELECTED_BACKGROUND":   "235",
 		"GUM_CONFIRM_UNSELECTED_FOREGROUND": "254",

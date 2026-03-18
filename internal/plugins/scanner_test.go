@@ -10,7 +10,11 @@ import (
 func TestScanTreeInfraStyleCommandPaths(t *testing.T) {
 	root := t.TempDir()
 	// Root category manifest (like examples/plugins/infra)
-	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: infra\ndescription: root\nreadme: README.md\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: infra\ndescription: root\nreadme: README.md\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("x"), 0o644); err != nil {
@@ -20,13 +24,25 @@ func TestScanTreeInfraStyleCommandPaths(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "ci", "deploy"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "ci", "manifest.yaml"), []byte("command: ci\ndescription: CI\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "ci", "manifest.yaml"),
+		[]byte("command: ci\ndescription: CI\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "ci", "deploy", "manifest.yaml"), []byte("command: deploy\ndescription: d\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "ci", "deploy", "manifest.yaml"),
+		[]byte("command: deploy\ndescription: d\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "ci", "deploy", "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "ci", "deploy", "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -75,10 +91,18 @@ func containsString(ss []string, s string) bool {
 
 func TestScanTreeSinglePluginNoPrefix(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: hello\ndescription: x\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: hello\ndescription: x\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	s := NewScanner("/tmp")
@@ -97,7 +121,11 @@ func TestScanTreeSinglePluginNoPrefix(t *testing.T) {
 
 func TestScanTreeNestedGroupID(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: infra\ndescription: root\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: infra\ndescription: root\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, "svc", "run"), 0o755); err != nil {
@@ -109,13 +137,25 @@ func TestScanTreeNestedGroupID(t *testing.T) {
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "svc", "manifest.yaml"), []byte("command: svc\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "svc", "manifest.yaml"),
+		[]byte("command: svc\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "svc", "run", "manifest.yaml"), []byte("command: run\ndescription: r\ngroup_id: my_grp\nentrypoint: x.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "svc", "run", "manifest.yaml"),
+		[]byte("command: run\ndescription: r\ngroup_id: my_grp\nentrypoint: x.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "svc", "run", "x.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "svc", "run", "x.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	s := NewScanner("/tmp")
@@ -137,11 +177,23 @@ func TestScanTreeNestedGroupID(t *testing.T) {
 
 func TestScanTreeNestedPreservesGroupIDFromAnyDepth(t *testing.T) {
 	root := t.TempDir()
-	_ = os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: pkg\ndescription: p\n"), 0o644)
-	_ = os.WriteFile(filepath.Join(root, "groups.yaml"), []byte("- id: root_only\n  title: R\n"), 0o644)
+	_ = os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: pkg\ndescription: p\n"),
+		0o644,
+	)
+	_ = os.WriteFile(
+		filepath.Join(root, "groups.yaml"),
+		[]byte("- id: root_only\n  title: R\n"),
+		0o644,
+	)
 	_ = os.MkdirAll(filepath.Join(root, "a", "b"), 0o755)
 	_ = os.WriteFile(filepath.Join(root, "a", "manifest.yaml"), []byte("command: a\n"), 0o644)
-	_ = os.WriteFile(filepath.Join(root, "a", "b", "manifest.yaml"), []byte("command: leaf\ngroup_id: root_only\nentrypoint: x.sh\n"), 0o644)
+	_ = os.WriteFile(
+		filepath.Join(root, "a", "b", "manifest.yaml"),
+		[]byte("command: leaf\ngroup_id: root_only\nentrypoint: x.sh\n"),
+		0o644,
+	)
 	_ = os.WriteFile(filepath.Join(root, "a", "b", "x.sh"), []byte("#!/bin/sh\n"), 0o755)
 	s := NewScanner("/tmp")
 	p, _, _, _, err := s.scanTree(root)
@@ -159,13 +211,25 @@ func TestScanTreeNestedPreservesGroupIDFromAnyDepth(t *testing.T) {
 
 func TestScanTreeTopLevelIgnoresGroupID(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "groups.yaml"), []byte("- id: g\n  title: G\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "groups.yaml"),
+		[]byte("- id: g\n  title: G\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: hello\ndescription: h\ngroup_id: g\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: hello\ndescription: h\ngroup_id: g\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	var debug []string
@@ -192,13 +256,21 @@ func TestValidatePluginRoot(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "manifest") {
 		t.Errorf("expected error without manifest: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "manifest.yaml"), []byte("command: x\ndescription: y\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: x\ndescription: y\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := ValidatePluginRoot(root); err == nil || !strings.Contains(err.Error(), "entrypoint") {
 		t.Errorf("missing run.sh: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := ValidatePluginRoot(root); err != nil {

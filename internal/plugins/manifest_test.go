@@ -33,7 +33,8 @@ func TestFlagsSpecListFormat(t *testing.T) {
 	if len(m) != 2 {
 		t.Fatalf("ToMap() len = %d, want 2", len(m))
 	}
-	if d, ok := m["deploy"]; !ok || d.Entrypoint != "deploy.sh" || d.Short != "d" || d.Description != "Deploy" {
+	if d, ok := m["deploy"]; !ok || d.Entrypoint != "deploy.sh" || d.Short != "d" ||
+		d.Description != "Deploy" {
 		t.Errorf("deploy entry: %+v", m["deploy"])
 	}
 	if r, ok := m["rollback"]; !ok || r.Description != "Revert" {
@@ -110,9 +111,17 @@ entrypoint: run.sh
 	if err := yaml.Unmarshal([]byte(yamlDoc), &m); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if m.Use != "" || m.Args != 0 || m.Aliases != nil || m.Example != "" || m.Deprecated != "" || m.LongDescription != "" {
-		t.Errorf("cobra fields should be zero: use=%q args=%d aliases=%v example=%q deprecated=%q long_description=%q",
-			m.Use, m.Args, m.Aliases, m.Example, m.Deprecated, m.LongDescription)
+	if m.Use != "" || m.Args != 0 || m.Aliases != nil || m.Example != "" || m.Deprecated != "" ||
+		m.LongDescription != "" {
+		t.Errorf(
+			"cobra fields should be zero: use=%q args=%d aliases=%v example=%q deprecated=%q long_description=%q",
+			m.Use,
+			m.Args,
+			m.Aliases,
+			m.Example,
+			m.Deprecated,
+			m.LongDescription,
+		)
 	}
 }
 
@@ -134,7 +143,8 @@ env_files:
 	if m.EnvFiles.List[0].File != ".env" || m.EnvFiles.List[0].Group != "test" {
 		t.Errorf("first: %+v", m.EnvFiles.List[0])
 	}
-	if m.EnvFiles.List[1].File != ".env.local" || m.EnvFiles.List[1].Group != ManifestEnvGroupDefault {
+	if m.EnvFiles.List[1].File != ".env.local" ||
+		m.EnvFiles.List[1].Group != ManifestEnvGroupDefault {
 		t.Errorf("second: %+v", m.EnvFiles.List[1])
 	}
 }
@@ -153,7 +163,7 @@ func TestEnvFilesSpecMapRejected(t *testing.T) {
 func TestPluginTypeFromEntrypoint(t *testing.T) {
 	tests := []struct {
 		entrypoint string
-		want      string
+		want       string
 	}{
 		{"run.sh", "sh"},
 		{"deploy.sh", "sh"},

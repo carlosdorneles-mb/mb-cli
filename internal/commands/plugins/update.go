@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/deps"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
 )
@@ -18,9 +18,9 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
-		Use:   "update <name>",
+		Use:     "update <name>",
 		Aliases: []string{"up", "u"},
-		Short: "Atualiza um plugin ou todos (--all)",
+		Short:   "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
@@ -56,7 +56,13 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	return cmd
 }
 
-func updateOnePlugin(ctx context.Context, deps deps.Dependencies, log *system.Logger, name string, cmd *cobra.Command) error {
+func updateOnePlugin(
+	ctx context.Context,
+	deps deps.Dependencies,
+	log *system.Logger,
+	name string,
+	cmd *cobra.Command,
+) error {
 	src, err := deps.Store.GetPluginSource(name)
 	if err != nil {
 		return err
@@ -68,7 +74,10 @@ func updateOnePlugin(ctx context.Context, deps deps.Dependencies, log *system.Lo
 		return fmt.Errorf("plugin %q é local; não é possível atualizar", name)
 	}
 	if src.GitURL == "" {
-		return fmt.Errorf("plugin %q foi instalado manualmente (sem URL Git); não é possível atualizar", name)
+		return fmt.Errorf(
+			"plugin %q foi instalado manualmente (sem URL Git); não é possível atualizar",
+			name,
+		)
 	}
 
 	dir := filepath.Join(deps.Runtime.PluginsDir, name)

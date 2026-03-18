@@ -56,16 +56,21 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
-	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
-	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvGroup, "env-group", "", "Carrega as váriaveis de um grupo específico")
-	rootCmd.PersistentFlags().StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
+	rootCmd.PersistentFlags().
+		BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
+	rootCmd.PersistentFlags().
+		BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
+	rootCmd.PersistentFlags().
+		StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
+	rootCmd.PersistentFlags().
+		StringVar(&d.Runtime.EnvGroup, "env-group", "", "Carrega as váriaveis de um grupo específico")
+	rootCmd.PersistentFlags().
+		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
-	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
-	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMANDOS DE PLUGINS"})
-	
+	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMMANDOS DE PLUGINS"})
+
 	rootCmd.SetHelpCommandGroupID("commands")
 
 	rootCmd.AddCommand(self.NewSelfCmd(d))
@@ -75,7 +80,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd.InitDefaultHelpCmd()
 	for _, c := range rootCmd.Commands() {
 		if c.Name() == "help" {
-			c.Short = "Ajuda sobre qualquer comando"
+			c.Short = "Ajuda sobre qualquer commando"
 			break
 		}
 	}
@@ -91,7 +96,8 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd.InitDefaultHelpFlag()
 	if rootCmd.Version != "" {
 		rootCmd.Flags().BoolP("version", "V", false, "Versão do MB CLI")
-		_ = rootCmd.Flags().SetAnnotation("version", cobra.FlagSetByCobraAnnotation, []string{"true"})
+		_ = rootCmd.Flags().
+			SetAnnotation("version", cobra.FlagSetByCobraAnnotation, []string{"true"})
 	}
 	rootCmd.InitDefaultVersionFlag()
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
@@ -118,7 +124,7 @@ func setHelpFlagUsagePT(cmd *cobra.Command) {
 	if f := cmd.Flags().Lookup("help"); f != nil {
 		displayName := cmd.DisplayName()
 		if displayName == "" {
-			displayName = "este comando"
+			displayName = "este commando"
 		}
 		f.Usage = "Ajuda para " + displayName
 	}

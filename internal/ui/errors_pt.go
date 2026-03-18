@@ -24,7 +24,7 @@ func ErrorHandlerPT(w io.Writer, styles fang.Styles, err error) {
 	if msg != "" && !strings.HasSuffix(msg, ".") {
 		msg += "."
 	}
-	_, _ = fmt.Fprintln(w, styles.ErrorHeader.Copy().SetString("ERRO").String())
+	_, _ = fmt.Fprintln(w, styles.ErrorHeader.SetString("ERRO").String())
 	_, _ = fmt.Fprintln(w, styles.ErrorText.Render(msg))
 	_, _ = fmt.Fprintln(w)
 	if isUsageError(err.Error()) {
@@ -44,7 +44,7 @@ func translateError(s string) string {
 		suffix := s[len("unknown command "):]
 		suffix = strings.ReplaceAll(suffix, " for ", " para ")
 		suffix = strings.ReplaceAll(suffix, "Did you mean this?", "Quis dizer:")
-		return "Comando desconhecido " + suffix
+		return "Commando desconhecido " + suffix
 	case strings.HasPrefix(s, "unknown flag: "):
 		return "Flag desconhecida: " + s[len("unknown flag: "):]
 	case strings.HasPrefix(s, "unknown shorthand flag: "):
@@ -85,7 +85,8 @@ func isUsageError(errMsg string) bool {
 			return true
 		}
 	}
-	if strings.HasPrefix(strings.ToLower(errMsg), "accepts ") && acceptArgCountRe.MatchString(strings.TrimSpace(errMsg)) {
+	if strings.HasPrefix(strings.ToLower(errMsg), "accepts ") &&
+		acceptArgCountRe.MatchString(strings.TrimSpace(errMsg)) {
 		return true
 	}
 	return false

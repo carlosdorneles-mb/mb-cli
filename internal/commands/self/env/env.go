@@ -12,7 +12,7 @@ func NewCmd(d deps.Dependencies) *cobra.Command {
 		Use:   "env",
 		Short: "Gerencia variáveis de ambiente padrão",
 	}
-	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
+	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
 
 	root.AddCommand(newListCmd(d))
 	root.AddCommand(newSetCmd(d))

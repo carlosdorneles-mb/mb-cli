@@ -15,7 +15,9 @@ import (
 // MergeManifestEnvFiles loads KEY=VALUE from manifest env_files entries whose group
 // matches effectiveGroup (use ManifestEnvGroupDefault when --env-group is unset).
 // Later files in the list override earlier ones for duplicate keys.
-func MergeManifestEnvFiles(pluginDir, envFilesJSON, effectiveGroup string) (map[string]string, error) {
+func MergeManifestEnvFiles(
+	pluginDir, envFilesJSON, effectiveGroup string,
+) (map[string]string, error) {
 	if envFilesJSON == "" || pluginDir == "" {
 		return map[string]string{}, nil
 	}

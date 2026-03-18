@@ -12,7 +12,7 @@ import (
 
 // ReservedHelpGroupIDs are Cobra root group IDs; plugins cannot redefine them.
 var ReservedHelpGroupIDs = map[string]struct{}{
-	"commands":         {},
+	"commands":        {},
 	"plugin_commands": {},
 }
 
@@ -45,7 +45,10 @@ func LoadGroupsFile(path string) ([]HelpGroupDef, error) {
 			return nil, fmt.Errorf("groups.yaml: item %d: id não pode ser vazio", i+1)
 		}
 		if !helpGroupIDPattern.MatchString(g.ID) {
-			return nil, fmt.Errorf("groups.yaml: id %q inválido (use letras, números e _; comece com letra)", g.ID)
+			return nil, fmt.Errorf(
+				"groups.yaml: id %q inválido (use letras, números e _; comece com letra)",
+				g.ID,
+			)
 		}
 		if _, reserved := ReservedHelpGroupIDs[g.ID]; reserved {
 			return nil, fmt.Errorf("groups.yaml: id %q é reservado", g.ID)

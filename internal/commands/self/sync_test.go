@@ -22,7 +22,8 @@ func TestRunSyncEmptyPluginsDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
-	if !strings.Contains(buf.String(), "0 plugin") && !strings.Contains(buf.String(), "sincronizados") {
+	if !strings.Contains(buf.String(), "0 plugin") &&
+		!strings.Contains(buf.String(), "sincronizados") {
 		t.Errorf("expected sync count message, got %q", buf.String())
 	}
 }
@@ -99,16 +100,32 @@ func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(pkg, "sub", "leaf"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pkg, "manifest.yaml"), []byte("command: pkg\ndescription: r\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pkg, "manifest.yaml"),
+		[]byte("command: pkg\ndescription: r\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pkg, "sub", "manifest.yaml"), []byte("command: sub\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pkg, "sub", "manifest.yaml"),
+		[]byte("command: sub\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pkg, "sub", "leaf", "manifest.yaml"), []byte("command: leaf\ndescription: l\ngroup_id: not_registered\nentrypoint: run.sh\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pkg, "sub", "leaf", "manifest.yaml"),
+		[]byte("command: leaf\ndescription: l\ngroup_id: not_registered\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(pkg, "sub", "leaf", "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pkg, "sub", "leaf", "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := RunSync(context.Background(), d, nil, false); err != nil {

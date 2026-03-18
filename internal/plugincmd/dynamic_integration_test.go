@@ -19,8 +19,18 @@ import (
 
 func TestFlagsOnlyWithShort(t *testing.T) {
 	flagsWithShort := map[string]plugins.FlagDef{
-		"deploy":   {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Faz o deploy"},
-		"rollback": {Type: "long", Short: "r", Entrypoint: "rollback.sh", Description: "Reverte o último deploy"},
+		"deploy": {
+			Type:        "long",
+			Short:       "d",
+			Entrypoint:  "deploy.sh",
+			Description: "Faz o deploy",
+		},
+		"rollback": {
+			Type:        "long",
+			Short:       "r",
+			Entrypoint:  "rollback.sh",
+			Description: "Reverte o último deploy",
+		},
 	}
 	flagsJSON, err := json.Marshal(flagsWithShort)
 	if err != nil {
@@ -100,7 +110,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	}
 
 	for _, args := range [][]string{{"--deploy"}, {"-d"}} {
-		doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
+		doCmd.Flags().ParseErrorsAllowlist.UnknownFlags = false
 		if err := doCmd.Flags().Parse(args); err != nil {
 			t.Errorf("Parse(%v): %v", args, err)
 		}
@@ -188,7 +198,7 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 	}
 
 	doCmd.SetContext(context.Background())
-	doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
+	doCmd.Flags().ParseErrorsAllowlist.UnknownFlags = false
 	if err := doCmd.Flags().Parse([]string{}); err != nil {
 		t.Fatalf("Parse(): %v", err)
 	}
@@ -280,7 +290,11 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pluginDir, "run.sh"),
+		[]byte("#!/bin/sh\nexit 0\n"),
+		0o755,
+	); err != nil {
 		t.Fatalf("write run.sh: %v", err)
 	}
 
@@ -357,7 +371,11 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(pluginDir, "run.sh"),
+		[]byte("#!/bin/sh\nexit 0\n"),
+		0o755,
+	); err != nil {
 		t.Fatalf("write run.sh: %v", err)
 	}
 	cachePath := filepath.Join(tmp, "mb", "cache.db")

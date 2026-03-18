@@ -123,13 +123,19 @@ func Platform() (goos, goarch string, err error) {
 	case "linux", "darwin":
 		goos = runtime.GOOS
 	default:
-		return "", "", fmt.Errorf("sistema operacional não suportado para atualização automática: %s (suportado: linux, darwin)", runtime.GOOS)
+		return "", "", fmt.Errorf(
+			"sistema operational não suportado para atualização automática: %s (suportado: linux, darwin)",
+			runtime.GOOS,
+		)
 	}
 	switch runtime.GOARCH {
 	case "amd64", "arm64":
 		goarch = runtime.GOARCH
 	default:
-		return "", "", fmt.Errorf("arquitetura não suportada para atualização automática: %s (suportado: amd64, arm64)", runtime.GOARCH)
+		return "", "", fmt.Errorf(
+			"arquitetura não suportada para atualização automática: %s (suportado: amd64, arm64)",
+			runtime.GOARCH,
+		)
 	}
 	return goos, goarch, nil
 }
@@ -141,7 +147,7 @@ type releaseLatestJSON struct {
 // FetchLatestTag returns the tag_name of the latest stable GitHub release.
 func FetchLatestTag(ctx context.Context, cfg *Config) (string, error) {
 	url := latestAPIURL(cfg)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +169,9 @@ func FetchLatestTag(ctx context.Context, cfg *Config) (string, error) {
 		break
 	case http.StatusForbidden:
 		if bytes.Contains(bytes.ToLower(body), []byte("rate limit")) {
-			return "", errors.New("limite de pedidos à API do GitHub excedido; tente mais tarde ou defina GITHUB_TOKEN")
+			return "", errors.New(
+				"limite de pedidos à API do GitHub excedido; tente mais tarde ou defina GITHUB_TOKEN",
+			)
 		}
 		return "", fmt.Errorf("acesso negado pela API do GitHub (HTTP %d)", resp.StatusCode)
 	case http.StatusNotFound:
@@ -238,7 +246,7 @@ func ExtractMBBinary(tarGz []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != 0 { // 0 = legacy TypeRegA
 			continue
 		}
 		if filepath.Base(hdr.Name) != "mb" {
@@ -258,7 +266,11 @@ func ExtractMBBinary(tarGz []byte) ([]byte, error) {
 }
 
 // DownloadReleaseArtifact fetches tarball and checksums for the given tag.
-func DownloadReleaseArtifact(ctx context.Context, cfg *Config, tag, goos, goarch string) (tarball []byte, err error) {
+func DownloadReleaseArtifact(
+	ctx context.Context,
+	cfg *Config,
+	tag, goos, goarch string,
+) (tarball []byte, err error) {
 	art := artifactName(tag, goos, goarch)
 	base := downloadBase(cfg)
 	tarURL := fmt.Sprintf("%s/%s/%s", base, tag, art)
@@ -283,7 +295,7 @@ func DownloadReleaseArtifact(ctx context.Context, cfg *Config, tag, goos, goarch
 }
 
 func httpGetBody(ctx context.Context, client *http.Client, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +335,11 @@ func InstallBinary(destPath string, newExe []byte) error {
 	}
 	if err := os.Rename(tmpPath, destPath); err != nil {
 		_ = os.Remove(tmpPath)
-		return fmt.Errorf("substituir binário (verifique permissões de escrita em %s): %w", dir, err)
+		return fmt.Errorf(
+			"substituir binário (verifique permissões de escrita em %s): %w",
+			dir,
+			err,
+		)
 	}
 	return nil
 }
@@ -346,14 +362,25 @@ func MessageNoUpdateNeeded(localVersion, tag string) string {
 	if !strings.HasPrefix(lt, "v") {
 		lt = "v" + strings.TrimPrefix(lt, "v")
 	}
-	if lv, ok := CanonicalSemver(localVersion); ok && semver.IsValid(lt) && semver.Compare(lt, lv) < 0 {
-		return fmt.Sprintf("Sua versão (%s) é mais recente que a última release estável (%s). Nenhuma ação necessária.\n", strings.TrimSpace(localVersion), tag)
+	if lv, ok := CanonicalSemver(
+		localVersion,
+	); ok && semver.IsValid(lt) &&
+		semver.Compare(lt, lv) < 0 {
+		return fmt.Sprintf(
+			"Sua versão (%s) é mais recente que a última release estável (%s). Nenhuma ação necessária.\n",
+			strings.TrimSpace(localVersion),
+			tag,
+		)
 	}
 	return fmt.Sprintf("MB CLI já está na versão mais recente (%s).\n", tag)
 }
 
 // RunCheckOnly queries GitHub and compares versions without downloading. exitCode is ExitCodeUpdateAvailable when an update exists, else 0.
-func RunCheckOnly(ctx context.Context, cfg *Config, localVersion string) (stdout string, exitCode int, err error) {
+func RunCheckOnly(
+	ctx context.Context,
+	cfg *Config,
+	localVersion string,
+) (stdout string, exitCode int, err error) {
 	tag, err := FetchLatestTag(ctx, cfg)
 	if err != nil {
 		return "", 0, err
@@ -361,7 +388,8 @@ func RunCheckOnly(ctx context.Context, cfg *Config, localVersion string) (stdout
 	if ShouldFetchNewRelease(localVersion, tag) {
 		return fmt.Sprintf(
 			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb self update\n",
-			strings.TrimSpace(localVersion), tag,
+			strings.TrimSpace(localVersion),
+			tag,
 		), ExitCodeUpdateAvailable, nil
 	}
 	return MessageNoUpdateNeeded(localVersion, tag), 0, nil
@@ -399,5 +427,8 @@ func Run(ctx context.Context, cfg *Config, localVersion string) (stdout string, 
 	if err := InstallBinary(dest, mbData); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("MB CLI atualizado para %s.\nReexecute o comando mb para usar a nova versão.\n", tag), nil
+	return fmt.Sprintf(
+		"MB CLI atualizado para %s.\nReexecute o commando mb para usar a nova versão.\n",
+		tag,
+	), nil
 }

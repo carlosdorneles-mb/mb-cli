@@ -126,20 +126,36 @@ func TestEnsureShellHelpers_overwritesWhenChecksumDiffers(t *testing.T) {
 
 	allData, _ := os.ReadFile(allPath)
 	if !strings.Contains(string(allData), "log.sh") {
-		t.Errorf("all.sh should have been overwritten with embed content (sources log.sh), got: %s", allData)
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources log.sh), got: %s",
+			allData,
+		)
 	}
 	if !strings.Contains(string(allData), "memory.sh") {
-		t.Errorf("all.sh should have been overwritten with embed content (sources memory.sh), got: %s", allData)
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources memory.sh), got: %s",
+			allData,
+		)
 	}
 	if !strings.Contains(string(allData), "string.sh") {
-		t.Errorf("all.sh should have been overwritten with embed content (sources string.sh), got: %s", allData)
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources string.sh), got: %s",
+			allData,
+		)
 	}
 	if !strings.Contains(string(allData), "kubernetes.sh") {
-		t.Errorf("all.sh should have been overwritten with embed content (sources kubernetes.sh), got: %s", allData)
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources kubernetes.sh), got: %s",
+			allData,
+		)
 	}
 	checksumData, _ := os.ReadFile(checksumPath)
 	checksumStr := strings.TrimSpace(string(checksumData))
 	if len(checksumStr) != 64 {
-		t.Errorf(".checksum should be updated to 64 hex chars, got %d: %q", len(checksumStr), checksumStr)
+		t.Errorf(
+			".checksum should be updated to 64 hex chars, got %d: %q",
+			len(checksumStr),
+			checksumStr,
+		)
 	}
 }

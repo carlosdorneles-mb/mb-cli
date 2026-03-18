@@ -19,7 +19,13 @@ func New() *Executor {
 
 // Run executes the plugin script. allowedRoot must be the plugin directory (or PluginsDir root);
 // ExecPath is validated to be under allowedRoot before execution.
-func (e *Executor) Run(ctx context.Context, plugin cache.Plugin, args []string, mergedEnv []string, allowedRoot string) error {
+func (*Executor) Run(
+	ctx context.Context,
+	plugin cache.Plugin,
+	args []string,
+	mergedEnv []string,
+	allowedRoot string,
+) error {
 	if plugin.ExecPath == "" {
 		return errors.New("plugin has no executable path")
 	}

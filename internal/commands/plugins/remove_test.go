@@ -90,4 +90,3 @@ func TestRemoveLocalConfirmed(t *testing.T) {
 		t.Fatal("plugin source should be deleted")
 	}
 }
-

@@ -26,7 +26,13 @@ func TestRunInjectsEnv(t *testing.T) {
 		PluginType:  "sh",
 	}
 
-	err := ex.Run(context.Background(), plugin, []string{outputFile}, []string{"MB_TOKEN=abc123"}, tmp)
+	err := ex.Run(
+		context.Background(),
+		plugin,
+		[]string{outputFile},
+		[]string{"MB_TOKEN=abc123"},
+		tmp,
+	)
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}

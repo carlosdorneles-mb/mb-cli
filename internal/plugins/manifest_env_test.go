@@ -18,7 +18,11 @@ func TestMergeManifestEnvFiles_EmptyJSON(t *testing.T) {
 
 func TestMergeManifestEnvFiles_GroupFilterAndOrder(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, ".env.default"), []byte("A=1\nB=1\n"), 0o600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(dir, ".env.default"),
+		[]byte("A=1\nB=1\n"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, ".env.test.a"), []byte("B=2\n"), 0o600); err != nil {

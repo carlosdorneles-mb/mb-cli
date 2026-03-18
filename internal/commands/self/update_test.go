@@ -51,6 +51,10 @@ func TestSelfUpdateNonQuietNonReleasePrints(t *testing.T) {
 	}
 	combined := stderr.String() + stdout.String()
 	if !strings.Contains(combined, "release oficial") {
-		t.Fatalf("expected non-release message, stderr=%q stdout=%q", stderr.String(), stdout.String())
+		t.Fatalf(
+			"expected non-release message, stderr=%q stdout=%q",
+			stderr.String(),
+			stdout.String(),
+		)
 	}
 }

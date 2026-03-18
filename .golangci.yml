@@ -1,0 +1,98 @@
+version: "2"
+run:
+  go: "1.25"
+  modules-download-mode: readonly
+  tests: true
+  allow-parallel-runners: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+linters:
+  default: none
+  # errcheck/noctx/gosec/musttag: desativados aqui — geram centenas de avisos em código CLI legado;
+  # reative gradualmente ou use nolint pontual.
+  enable:
+    - errname
+    - errorlint
+    - funlen
+    - gocyclo
+    - govet
+    - misspell
+    - nakedret
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+  settings:
+    funlen:
+      lines: 220
+      statements: 70
+      ignore-comments: true
+    gocyclo:
+      min-complexity: 35
+    govet:
+      enable:
+        - atomicalign
+        - bools
+        - composites
+        - copylocks
+        - errorsas
+        - httpresponse
+        - loopclosure
+        - lostcancel
+        - nilfunc
+        - printf
+        - shift
+        - stdmethods
+        - structtag
+        - tests
+        - unmarshal
+        - unreachable
+        - unusedresult
+      disable:
+        - fieldalignment
+        - shadow
+    nakedret:
+      max-func-lines: 30
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - funlen
+          - gocyclo
+        path: _test\.go
+      - linters:
+          - funlen
+          - gocyclo
+        path: cmd/
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+    - golines
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(mb)
+      custom-order: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

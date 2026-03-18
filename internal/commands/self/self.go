@@ -14,7 +14,7 @@ func NewSelfCmd(deps deps.Dependencies) *cobra.Command {
 		Short:   "Gerencia operações internas do MB CLI",
 		GroupID: "commands",
 	}
-	selfCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
+	selfCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
 
 	syncCmd := newSelfSyncCmd(deps)
 	syncCmd.GroupID = "commands"
@@ -41,7 +41,7 @@ func customizeCompletionPT(selfCmd *cobra.Command) {
 	completionCmd.GroupID = "commands"
 	completionCmd.Long = "Gera o script de autocompletar para o MB CLI para o shell especificado.\nConsulte a ajuda de cada subcomando para detalhes de como usar o script gerado."
 	const completionGroupID = "completion_shells"
-	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMANDOS"})
+	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMMANDOS"})
 	shortPT := map[string]string{
 		"bash":       "Gera o script de autocompletar para bash",
 		"zsh":        "Gera o script de autocompletar para zsh",

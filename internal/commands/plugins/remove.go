@@ -8,17 +8,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/deps"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
 	"mb/internal/system"
 )
 
 func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <name>",
+		Use:     "remove <name>",
 		Aliases: []string{"rm", "r", "delete", "d", "del"},
-		Short: "Remove um plugin instalado",
-		Args:  cobra.ExactArgs(1),
+		Short:   "Remove um plugin instalado",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())

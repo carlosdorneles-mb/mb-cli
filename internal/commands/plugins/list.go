@@ -15,10 +15,10 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 	var checkUpdates bool
 
 	cmd := &cobra.Command{
-		Use:   "list",
+		Use:     "list",
 		Aliases: []string{"ls", "l"},
-		Short: "Lista plugins instalados (name, command, description, version, url)",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Short:   "Lista plugins instalados (name, command, description, version, url)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			pluginList, err := deps.Store.ListPlugins()
 			if err != nil {
 				return err
@@ -74,12 +74,23 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 					}
 				}
 
-				rows = append(rows, []string{name, p.CommandPath, p.Description, version, origem, url, updateAvail})
+				rows = append(
+					rows,
+					[]string{name, p.CommandPath, p.Description, version, origem, url, updateAvail},
+				)
 			}
 
-			headers := []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL", "ATUALIZAR"}
+			headers := []string{
+				"NOME",
+				"COMMANDO",
+				"DESCRIÇÃO",
+				"VERSÃO",
+				"ORIGEM",
+				"URL",
+				"ATUALIZAR",
+			}
 			if !checkUpdates {
-				headers = []string{"NOME", "COMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL"}
+				headers = []string{"NOME", "COMMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL"}
 				for i := range rows {
 					rows[i] = rows[i][:6]
 				}
@@ -88,6 +99,7 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&checkUpdates, "check-updates", false, "Verifica se há atualização disponível para cada plugin")
+	cmd.Flags().
+		BoolVar(&checkUpdates, "check-updates", false, "Verifica se há atualização disponível para cada plugin")
 	return cmd
 }

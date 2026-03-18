@@ -18,9 +18,15 @@ import (
 // RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
 // Used by both "mb self sync" and after plugins add/remove/update.
 // log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
-func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, emitSuccess bool) error {
-	if ctx == nil {
-		ctx = context.Background()
+func RunSync(
+	ctx context.Context,
+	deps deps.Dependencies,
+	log *system.Logger,
+	emitSuccess bool,
+) error {
+	runCtx := ctx
+	if runCtx == nil {
+		runCtx = context.Background()
 	}
 	// Plugin-help debug (group_id / groups.yaml) sempre via system.Logger → gum log quando gum está no PATH.
 	pluginHelpLog := log
@@ -31,7 +37,7 @@ func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, em
 		}
 		pluginHelpLog = system.NewLogger(quiet, verbose, os.Stderr)
 	}
-	deps.Scanner.DebugLog = func(msg string) { _ = pluginHelpLog.Debug(ctx, "%s", msg) }
+	deps.Scanner.DebugLog = func(msg string) { _ = pluginHelpLog.Debug(runCtx, "%s", msg) }
 	defer func() { deps.Scanner.DebugLog = nil }()
 
 	plugins, categories, warnings, hgBatches, err := deps.Scanner.Scan()
@@ -59,11 +65,11 @@ func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, em
 		hgBatches = append(hgBatches, hg...)
 	}
 	mergedHelp := plugpkg.MergeHelpGroupsGlobal(hgBatches, func(msg string) {
-		_ = pluginHelpLog.Debug(ctx, "%s", msg)
+		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 	if log != nil {
 		for _, w := range warnings {
-			_ = log.Warn(ctx, "aviso: %s: %s", w.Path, w.Message)
+			_ = log.Warn(runCtx, "aviso: %s: %s", w.Path, w.Message)
 		}
 	}
 
@@ -76,10 +82,10 @@ func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, em
 		validGroupIDs[g.ID] = struct{}{}
 	}
 	normalizePluginGroupIDs(plugins, validGroupIDs, func(msg string) {
-		_ = pluginHelpLog.Debug(ctx, "%s", msg)
+		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 	normalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
-		_ = pluginHelpLog.Debug(ctx, "%s", msg)
+		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 
 	if err := deps.Store.DeleteAllPlugins(); err != nil {
@@ -89,7 +95,9 @@ func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, em
 		return err
 	}
 	for _, g := range mergedHelp {
-		if err := deps.Store.UpsertPluginHelpGroup(cache.PluginHelpGroup{GroupID: g.ID, Title: g.Title}); err != nil {
+		if err := deps.Store.UpsertPluginHelpGroup(
+			cache.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
+		); err != nil {
 			return err
 		}
 	}
@@ -109,12 +117,16 @@ func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, em
 	}
 
 	if emitSuccess && log != nil {
-		_ = log.Info(ctx, "%d plugin(s) foram sincronizados", len(plugins))
+		_ = log.Info(runCtx, "%d plugin(s) foram sincronizados", len(plugins))
 	}
 	return nil
 }
 
-func normalizeCategoryGroupIDs(categories []cache.Category, valid map[string]struct{}, debug func(string)) {
+func normalizeCategoryGroupIDs(
+	categories []cache.Category,
+	valid map[string]struct{},
+	debug func(string),
+) {
 	for i := range categories {
 		c := &categories[i]
 		if !strings.Contains(c.Path, "/") {
@@ -126,14 +138,24 @@ func normalizeCategoryGroupIDs(categories []cache.Category, valid map[string]str
 		}
 		if _, ok := valid[c.GroupID]; !ok {
 			if debug != nil {
-				debug(fmt.Sprintf("plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS", c.Path, c.GroupID))
+				debug(
+					fmt.Sprintf(
+						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMMANDOS",
+						c.Path,
+						c.GroupID,
+					),
+				)
 			}
 			c.GroupID = ""
 		}
 	}
 }
 
-func normalizePluginGroupIDs(plugins []cache.Plugin, valid map[string]struct{}, debug func(string)) {
+func normalizePluginGroupIDs(
+	plugins []cache.Plugin,
+	valid map[string]struct{},
+	debug func(string),
+) {
 	for i := range plugins {
 		p := &plugins[i]
 		if !strings.Contains(p.CommandPath, "/") {
@@ -145,7 +167,13 @@ func normalizePluginGroupIDs(plugins []cache.Plugin, valid map[string]struct{}, 
 		}
 		if _, ok := valid[p.GroupID]; !ok {
 			if debug != nil {
-				debug(fmt.Sprintf("plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS", p.CommandPath, p.GroupID))
+				debug(
+					fmt.Sprintf(
+						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMMANDOS",
+						p.CommandPath,
+						p.GroupID,
+					),
+				)
 			}
 			p.GroupID = ""
 		}
@@ -161,7 +189,12 @@ func checkPluginPathCollisions(plugins []cache.Plugin) error {
 		}
 		if prevDir, ok := seen[key]; ok {
 			if prevDir != p.PluginDir {
-				return fmt.Errorf("conflito de plugins: o caminho de comando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes", key, prevDir, p.PluginDir)
+				return fmt.Errorf(
+					"conflito de plugins: o caminho de commando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes",
+					key,
+					prevDir,
+					p.PluginDir,
+				)
 			}
 			continue
 		}

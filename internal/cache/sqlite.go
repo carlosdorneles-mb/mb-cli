@@ -53,7 +53,7 @@ type Plugin struct {
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 	Hidden          bool   // Cobra Hidden: omit from help, still invokable
 	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
-	GroupID         string // help group for nested leaves; empty = default COMANDOS
+	GroupID         string // help group for nested leaves; empty = default COMMANDOS
 }
 
 // PluginHelpGroup is a Cobra help section for nested plugin commands (from groups.yaml).
@@ -134,13 +134,16 @@ func (s *Store) migrateCobraPluginFields() error {
 	}
 	for _, c := range columns {
 		var has int
-		if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name=?", c.name).Scan(&has); err != nil {
+		if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name=?", c.name).
+			Scan(&has); err != nil {
 			return err
 		}
 		if has > 0 {
 			continue
 		}
-		if _, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN " + c.name + " " + c.typ); err != nil {
+		if _, err := s.db.Exec(
+			"ALTER TABLE plugins ADD COLUMN " + c.name + " " + c.typ,
+		); err != nil {
 			return err
 		}
 	}
@@ -161,7 +164,8 @@ func (s *Store) migrateCobraPluginFields() error {
 
 func (s *Store) migrateCategoryGroupIDColumn() error {
 	var has int
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='group_id'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='group_id'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has > 0 {
@@ -173,7 +177,8 @@ func (s *Store) migrateCategoryGroupIDColumn() error {
 
 func (s *Store) migratePluginGroupIDColumn() error {
 	var has int
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='group_id'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='group_id'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has > 0 {
@@ -185,7 +190,8 @@ func (s *Store) migratePluginGroupIDColumn() error {
 
 func (s *Store) migrateEnvFilesJSONColumn() error {
 	var has int
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='env_files_json'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='env_files_json'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has > 0 {
@@ -197,7 +203,8 @@ func (s *Store) migrateEnvFilesJSONColumn() error {
 
 func (s *Store) migratePluginDir() error {
 	var has int
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='plugin_dir'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='plugin_dir'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has > 0 {
@@ -209,19 +216,25 @@ func (s *Store) migratePluginDir() error {
 
 func (s *Store) migrateHiddenColumns() error {
 	var has int
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='hidden'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='hidden'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has == 0 {
-		if _, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"); err != nil {
+		if _, err := s.db.Exec(
+			"ALTER TABLE plugins ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
+		); err != nil {
 			return err
 		}
 	}
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='hidden'").Scan(&has); err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='hidden'").
+		Scan(&has); err != nil {
 		return err
 	}
 	if has == 0 {
-		if _, err := s.db.Exec("ALTER TABLE categories ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"); err != nil {
+		if _, err := s.db.Exec(
+			"ALTER TABLE categories ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
+		); err != nil {
 			return err
 		}
 	}
@@ -230,7 +243,8 @@ func (s *Store) migrateHiddenColumns() error {
 
 func (s *Store) migratePluginSourcesLocalPath() error {
 	var has int
-	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugin_sources') WHERE name='local_path'").Scan(&has)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugin_sources') WHERE name='local_path'").
+		Scan(&has)
 	if has > 0 {
 		return nil
 	}
@@ -242,8 +256,10 @@ func (s *Store) migratePluginSourcesLocalPath() error {
 func (s *Store) migrateToCommandPath() error {
 	var hasCategory int
 	var hasCommandPath int
-	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='category'").Scan(&hasCategory)
-	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='command_path'").Scan(&hasCommandPath)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='category'").
+		Scan(&hasCategory)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='command_path'").
+		Scan(&hasCommandPath)
 	if hasCategory == 0 || hasCommandPath > 0 {
 		return nil
 	}
@@ -278,7 +294,9 @@ ALTER TABLE plugins_new RENAME TO plugins;
 	if err != nil {
 		return err
 	}
-	_, _ = s.db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_plugins_command_path ON plugins (command_path)")
+	_, _ = s.db.Exec(
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_plugins_command_path ON plugins (command_path)",
+	)
 	return nil
 }
 
@@ -301,7 +319,8 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 	if plugin.Hidden {
 		hidden = 1
 	}
-	_, err := s.db.Exec(`
+	_, err := s.db.Exec(
+		`
 INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden, env_files_json, group_id)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
@@ -323,8 +342,28 @@ ON CONFLICT(command_path) DO UPDATE SET
   env_files_json = excluded.env_files_json,
   group_id = excluded.group_id,
   updated_at = CURRENT_TIMESTAMP
-`, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
-		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden, nullEmpty(plugin.EnvFilesJSON), nullEmpty(plugin.GroupID))
+`,
+		plugin.CommandPath,
+		plugin.CommandName,
+		plugin.Description,
+		nullEmpty(plugin.ExecPath),
+		nullEmpty(plugin.PluginType),
+		plugin.ConfigHash,
+		nullEmpty(plugin.ReadmePath),
+		nullEmpty(plugin.FlagsJSON),
+		nullEmpty(
+			plugin.UseTemplate,
+		),
+		plugin.ArgsCount,
+		nullEmpty(plugin.AliasesJSON),
+		nullEmpty(plugin.Example),
+		nullEmpty(plugin.LongDescription),
+		nullEmpty(plugin.Deprecated),
+		nullEmpty(plugin.PluginDir),
+		hidden,
+		nullEmpty(plugin.EnvFilesJSON),
+		nullEmpty(plugin.GroupID),
+	)
 	return err
 }
 
@@ -465,7 +504,15 @@ ORDER BY install_dir
 	var list []PluginSource
 	for rows.Next() {
 		var ps PluginSource
-		if err := rows.Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.LocalPath, &ps.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&ps.InstallDir,
+			&ps.GitURL,
+			&ps.RefType,
+			&ps.Ref,
+			&ps.Version,
+			&ps.LocalPath,
+			&ps.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		list = append(list, ps)

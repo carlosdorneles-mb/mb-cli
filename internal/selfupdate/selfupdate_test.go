@@ -168,7 +168,7 @@ func TestRun_mockedDownloadAndInstall(t *testing.T) {
 		t.Fatal("expected stdout message")
 	}
 	b, err := os.ReadFile(dest)
-	if err != nil || string(b) != string(payload) {
+	if err != nil || !bytes.Equal(b, payload) {
 		t.Fatalf("installed binary: err=%v len=%d", err, len(b))
 	}
 }

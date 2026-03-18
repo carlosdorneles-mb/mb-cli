@@ -40,7 +40,8 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&unsetGroup, "group", "", "Remove do arquivo referente ao grupo informado")
+	cmd.Flags().
+		StringVar(&unsetGroup, "group", "", "Remove do arquivo referente ao grupo informado")
 	cmd.GroupID = "commands"
 	return cmd
 }

@@ -28,10 +28,7 @@ func ParseGitURL(raw string) (repoName string, normalizedURL string, err error) 
 	}
 
 	// Normalize: remove .git suffix for comparison
-	normalizedURL = raw
-	if strings.HasSuffix(normalizedURL, ".git") {
-		normalizedURL = strings.TrimSuffix(normalizedURL, ".git")
-	}
+	normalizedURL = strings.TrimSuffix(raw, ".git")
 
 	var path string
 	if strings.HasPrefix(raw, "https://") || strings.HasPrefix(raw, "http://") {
@@ -107,7 +104,7 @@ func GetVersion(dir string) (string, error) {
 		cmd2.Dir = dir
 		out2, err2 := cmd2.CombinedOutput()
 		if err2 != nil {
-			return "", fmt.Errorf("git describe: %w; rev-parse: %v", err, err2)
+			return "", fmt.Errorf("git describe: %w; rev-parse: %w", err, err2)
 		}
 		return strings.TrimSpace(string(out2)), nil
 	}
@@ -155,10 +152,7 @@ func parseTagsFromLsRemote(out string) []string {
 		if !strings.HasPrefix(ref, "refs/tags/") {
 			continue
 		}
-		tag := strings.TrimPrefix(ref, "refs/tags/")
-		if strings.HasSuffix(tag, "^{}") {
-			tag = strings.TrimSuffix(tag, "^{}")
-		}
+		tag := strings.TrimSuffix(strings.TrimPrefix(ref, "refs/tags/"), "^{}")
 		tags = append(tags, tag)
 	}
 	return tags

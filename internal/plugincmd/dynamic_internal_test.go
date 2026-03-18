@@ -36,14 +36,27 @@ func TestAppendVerbosityEnv(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			merged := appendVerbosityEnv([]string{"FOO=bar"}, tt.rt)
 			if got := contains(merged, "MB_VERBOSE"); got != tt.wantVerb {
-				t.Errorf("appendVerbosityEnv() MB_VERBOSE present = %v, want %v (merged: %s)", got, tt.wantVerb, strings.Join(merged, " "))
+				t.Errorf(
+					"appendVerbosityEnv() MB_VERBOSE present = %v, want %v (merged: %s)",
+					got,
+					tt.wantVerb,
+					strings.Join(merged, " "),
+				)
 			}
 			if got := contains(merged, "MB_QUIET"); got != tt.wantQuiet {
-				t.Errorf("appendVerbosityEnv() MB_QUIET present = %v, want %v (merged: %s)", got, tt.wantQuiet, strings.Join(merged, " "))
+				t.Errorf(
+					"appendVerbosityEnv() MB_QUIET present = %v, want %v (merged: %s)",
+					got,
+					tt.wantQuiet,
+					strings.Join(merged, " "),
+				)
 			}
 			if !tt.wantVerb && !tt.wantQuiet && tt.rt != nil {
 				if len(merged) != 1 || merged[0] != "FOO=bar" {
-					t.Errorf("appendVerbosityEnv() should not add entries when both false, got %v", merged)
+					t.Errorf(
+						"appendVerbosityEnv() should not add entries when both false, got %v",
+						merged,
+					)
 				}
 			}
 		})

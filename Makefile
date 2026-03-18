@@ -105,8 +105,9 @@ tidy:
 # Download dependencies and install svu (for release targets)
 deps:
 	go mod download
+	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/caarlos0/svu/v3@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 # Documentation (Docusaurus)
 docs-install:
@@ -147,8 +148,14 @@ check-svu:
 
 # Lint (requires golangci-lint: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 lint:
-	@command -v golangci-lint >/dev/null 2>&1 || (echo "golangci-lint not installed: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest" && exit 1)
-	golangci-lint run ./...
+	@golangci-lint run --config .golangci.yml ./...
+
+# Format (requires gofmt: go install golang.org/x/tools/cmd/gofmt@latest)
+format fmt:
+	goimports -l -w .
+	golangci-lint fmt --config .golangci.yml ./...
+	@golangci-lint run --config .golangci.yml ./... --fix
+	@$(MAKE) lint --quiet
 
 # Catch-all: faz com que "make run self sync" repasse self sync ao binário (não como alvos)
 %:

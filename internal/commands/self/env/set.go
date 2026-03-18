@@ -41,7 +41,8 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&setGroup, "group", "", "Grava a variável no grupo informado ao invés do grupo padrão")
+	cmd.Flags().
+		StringVar(&setGroup, "group", "", "Grava a variável no grupo informado ao invés do grupo padrão")
 	cmd.GroupID = "commands"
 	return cmd
 }

@@ -11,11 +11,11 @@ import (
 // RuntimeConfig combines resolved Paths with CLI/runtime flags.
 type RuntimeConfig struct {
 	Paths
-	Verbose         bool
-	Quiet           bool
-	EnvFilePath     string
+	Verbose     bool
+	Quiet       bool
+	EnvFilePath string
 	// EnvGroup overlays ~/.config/mb/.env.<EnvGroup> on env.defaults when running plugins.
-	EnvGroup string
+	EnvGroup        string
 	InlineEnvValues []string
 	// PluginTimeout limits how long a plugin script can run. Zero means no limit.
 	PluginTimeout time.Duration

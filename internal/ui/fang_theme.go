@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/charmbracelet/fang"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/fang"
 )
 
 // MBHelpTheme returns a fang ColorSchemeFunc that applies MB CLI colors:
@@ -12,8 +12,8 @@ func MBHelpTheme() fang.ColorSchemeFunc {
 		base := fang.DefaultColorScheme(c)
 		base.Title = lipgloss.Color("#FFA500")   // orange (align with banner)
 		base.Program = lipgloss.Color("#FFA500") // orange (program name in usage)
-		base.Command = lipgloss.Color("#00A86B")  // green
-		base.Flag = lipgloss.Color("#656c76")     // gray
+		base.Command = lipgloss.Color("#00A86B") // green
+		base.Flag = lipgloss.Color("#656c76")    // gray
 		return base
 	}
 }

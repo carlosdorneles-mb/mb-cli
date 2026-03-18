@@ -11,9 +11,9 @@ import (
 // FlagDef defines a flag that can run an entrypoint (for manifests without default entrypoint).
 // Used internally and in FlagsJSON; produced from FlagEntry (list format in manifest).
 type FlagDef struct {
-	Type        string `yaml:"type" json:"type"`               // "long" (--name) or "short" (-s)
-	Short       string `yaml:"short" json:"short"`             // optional; single letter for -x form
-	Entrypoint  string `yaml:"entrypoint" json:"entrypoint"`   // script to run when this flag is set
+	Type        string `yaml:"type"        json:"type"`        // "long" (--name) or "short" (-s)
+	Short       string `yaml:"short"       json:"short"`       // optional; single letter for -x form
+	Entrypoint  string `yaml:"entrypoint"  json:"entrypoint"`  // script to run when this flag is set
 	Description string `yaml:"description" json:"description"` // shown in command help (Cobra usage)
 }
 
@@ -36,7 +36,9 @@ type FlagsSpec struct {
 // UnmarshalYAML accepts only a list of FlagEntry; map format is no longer supported.
 func (f *FlagsSpec) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind != yaml.SequenceNode {
-		return fmt.Errorf("flags must be a list of flag entries (name, description, entrypoint, commands)")
+		return fmt.Errorf(
+			"flags must be a list of flag entries (name, description, entrypoint, commands)",
+		)
 	}
 	f.List = nil
 	return value.Decode(&f.List)
@@ -92,7 +94,7 @@ const ManifestEnvGroupDefault = "default"
 
 // EnvFileEntry is one manifest env_files item (paths relative to plugin dir).
 type EnvFileEntry struct {
-	File  string `yaml:"file" json:"file"`
+	File  string `yaml:"file"  json:"file"`
 	Group string `yaml:"group" json:"group"`
 }
 

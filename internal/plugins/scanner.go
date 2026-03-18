@@ -39,7 +39,13 @@ func nestedPluginGroupIDRaw(dbCommandPath, manifestGroupID string, debug func(st
 	gid := strings.TrimSpace(manifestGroupID)
 	if !strings.Contains(dbCommandPath, "/") {
 		if gid != "" && debug != nil {
-			debug(fmt.Sprintf("plugin help: command_path=%q group_id=%q ignorado (comando top-level fica em COMANDOS DE PLUGINS)", dbCommandPath, gid))
+			debug(
+				fmt.Sprintf(
+					"plugin help: command_path=%q group_id=%q ignorado (commando top-level fica em COMMANDOS DE PLUGINS)",
+					dbCommandPath,
+					gid,
+				),
+			)
 		}
 		return ""
 	}
@@ -47,7 +53,10 @@ func nestedPluginGroupIDRaw(dbCommandPath, manifestGroupID string, debug func(st
 }
 
 // collectHelpGroupBatchesUnderRoot returns one batch per groups.yaml (paths sorted) for global merge at sync.
-func collectHelpGroupBatchesUnderRoot(rootPath string, warnings *[]ValidationWarning) [][]HelpGroupDef {
+func collectHelpGroupBatchesUnderRoot(
+	rootPath string,
+	warnings *[]ValidationWarning,
+) [][]HelpGroupDef {
 	var paths []string
 	_ = filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil || d.IsDir() || d.Name() != "groups.yaml" {
@@ -215,7 +224,8 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 			}
 		}
 	}
-	if (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) && strings.TrimSpace(manifest.Command) == "" {
+	if (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) &&
+		strings.TrimSpace(manifest.Command) == "" {
 		errs = append(errs, "command é obrigatório quando há entrypoint ou flags")
 	}
 	if manifest.Entrypoint != "" || manifest.Flags.Len() > 0 {
@@ -239,7 +249,9 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 }
 
 // cobraFieldsFromManifest returns UseTemplate, ArgsCount, AliasesJSON, Example, LongDescription, Deprecated for cache.Plugin.
-func cobraFieldsFromManifest(manifest Manifest) (useTemplate string, argsCount int, aliasesJSON, example, longDescription, deprecated string, err error) {
+func cobraFieldsFromManifest(
+	manifest Manifest,
+) (useTemplate string, argsCount int, aliasesJSON, example, longDescription, deprecated string, err error) {
 	argsCount = manifest.Args
 	if argsCount < 0 {
 		argsCount = 0
@@ -265,7 +277,9 @@ func marshalEnvFilesJSON(m Manifest) (string, error) {
 	return string(b), nil
 }
 
-func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+func (s *Scanner) scanTree(
+	rootPath string,
+) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	plugins := []cache.Plugin{}
 	categories := []cache.Category{}
 	warnings := []ValidationWarning{}
@@ -286,7 +300,10 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 
 		baseDir := filepath.Dir(path)
 		if errs := validateManifest(manifest, baseDir); len(errs) > 0 {
-			warnings = append(warnings, ValidationWarning{Path: path, Message: strings.Join(errs, "; ")})
+			warnings = append(
+				warnings,
+				ValidationWarning{Path: path, Message: strings.Join(errs, "; ")},
+			)
 			return nil
 		}
 
@@ -327,11 +344,11 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				flagsJSON = string(flagsJSONBytes)
 			}
 			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
-			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+			u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
+			if err != nil {
 				return fmt.Errorf("cobra fields %s: %w", path, err)
-			} else {
-				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
 			}
+			useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
 			envFilesJ, err := marshalEnvFilesJSON(manifest)
 			if err != nil {
 				return fmt.Errorf("env_files %s: %w", path, err)
@@ -367,11 +384,11 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				return fmt.Errorf("marshal flags %s: %w", path, err)
 			}
 			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
-			if u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest); err != nil {
+			u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
+			if err != nil {
 				return fmt.Errorf("cobra fields %s: %w", path, err)
-			} else {
-				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
 			}
+			useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
 			envFilesJ, err := marshalEnvFilesJSON(manifest)
 			if err != nil {
 				return fmt.Errorf("env_files %s: %w", path, err)
@@ -455,6 +472,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 	return plugins, categories, warnings, helpBatches, nil
 }
 
+// Scan percorre cada subpasta imediata de PluginsDir e agrega plugins, categorias e lotes de groups.yaml.
 func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	plugins := []cache.Plugin{}
 	categories := []cache.Category{}
@@ -487,7 +505,10 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 
 // ScanDir scans a single directory (local plugin path or one install root). Command paths are
 // relative to the manifest tree only; installName is ignored for CLI paths (kept for API compatibility).
-func (s *Scanner) ScanDir(rootPath string, _ string) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+func (s *Scanner) ScanDir(
+	rootPath string,
+	_ string,
+) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	rootPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return nil, nil, nil, nil, err

@@ -26,11 +26,17 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	pluginList, err := d.Store.ListPlugins()
 	if err != nil {
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderError(err.Error()))
-		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("Execute `mb self sync` para reconstruir o cache de plugins."))
+		fmt.Fprintln(
+			root.ErrOrStderr(),
+			ui.RenderInfo("Execute `mb self sync` para reconstruir o cache de plugins."),
+		)
 		return
 	}
 	if len(pluginList) == 0 {
-		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("Não há plugins em cache. Execute `mb self sync` primeiro."))
+		fmt.Fprintln(
+			root.ErrOrStderr(),
+			ui.RenderInfo("Não há plugins em cache. Execute `mb self sync` primeiro."),
+		)
 		return
 	}
 
@@ -60,7 +66,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	dbgLog := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, root.ErrOrStderr())
 
 	addParentGroupsForNestedLeaves := func(parent *cobra.Command) {
-		parent.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
+		parent.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
 		for _, hg := range helpGroups {
 			parent.AddGroup(&cobra.Group{ID: hg.GroupID, Title: hg.Title})
 		}
@@ -78,13 +84,13 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			segments = []string{plugin.CommandName}
 		}
 
-		var parent *cobra.Command = root
+		var parent = root
 		for i := 0; i < len(segments)-1; i++ {
 			seg := segments[i]
 			pathSoFar := strings.Join(segments[:i+1], "/")
 			if byPath[pathSoFar] == nil {
 				cat := categoriesByPath[pathSoFar]
-				short := seg + " comandos"
+				short := seg + " commandos"
 				if cat.Description != "" {
 					short = cat.Description
 				}
@@ -98,7 +104,12 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 					if _, ok := registeredHelp[cat.GroupID]; ok {
 						categoryCmd.GroupID = cat.GroupID
 					} else {
-						_ = dbgLog.Debug(context.Background(), "plugin help: category_path=%q group_id=%q não registado no cache; usando COMANDOS", pathSoFar, cat.GroupID)
+						_ = dbgLog.Debug(
+							context.Background(),
+							"plugin help: category_path=%q group_id=%q não registado no cache; usando COMMANDOS",
+							pathSoFar,
+							cat.GroupID,
+						)
 						categoryCmd.GroupID = "commands"
 					}
 				} else {
@@ -146,7 +157,12 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			if _, ok := registeredHelp[plugin.GroupID]; ok {
 				leafCmd.GroupID = plugin.GroupID
 			} else {
-				_ = dbgLog.Debug(context.Background(), "plugin help: command_path=%q group_id=%q não registado no cache; usando COMANDOS", plugin.CommandPath, plugin.GroupID)
+				_ = dbgLog.Debug(
+					context.Background(),
+					"plugin help: command_path=%q group_id=%q não registado no cache; usando COMMANDOS",
+					plugin.CommandPath,
+					plugin.GroupID,
+				)
 				leafCmd.GroupID = "commands"
 			}
 		} else {
@@ -183,13 +199,19 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse 
 		deprecatedMsg := plugin.Deprecated
 		cmdName := defaultUse
 		cmd.RunE = func(c *cobra.Command, args []string) error {
-			fmt.Fprintf(c.ErrOrStderr(), "Comando %q está obsoleto: %s\n", cmdName, deprecatedMsg)
+			fmt.Fprintf(c.ErrOrStderr(), "Commando %q está obsoleto: %s\n", cmdName, deprecatedMsg)
 			return oldRunE(c, args)
 		}
 	}
 }
 
-func newLeafCommand(use string, plugin cache.Plugin, d deps.Dependencies, pluginRoot string, isLocal bool) *cobra.Command {
+func newLeafCommand(
+	use string,
+	plugin cache.Plugin,
+	d deps.Dependencies,
+	pluginRoot string,
+	isLocal bool,
+) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
 		short = "Executa " + plugin.CommandPath
@@ -208,14 +230,18 @@ func newLeafCommand(use string, plugin cache.Plugin, d deps.Dependencies, plugin
 		if plugin.ReadmePath != "" {
 			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 		}
-		cmd.Flags().ParseErrorsWhitelist.UnknownFlags = true
+		cmd.Flags().ParseErrorsAllowlist.UnknownFlags = true
 		setHelpFang(cmd)
 		return cmd
 	}
 
 	var flagsMap map[string]plugins.FlagDef
 	if err := json.Unmarshal([]byte(plugin.FlagsJSON), &flagsMap); err != nil {
-		cmd := &cobra.Command{Use: use, Short: short + " (config de flags inválida)", Hidden: plugin.Hidden}
+		cmd := &cobra.Command{
+			Use:    use,
+			Short:  short + " (config de flags inválida)",
+			Hidden: plugin.Hidden,
+		}
 		return cmd
 	}
 
@@ -261,8 +287,12 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 	return fs.Args()
 }
 
-func runEntrypointCommand(plugin cache.Plugin, d deps.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+func runEntrypointCommand(
+	plugin cache.Plugin,
+	d deps.Dependencies,
+	pluginRoot string,
+) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
@@ -292,12 +322,17 @@ func runEntrypointCommand(plugin cache.Plugin, d deps.Dependencies, pluginRoot s
 	}
 }
 
-func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, d deps.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
+func runFlagsOnlyCommand(
+	plugin cache.Plugin,
+	flagsMap map[string]plugins.FlagDef,
+	d deps.Dependencies,
+	pluginRoot string,
+) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
-		args = parseRootVerbosityFlags(cmd, args)
+		_ = parseRootVerbosityFlags(cmd, args)
 		var chosenFlag string
 		var chosenEntrypoint string
 		for name, def := range flagsMap {
@@ -323,7 +358,11 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 				if err != nil {
 					return err
 				}
-				if err := mergeManifestEnvIntoFileValues(fileValues, plugin, d.Runtime); err != nil {
+				if err := mergeManifestEnvIntoFileValues(
+					fileValues,
+					plugin,
+					d.Runtime,
+				); err != nil {
 					return err
 				}
 				merged := env.Merge(os.Environ(), fileValues, cliValues)
@@ -374,7 +413,11 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		if err != nil {
 			return err
 		}
-		if err := mergeManifestEnvIntoFileValues(fileValues, syntheticPlugin, d.Runtime); err != nil {
+		if err := mergeManifestEnvIntoFileValues(
+			fileValues,
+			syntheticPlugin,
+			d.Runtime,
+		); err != nil {
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
@@ -409,7 +452,7 @@ func appendVerbosityEnv(merged []string, rt *deps.RuntimeConfig) []string {
 	return merged
 }
 
-const readmeFlagDesc = "Visualizar documentação do comando"
+const readmeFlagDesc = "Visualizar documentação do commando"
 
 func setHelpFang(c *cobra.Command) {
 	c.SetHelpFunc(func(cmd *cobra.Command, args []string) {
@@ -421,11 +464,11 @@ func setHelpFang(c *cobra.Command) {
 
 func runReadmeWithGlow(path string) error {
 	if path == "" {
-		return errors.New("este comando não possui documentação (README) disponível")
+		return errors.New("este commando não possui documentação (README) disponível")
 	}
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return errors.New("documentação não encontrada para este comando")
+			return errors.New("documentação não encontrada para este commando")
 		}
 		return fmt.Errorf("não foi possível abrir a documentação: %w", err)
 	}
@@ -436,7 +479,11 @@ func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
 	return deps.BuildEnvFileValues(rt)
 }
 
-func mergeManifestEnvIntoFileValues(fileValues map[string]string, plugin cache.Plugin, rt *deps.RuntimeConfig) error {
+func mergeManifestEnvIntoFileValues(
+	fileValues map[string]string,
+	plugin cache.Plugin,
+	rt *deps.RuntimeConfig,
+) error {
 	group := plugins.ManifestEnvGroupDefault
 	if rt != nil && strings.TrimSpace(rt.EnvGroup) != "" {
 		group = strings.TrimSpace(rt.EnvGroup)

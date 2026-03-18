@@ -114,7 +114,8 @@ func TestPluginSourcesCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	if got == nil || got.InstallDir != "my-plugin" || got.GitURL != "https://github.com/org/repo" || got.Ref != "v1.0.0" {
+	if got == nil || got.InstallDir != "my-plugin" || got.GitURL != "https://github.com/org/repo" ||
+		got.Ref != "v1.0.0" {
 		t.Fatalf("unexpected get result: %#v", got)
 	}
 
@@ -235,7 +236,9 @@ func TestStoreCategoryHiddenRoundTrip(t *testing.T) {
 	}
 	defer store.Close()
 
-	if err := store.UpsertCategory(Category{Path: "tools", Description: "T", Hidden: true}); err != nil {
+	if err := store.UpsertCategory(
+		Category{Path: "tools", Description: "T", Hidden: true},
+	); err != nil {
 		t.Fatalf("upsert cat: %v", err)
 	}
 	list, err := store.ListCategories()
