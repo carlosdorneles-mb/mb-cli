@@ -12,8 +12,8 @@ import (
 	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/commands/self"
-	"mb/internal/gumlog"
 	mbplugins "mb/internal/plugins"
+	"mb/internal/system"
 )
 
 func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
@@ -32,7 +32,7 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 			if err == nil {
 				return runAddRemote(cmd, deps, arg, name, tag)
 			}
-			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 			return runAddLocal(cmd, deps, log, arg, name)
 		},
 	}
@@ -117,12 +117,12 @@ func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, nam
 	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
 		return err
 	}
-	log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+	log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 	_ = log.Info(cmd.Context(), "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
-func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, pathArg string, name string) error {
+func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, pathArg string, name string) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
 	}
@@ -158,7 +158,7 @@ func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger,
 	return runAddLocalSingle(cmd, deps, log, absPath, name)
 }
 
-func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, absPath string, name string) error {
+func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, absPath string, name string) error {
 	ctx := cmd.Context()
 	entries, err := os.ReadDir(absPath)
 	if err != nil {
@@ -223,7 +223,7 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *guml
 	return nil
 }
 
-func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, absPath string, name string) error {
+func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *system.Logger, absPath string, name string) error {
 	ctx := cmd.Context()
 	installDir := name
 	if installDir == "" {

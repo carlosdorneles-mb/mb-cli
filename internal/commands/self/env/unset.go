@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/gumlog"
+	"mb/internal/system"
 )
 
 func newUnsetCmd(d deps.Dependencies) *cobra.Command {
@@ -16,7 +16,7 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			log := gumlog.New(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			path, err := envTargetPath(d, unsetGroup)
 			if err != nil {
 				return err

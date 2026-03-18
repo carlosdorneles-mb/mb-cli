@@ -10,7 +10,6 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/commands/self"
-	"mb/internal/gumlog"
 	"mb/internal/system"
 )
 
@@ -22,7 +21,7 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 			name := strings.TrimSpace(args[0])
 			src, err := deps.Store.GetPluginSource(name)
 			if err != nil {

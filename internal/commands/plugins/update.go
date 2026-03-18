@@ -10,8 +10,8 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/commands/self"
-	"mb/internal/gumlog"
 	mbplugins "mb/internal/plugins"
+	"mb/internal/system"
 )
 
 func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
@@ -23,7 +23,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 		Short: "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if all {
 				sources, err := deps.Store.ListPluginSources()
@@ -58,7 +58,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	return cmd
 }
 
-func updateOnePlugin(ctx context.Context, deps deps.Dependencies, log *gumlog.Logger, name string, cmd *cobra.Command) error {
+func updateOnePlugin(ctx context.Context, deps deps.Dependencies, log *system.Logger, name string, cmd *cobra.Command) error {
 	src, err := deps.Store.GetPluginSource(name)
 	if err != nil {
 		return err

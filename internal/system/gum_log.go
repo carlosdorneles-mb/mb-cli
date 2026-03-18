@@ -1,5 +1,4 @@
-// Package gumlog mirrors internal/helpers/shell/log.sh: gum log with --quiet / --verbose.
-package gumlog
+package system
 
 import (
 	"context"
@@ -12,15 +11,15 @@ import (
 	"mb/internal/ui"
 )
 
-// Logger writes leveled messages via gum log (or a text fallback).
+// Logger writes leveled messages via gum log (or a text fallback). Mirrors log.sh quiet/verbose rules.
 type Logger struct {
 	Quiet   bool
 	Verbose bool
-	W       io.Writer // stderr by default
+	W       io.Writer
 }
 
-// New builds a logger. w is usually cmd.ErrOrStderr(); nil uses os.Stderr.
-func New(quiet, verbose bool, w io.Writer) *Logger {
+// NewLogger builds a logger. w is usually cmd.ErrOrStderr(); nil uses os.Stderr.
+func NewLogger(quiet, verbose bool, w io.Writer) *Logger {
 	return &Logger{Quiet: quiet, Verbose: verbose, W: w}
 }
 
@@ -41,7 +40,7 @@ func (l *Logger) shouldEmit(level string) bool {
 	return true
 }
 
-func sanitizeMsg(msg string) string {
+func sanitizeGumLogMsg(msg string) string {
 	msg = strings.ReplaceAll(msg, "\r", " ")
 	msg = strings.ReplaceAll(msg, "\n", " ")
 	return strings.TrimSpace(msg)
@@ -51,7 +50,7 @@ func (l *Logger) emit(ctx context.Context, level, msg string) error {
 	if !l.shouldEmit(level) {
 		return nil
 	}
-	msg = sanitizeMsg(msg)
+	msg = sanitizeGumLogMsg(msg)
 	if msg == "" {
 		return nil
 	}
