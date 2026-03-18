@@ -7,21 +7,38 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/browser"
 	"mb/internal/commands/plugins"
 	"mb/internal/commands/self"
 	"mb/internal/deps"
-	"mb/internal/plugincmd"
 	"mb/internal/env"
+	"mb/internal/plugincmd"
 	"mb/internal/ui"
 	"mb/internal/version"
 )
 
+const docsBaseURL = "https://carlosdorneles-mb.github.io/mb-cli/"
+
 type RootCommand = *cobra.Command
 
 func NewRootCmd(d deps.Dependencies) RootCommand {
+	var openDoc bool
 	rootCmd := &cobra.Command{
 		Use:   "mb",
 		Short: "MB CLI - Uma CLI, infinitas possibilidades",
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			if !openDoc {
+				return nil
+			}
+			if err := browser.OpenURL(docsBaseURL); err != nil {
+				return err
+			}
+			if !d.Runtime.Quiet {
+				fmt.Fprintf(cmd.OutOrStdout(), "Documentação: %s\n", docsBaseURL)
+			}
+			os.Exit(0)
+			return nil
+		},
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
 				return err
@@ -43,6 +60,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
 	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
 	rootCmd.PersistentFlags().StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
+	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMANDOS DE PLUGINS"})

@@ -1,14 +1,12 @@
 package self
 
 import (
-	"context"
 	"fmt"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/system"
 	"mb/internal/ui"
 )
 
@@ -44,21 +42,11 @@ func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	selfEnvCmd.AddCommand(listCmd)
 
 	setCmd := &cobra.Command{
-		Use:   "set KEY [VALUE]",
+		Use:   "set <KEY> <VALUE>",
 		Short: "Define uma variável padrão",
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			key := args[0]
-			var value string
-			if len(args) == 2 {
-				value = args[1]
-			} else {
-				input, err := system.Input(context.Background(), fmt.Sprintf("%s=", key))
-				if err != nil {
-					return err
-				}
-				value = input
-			}
+			key, value := args[0], args[1]
 
 			values, err := deps.LoadDefaultEnvValues(d.Runtime.DefaultEnvPath)
 			if err != nil {
@@ -78,7 +66,7 @@ func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	selfEnvCmd.AddCommand(setCmd)
 
 	unsetCmd := &cobra.Command{
-		Use:   "unset KEY",
+		Use:   "unset <KEY>",
 		Short: "Remove uma variável padrão",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

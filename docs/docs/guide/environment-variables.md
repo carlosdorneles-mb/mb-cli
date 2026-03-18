@@ -34,8 +34,8 @@ Esses defaults só são aplicados quando a chave ainda não existe no ambiente m
 Você pode definir variáveis que serão usadas em toda execução de plugins, sem precisar passar `--env` toda vez:
 
 - **`mb self env list`** — Lista as variáveis definidas nos defaults.
-- **`mb self env set KEY [VALUE]`** — Define uma variável nos defaults. Se VALUE não for informado, o valor pode ser lido de forma interativa (dependendo do ambiente).
-- **`mb self env unset KEY`** — Remove a variável dos defaults.
+- **`mb self env set <KEY> <VALUE>`** — Define uma variável nos defaults (ambos os argumentos são obrigatórios).
+- **`mb self env unset <KEY>`** — Remove a variável dos defaults.
 
 Esses comandos alteram o arquivo `env.defaults` no diretório de configuração do MB.
 
@@ -66,6 +66,6 @@ No seu plugin, você pode acessar variáveis injetadas normalmente. Por exemplo,
 echo "API_KEY está definida? ${API_KEY:-não}"
 ```
 
-Se você definiu `API_KEY` com `mb self env set API_KEY` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
+Se você definiu `API_KEY` com `mb self env set API_KEY seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
 
 Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](../technical-reference/plugins.md).

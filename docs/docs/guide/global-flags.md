@@ -56,3 +56,13 @@ Para a função `log` e outros helpers, veja a [Referência: Helpers de shell](.
 - **`--env KEY=VALUE`** — Injeta uma variável no processo do plugin. Pode ser repetido várias vezes. Tem a maior precedência em relação aos outros meios de definir variáveis.
 
 Para a ordem completa de precedência e como usar defaults com `mb self env`, veja [Variáveis de ambiente](./environment-variables.md).
+
+## --doc
+
+**O que faz:** Abre a [documentação publicada](https://carlosdorneles-mb.github.io/mb-cli/) no navegador padrão do sistema e encerra o CLI com código `0`.
+
+**Uso:** Só no comando raiz, **antes** de qualquer subcomando — por exemplo `mb --doc`. Não é herdada por `mb plugins list` etc.
+
+```bash
+mb --doc
+```
