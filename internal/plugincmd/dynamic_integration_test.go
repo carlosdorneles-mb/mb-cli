@@ -530,7 +530,11 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 	if err := os.MkdirAll(brunoDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(brunoDir, "index.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(brunoDir, "index.sh"),
+		[]byte("#!/bin/sh\nexit 0\n"),
+		0o755,
+	); err != nil {
 		t.Fatalf("write index.sh: %v", err)
 	}
 

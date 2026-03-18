@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"charm.land/fang/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/term"
 )
 
