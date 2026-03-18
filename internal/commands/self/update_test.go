@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/version"
 )
 
@@ -14,11 +14,11 @@ func TestSelfUpdateQuietNonReleaseNoStdout(t *testing.T) {
 	t.Cleanup(func() { version.Version = orig })
 	version.Version = ""
 
-	rt := &config.RuntimeConfig{Quiet: true}
-	deps := config.Dependencies{Runtime: rt}
+	rt := &deps.RuntimeConfig{Quiet: true}
+	d := deps.Dependencies{Runtime: rt}
 
 	var buf bytes.Buffer
-	cmd := newSelfUpdateCmd(deps)
+	cmd := newSelfUpdateCmd(d)
 	cmd.SetOut(&buf)
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -33,11 +33,11 @@ func TestSelfUpdateNonQuietNonReleasePrints(t *testing.T) {
 	t.Cleanup(func() { version.Version = orig })
 	version.Version = ""
 
-	rt := &config.RuntimeConfig{Quiet: false}
-	deps := config.Dependencies{Runtime: rt}
+	rt := &deps.RuntimeConfig{Quiet: false}
+	d := deps.Dependencies{Runtime: rt}
 
 	var buf bytes.Buffer
-	cmd := newSelfUpdateCmd(deps)
+	cmd := newSelfUpdateCmd(d)
 	cmd.SetOut(&buf)
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)

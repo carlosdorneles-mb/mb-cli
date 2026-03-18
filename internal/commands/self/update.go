@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/selfupdate"
 	"mb/internal/version"
 )
@@ -22,7 +22,7 @@ Para instalar ou atualizar a versão estável:
 Releases: https://github.com/carlosdorneles-mb/mb-cli/releases
 `
 
-func newSelfUpdateCmd(deps config.Dependencies) *cobra.Command {
+func newSelfUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var checkOnly bool
 	cmd := &cobra.Command{
 		Use:   "update",

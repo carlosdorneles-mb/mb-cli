@@ -7,12 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/system"
 	"mb/internal/ui"
 )
 
-func newSelfEnvCmd(deps config.Dependencies) *cobra.Command {
+func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	selfEnvCmd := &cobra.Command{
 		Use:   "env",
 		Short: "Gerencia variáveis de ambiente padrão",
@@ -23,7 +23,7 @@ func newSelfEnvCmd(deps config.Dependencies) *cobra.Command {
 		Use:   "list",
 		Short: "Lista variáveis padrão",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			values, err := config.LoadDefaultEnvValues(deps.Runtime.DefaultEnvPath)
+			values, err := deps.LoadDefaultEnvValues(d.Runtime.DefaultEnvPath)
 			if err != nil {
 				return err
 			}
@@ -60,13 +60,13 @@ func newSelfEnvCmd(deps config.Dependencies) *cobra.Command {
 				value = input
 			}
 
-			values, err := config.LoadDefaultEnvValues(deps.Runtime.DefaultEnvPath)
+			values, err := deps.LoadDefaultEnvValues(d.Runtime.DefaultEnvPath)
 			if err != nil {
 				return err
 			}
 
 			values[key] = value
-			if err := config.SaveDefaultEnvValues(deps.Runtime.DefaultEnvPath, values); err != nil {
+			if err := deps.SaveDefaultEnvValues(d.Runtime.DefaultEnvPath, values); err != nil {
 				return err
 			}
 
@@ -82,13 +82,13 @@ func newSelfEnvCmd(deps config.Dependencies) *cobra.Command {
 		Short: "Remove uma variável padrão",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := config.LoadDefaultEnvValues(deps.Runtime.DefaultEnvPath)
+			values, err := deps.LoadDefaultEnvValues(d.Runtime.DefaultEnvPath)
 			if err != nil {
 				return err
 			}
 
 			delete(values, args[0])
-			if err := config.SaveDefaultEnvValues(deps.Runtime.DefaultEnvPath, values); err != nil {
+			if err := deps.SaveDefaultEnvValues(d.Runtime.DefaultEnvPath, values); err != nil {
 				return err
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("removido %s", args[0])))

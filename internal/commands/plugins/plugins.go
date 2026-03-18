@@ -1,12 +1,12 @@
-package plugincmd
+package plugins
 
 import (
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 )
 
-func NewPluginsCmd(deps config.Dependencies) *cobra.Command {
+func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
 	pluginsCmd := &cobra.Command{
 		Use:     "plugins",
 		Short:   "Gerencia plugins instalados (add, list, remove, update)",

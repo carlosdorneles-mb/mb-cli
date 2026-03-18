@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -44,14 +44,14 @@ func TestListShowsLocalAndPath(t *testing.T) {
 		t.Fatalf("upsert plugin source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	listCmd := newPluginsListCmd(deps)
+	listCmd := newPluginsListCmd(d)
 	var out bytes.Buffer
 	listCmd.SetOut(&out)
 	listCmd.SetErr(os.NewFile(0, os.DevNull))

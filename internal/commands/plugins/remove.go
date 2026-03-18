@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"fmt"
@@ -8,12 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/commands/self"
 	"mb/internal/ui"
 )
 
-func newPluginsRemoveCmd(deps config.Dependencies) *cobra.Command {
+func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <name>",
 		Short: "Remove um plugin instalado",

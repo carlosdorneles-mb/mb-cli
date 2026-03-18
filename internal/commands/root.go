@@ -7,9 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
-	plugincmd "mb/internal/commands/plugins"
+	"mb/internal/commands/plugins"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
+	"mb/internal/plugincmd"
 	"mb/internal/env"
 	"mb/internal/ui"
 	"mb/internal/version"
@@ -17,18 +18,18 @@ import (
 
 type RootCommand = *cobra.Command
 
-func NewRootCmd(deps config.Dependencies) RootCommand {
+func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd := &cobra.Command{
 		Use:   "mb",
 		Short: "MB CLI - Uma CLI, infinitas possibilidades",
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			if _, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues); err != nil {
+			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
 				return err
 			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if !deps.Runtime.Quiet {
+			if !d.Runtime.Quiet {
 				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderBanner(ui.Banner))
 			}
 			cmd.Help()
@@ -38,19 +39,19 @@ func NewRootCmd(deps config.Dependencies) RootCommand {
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().BoolVarP(&deps.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
-	rootCmd.PersistentFlags().StringVar(&deps.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
-	rootCmd.PersistentFlags().StringArrayVarP(&deps.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
+	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
+	rootCmd.PersistentFlags().BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
+	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Caminho do arquivo .env")
+	rootCmd.PersistentFlags().StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMANDOS DE PLUGINS"})
 	
 	rootCmd.SetHelpCommandGroupID("commands")
 
-	rootCmd.AddCommand(self.NewSelfCmd(deps))
-	rootCmd.AddCommand(plugincmd.NewPluginsCmd(deps))
-	AttachDynamicCommands(rootCmd, deps)
+	rootCmd.AddCommand(self.NewSelfCmd(d))
+	rootCmd.AddCommand(plugins.NewPluginsCmd(d))
+	plugincmd.Attach(rootCmd, d)
 
 	rootCmd.InitDefaultHelpCmd()
 	for _, c := range rootCmd.Commands() {

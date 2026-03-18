@@ -1,4 +1,4 @@
-package commands
+package plugincmd
 
 import (
 	"context"
@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
 	"mb/internal/env"
 	"mb/internal/plugins"
 	"mb/internal/safepath"
@@ -23,8 +23,9 @@ import (
 	"mb/internal/ui"
 )
 
-func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
-	pluginList, err := deps.Store.ListPlugins()
+// Attach registers plugin commands from the cache under root.
+func Attach(root *cobra.Command, d deps.Dependencies) {
+	pluginList, err := d.Store.ListPlugins()
 	if err != nil {
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderError(err.Error()))
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderInfo("Execute `mb self sync` para reconstruir o cache de plugins."))
@@ -35,13 +36,13 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 		return
 	}
 
-	categoryList, _ := deps.Store.ListCategories()
+	categoryList, _ := d.Store.ListCategories()
 	categoriesByPath := make(map[string]cache.Category)
 	for _, c := range categoryList {
 		categoriesByPath[c.Path] = c
 	}
 
-	sources, _ := deps.Store.ListPluginSources()
+	sources, _ := d.Store.ListPluginSources()
 	sourceByDir := make(map[string]*cache.PluginSource)
 	for i := range sources {
 		sourceByDir[sources[i].InstallDir] = &sources[i]
@@ -102,18 +103,18 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 		if byPath[pathSoFar] != nil {
 			continue
 		}
-		src := self.SourceForPlugin(plugin, sources, deps.Runtime.PluginsDir)
+		src := self.SourceForPlugin(plugin, sources, d.Runtime.PluginsDir)
 		pluginRoot := plugin.PluginDir
 		if pluginRoot == "" {
 			installDir := self.FirstPathSegment(plugin.CommandPath)
 			s := sourceByDir[installDir]
-			pluginRoot = filepath.Join(deps.Runtime.PluginsDir, installDir)
+			pluginRoot = filepath.Join(d.Runtime.PluginsDir, installDir)
 			if s != nil && s.LocalPath != "" {
 				pluginRoot = s.LocalPath
 			}
 		}
 		isLocal := src != nil && src.LocalPath != ""
-		leafCmd := newLeafCommand(plugin.CommandName, plugin, deps, pluginRoot, isLocal)
+		leafCmd := newLeafCommand(plugin.CommandName, plugin, d, pluginRoot, isLocal)
 		leafCmd.Hidden = plugin.Hidden
 		if parent == root {
 			leafCmd.GroupID = "plugin_commands"
@@ -123,8 +124,6 @@ func AttachDynamicCommands(root *cobra.Command, deps config.Dependencies) {
 	}
 }
 
-// applyCobraPluginFields sets Use, Args, Aliases, Example, Long, Deprecated on cmd from plugin when present.
-// When UseTemplate is set, Cobra Use is "command + use" (e.g. "mycmd <name>").
 func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse string) {
 	if plugin.UseTemplate != "" {
 		cmd.Use = defaultUse + " " + strings.TrimSpace(plugin.UseTemplate)
@@ -157,7 +156,7 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse 
 	}
 }
 
-func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, pluginRoot string, isLocal bool) *cobra.Command {
+func newLeafCommand(use string, plugin cache.Plugin, d deps.Dependencies, pluginRoot string, isLocal bool) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
 		short = "Executa " + plugin.CommandPath
@@ -170,7 +169,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 		cmd := &cobra.Command{
 			Use:   use,
 			Short: short,
-			RunE:  runEntrypointCommand(plugin, deps, pluginRoot),
+			RunE:  runEntrypointCommand(plugin, d, pluginRoot),
 		}
 		applyCobraPluginFields(cmd, plugin, use)
 		if plugin.ReadmePath != "" {
@@ -190,7 +189,7 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 	cmd := &cobra.Command{
 		Use:   use,
 		Short: short,
-		RunE:  runFlagsOnlyCommand(plugin, flagsMap, deps, pluginRoot),
+		RunE:  runFlagsOnlyCommand(plugin, flagsMap, d, pluginRoot),
 	}
 	applyCobraPluginFields(cmd, plugin, use)
 
@@ -219,9 +218,6 @@ func newLeafCommand(use string, plugin cache.Plugin, deps config.Dependencies, p
 	return cmd
 }
 
-// parseRootVerbosityFlags parses args against the root's persistent flags (e.g. -v, -q)
-// so that deps.Runtime.Verbose/Quiet are set even when the flag appears after the subcommand
-// (e.g. mb tools hello -v). It returns the remaining args not consumed by those flags.
 func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 	root := cmd.Root()
 	if root == nil {
@@ -232,35 +228,35 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 	return fs.Args()
 }
 
-func runEntrypointCommand(plugin cache.Plugin, deps config.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
+func runEntrypointCommand(plugin cache.Plugin, d deps.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
 		argsToPass := cmd.Flags().Args()
-		cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
+		cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
 		if err != nil {
 			return err
 		}
-		fileValues, err := buildEnvFileValues(deps.Runtime)
+		fileValues, err := buildEnvFileValues(d.Runtime)
 		if err != nil {
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
 		merged = ui.PrependGumThemeDefaults(merged)
-		merged = appendVerbosityEnv(merged, deps.Runtime)
-		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
+		merged = appendVerbosityEnv(merged, d.Runtime)
+		merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 		ctx := cmd.Context()
-		if deps.Runtime.PluginTimeout > 0 {
+		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+			ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 			defer cancel()
 		}
-		return deps.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
+		return d.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 	}
 }
 
-func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, deps config.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
+func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDef, d deps.Dependencies, pluginRoot string) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if f := cmd.Flags().Lookup("readme"); f != nil && f.Changed {
 			return runReadmeWithGlow(plugin.ReadmePath)
@@ -283,25 +279,25 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		if chosenFlag == "" || chosenEntrypoint == "" {
 			if plugin.ExecPath != "" {
 				argsToPass := cmd.Flags().Args()
-				cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
+				cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
 				if err != nil {
 					return err
 				}
-				fileValues, err := buildEnvFileValues(deps.Runtime)
+				fileValues, err := buildEnvFileValues(d.Runtime)
 				if err != nil {
 					return err
 				}
 				merged := env.Merge(os.Environ(), fileValues, cliValues)
 				merged = ui.PrependGumThemeDefaults(merged)
-				merged = appendVerbosityEnv(merged, deps.Runtime)
-				merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
+				merged = appendVerbosityEnv(merged, d.Runtime)
+				merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 				ctx := cmd.Context()
-				if deps.Runtime.PluginTimeout > 0 {
+				if d.Runtime.PluginTimeout > 0 {
 					var cancel context.CancelFunc
-					ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+					ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 					defer cancel()
 				}
-				return deps.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
+				return d.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 			}
 			cmd.Help()
 			return nil
@@ -329,25 +325,25 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 			ConfigHash:  plugin.ConfigHash,
 		}
 
-		cliValues, err := env.ParseInlinePairs(deps.Runtime.InlineEnvValues)
+		cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
 		if err != nil {
 			return err
 		}
-		fileValues, err := buildEnvFileValues(deps.Runtime)
+		fileValues, err := buildEnvFileValues(d.Runtime)
 		if err != nil {
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
 		merged = ui.PrependGumThemeDefaults(merged)
-		merged = appendVerbosityEnv(merged, deps.Runtime)
-		merged = appendShellHelpersEnv(merged, deps.Runtime.ConfigDir)
+		merged = appendVerbosityEnv(merged, d.Runtime)
+		merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 		ctx := cmd.Context()
-		if deps.Runtime.PluginTimeout > 0 {
+		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, deps.Runtime.PluginTimeout)
+			ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 			defer cancel()
 		}
-		return deps.Executor.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
+		return d.Executor.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
 	}
 }
 
@@ -356,7 +352,7 @@ func appendShellHelpersEnv(merged []string, configDir string) []string {
 	return append(merged, "MB_HELPERS_PATH="+path)
 }
 
-func appendVerbosityEnv(merged []string, rt *config.RuntimeConfig) []string {
+func appendVerbosityEnv(merged []string, rt *deps.RuntimeConfig) []string {
 	if rt == nil {
 		return merged
 	}
@@ -392,10 +388,10 @@ func runReadmeWithGlow(path string) error {
 	return system.RenderMarkdown(context.Background(), path)
 }
 
-func buildEnvFileValues(ctx *config.RuntimeConfig) (map[string]string, error) {
+func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
 	merged := map[string]string{}
 
-	defaultValues, err := config.LoadDefaultEnvValues(ctx.DefaultEnvPath)
+	defaultValues, err := deps.LoadDefaultEnvValues(rt.DefaultEnvPath)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +399,7 @@ func buildEnvFileValues(ctx *config.RuntimeConfig) (map[string]string, error) {
 		merged[key] = value
 	}
 
-	envFilePath := ctx.EnvFilePath
+	envFilePath := rt.EnvFilePath
 	if envFilePath != "" {
 		fileValues, readErr := godotenv.Read(envFilePath)
 		if readErr != nil {

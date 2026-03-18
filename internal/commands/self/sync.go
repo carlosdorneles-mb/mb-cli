@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/helpers/shell"
 	"mb/internal/ui"
 )
@@ -15,7 +15,7 @@ import (
 // RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
 // Used by both "mb self sync" and after plugins add/remove/update.
 // outWarnings: if non-nil, validation warnings (skipped plugins) are written here.
-func RunSync(deps config.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
+func RunSync(deps deps.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
 	plugins, categories, warnings, err := deps.Scanner.Scan()
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func checkPluginPathCollisions(plugins []cache.Plugin) error {
 	return nil
 }
 
-func newSelfSyncCmd(deps config.Dependencies) *cobra.Command {
+func newSelfSyncCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sync",
 		Short: "Rescaneia plugins e reconstrói o cache SQLite",

@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 )
 
-func NewSelfCmd(deps config.Dependencies) *cobra.Command {
+func NewSelfCmd(deps deps.Dependencies) *cobra.Command {
 	selfCmd := &cobra.Command{
 		Use:     "self",
 		Short:   "Gerencia operações internas do MB CLI",

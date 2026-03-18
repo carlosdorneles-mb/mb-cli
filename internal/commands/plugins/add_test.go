@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"os"
@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
 	"mb/internal/commands/self"
+	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -51,14 +51,14 @@ func TestAddLocalRegistersPathOnly(t *testing.T) {
 		t.Fatalf("write run.sh: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	addCmd := newPluginsAddCmd(deps)
+	addCmd := newPluginsAddCmd(d)
 	addCmd.SetArgs([]string{"--name", "mylocal", sourceDir})
 	addCmd.SetOut(os.NewFile(0, os.DevNull))
 	addCmd.SetErr(os.NewFile(0, os.DevNull))
@@ -111,14 +111,14 @@ func TestAddLocalWithDotUsesCwd(t *testing.T) {
 		t.Fatalf("write run.sh: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	addCmd := newPluginsAddCmd(deps)
+	addCmd := newPluginsAddCmd(d)
 	addCmd.SetArgs([]string{".", "--name", "fromdot"})
 	addCmd.SetOut(os.NewFile(0, os.DevNull))
 	addCmd.SetErr(os.NewFile(0, os.DevNull))
@@ -156,14 +156,14 @@ func TestAddLocalInvalidDirErrors(t *testing.T) {
 	defer store.Close()
 
 	emptyDir := t.TempDir()
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	addCmd := newPluginsAddCmd(deps)
+	addCmd := newPluginsAddCmd(d)
 	addCmd.SetArgs([]string{emptyDir})
 	addCmd.SetOut(os.NewFile(0, os.DevNull))
 	addCmd.SetErr(os.NewFile(0, os.DevNull))
@@ -205,14 +205,14 @@ func TestSyncIncludesLocalSources(t *testing.T) {
 		t.Fatalf("upsert source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	if err := self.RunSync(deps, nil, nil); err != nil {
+	if err := self.RunSync(d, nil, nil); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
@@ -263,14 +263,14 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 		t.Fatalf("upsert source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(
-		runtime,
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	if err := self.RunSync(deps, nil, nil); err != nil {
+	if err := self.RunSync(d, nil, nil); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
@@ -292,7 +292,7 @@ func TestListExcludesPluginAfterRemove(t *testing.T) {
 	if err := store.DeletePluginSource("to-remove"); err != nil {
 		t.Fatalf("delete plugin source: %v", err)
 	}
-	if err := self.RunSync(deps, nil, nil); err != nil {
+	if err := self.RunSync(d, nil, nil); err != nil {
 		t.Fatalf("sync after remove: %v", err)
 	}
 
@@ -351,9 +351,9 @@ func TestSyncFailsOnDuplicateCommandPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runtime := &config.RuntimeConfig{ConfigDir: tmp, PluginsDir: pluginsDir}
-	deps := config.NewDependencies(runtime, store, plugins.NewScanner(pluginsDir), executor.New())
-	err = self.RunSync(deps, nil, nil)
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	err = self.RunSync(d, nil, nil)
 	if err == nil {
 		t.Fatal("expected sync error on duplicate command path")
 	}

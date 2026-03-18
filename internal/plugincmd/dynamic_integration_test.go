@@ -1,106 +1,25 @@
-package commands
+package plugincmd_test
 
 import (
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
+	"mb/internal/commands"
+	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
 
-func TestAppendVerbosityEnv(t *testing.T) {
-	contains := func(env []string, key string) bool {
-		for _, e := range env {
-			if e == key+"=1" {
-				return true
-			}
-		}
-		return false
-	}
-
-	tests := []struct {
-		name     string
-		rt       *config.RuntimeConfig
-		wantVerb bool
-		wantQuiet bool
-	}{
-		{"both false", &config.RuntimeConfig{Verbose: false, Quiet: false}, false, false},
-		{"verbose only", &config.RuntimeConfig{Verbose: true, Quiet: false}, true, false},
-		{"quiet only", &config.RuntimeConfig{Verbose: false, Quiet: true}, false, true},
-		{"both true", &config.RuntimeConfig{Verbose: true, Quiet: true}, true, true},
-		{"nil rt", nil, false, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			merged := appendVerbosityEnv([]string{"FOO=bar"}, tt.rt)
-			if got := contains(merged, "MB_VERBOSE"); got != tt.wantVerb {
-				t.Errorf("appendVerbosityEnv() MB_VERBOSE present = %v, want %v (merged: %s)", got, tt.wantVerb, strings.Join(merged, " "))
-			}
-			if got := contains(merged, "MB_QUIET"); got != tt.wantQuiet {
-				t.Errorf("appendVerbosityEnv() MB_QUIET present = %v, want %v (merged: %s)", got, tt.wantQuiet, strings.Join(merged, " "))
-			}
-			if !tt.wantVerb && !tt.wantQuiet && tt.rt != nil {
-				if len(merged) != 1 || merged[0] != "FOO=bar" {
-					t.Errorf("appendVerbosityEnv() should not add entries when both false, got %v", merged)
-				}
-			}
-		})
-	}
-}
-
-func TestParseRootVerbosityFlags(t *testing.T) {
-	var verbose, quiet bool
-	root := &cobra.Command{Use: "mb"}
-	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "")
-	root.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "")
-	child := &cobra.Command{Use: "hello"}
-	root.AddCommand(child)
-
-	tests := []struct {
-		name        string
-		args        []string
-		wantVerbose bool
-		wantQuiet   bool
-		wantRemaining []string
-	}{
-		{"-v consumes and sets verbose", []string{"-v"}, true, false, []string{}},
-		{"-q consumes and sets quiet", []string{"-q"}, false, true, []string{}},
-		{"-v -q both set", []string{"-v", "-q"}, true, true, []string{}},
-		{"no flags", []string{}, false, false, []string{}},
-		{"-v then positional", []string{"-v", "foo"}, true, false, []string{"foo"}},
-		{"positional then -v", []string{"foo", "-v"}, true, false, []string{"foo"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			verbose, quiet = false, false
-			remaining := parseRootVerbosityFlags(child, tt.args)
-			if verbose != tt.wantVerbose {
-				t.Errorf("verbose = %v, want %v", verbose, tt.wantVerbose)
-			}
-			if quiet != tt.wantQuiet {
-				t.Errorf("quiet = %v, want %v", quiet, tt.wantQuiet)
-			}
-			if !reflect.DeepEqual(remaining, tt.wantRemaining) {
-				t.Errorf("remaining = %v, want %v", remaining, tt.wantRemaining)
-			}
-		})
-	}
-}
-
-// TestFlagsOnlyWithShort verifies that a flag with Short in the manifest is registered
-// with both long (--deploy) and short (-d) forms, and that both trigger the same flag.
 func TestFlagsOnlyWithShort(t *testing.T) {
 	flagsWithShort := map[string]plugins.FlagDef{
-		"deploy":  {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Faz o deploy"},
+		"deploy":   {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Faz o deploy"},
 		"rollback": {Type: "long", Short: "r", Entrypoint: "rollback.sh", Description: "Reverte o último deploy"},
 	}
 	flagsJSON, err := json.Marshal(flagsWithShort)
@@ -123,13 +42,12 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		CommandPath: "tools/do",
 		CommandName: "do",
 		Description: "Flags-only with short",
-		FlagsJSON:  string(flagsJSON),
+		FlagsJSON:   string(flagsJSON),
 		ConfigHash:  "test",
 	}
 	if err := store.UpsertPlugin(plugin); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	// Category tools must exist for the command to attach under it
 	if err := store.UpsertPlugin(cache.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
@@ -140,17 +58,11 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		t.Fatalf("upsert tools/hello: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
-	}
-	deps := config.NewDependencies(
-		runtime,
-		store,
-		plugins.NewScanner(runtime.PluginsDir),
-		executor.New(),
-	)
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	pluginsDir := filepath.Join(tmp, "mb", "plugins")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -187,7 +99,6 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		t.Errorf("rollback flag Shorthand = %q, want \"r\"", rollbackFlag.Shorthand)
 	}
 
-	// Both --deploy and -d should set the same flag
 	for _, args := range [][]string{{"--deploy"}, {"-d"}} {
 		doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
 		if err := doCmd.Flags().Parse(args); err != nil {
@@ -200,9 +111,6 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	}
 }
 
-// TestEntrypointAndFlagsRunsDefaultOrFlag verifies that when a plugin has both ExecPath
-// and FlagsJSON, running with no flag runs the default entrypoint, and running with
-// a flag runs that flag's entrypoint.
 func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 	flagsMap := map[string]plugins.FlagDef{
 		"deploy": {Type: "long", Short: "d", Entrypoint: "deploy.sh", Description: "Deploy"},
@@ -258,17 +166,10 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		t.Fatalf("upsert tools/hello: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: pluginsDir,
-	}
-	deps := config.NewDependencies(
-		runtime,
-		store,
-		plugins.NewScanner(runtime.PluginsDir),
-		executor.New(),
-	)
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -286,7 +187,6 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		t.Fatal("command 'tools do' not found")
 	}
 
-	// No flag: should run default entrypoint (run.sh)
 	doCmd.SetContext(context.Background())
 	doCmd.Flags().ParseErrorsWhitelist.UnknownFlags = false
 	if err := doCmd.Flags().Parse([]string{}); err != nil {
@@ -296,15 +196,12 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		t.Errorf("RunE with no flag (default entrypoint): %v", err)
 	}
 
-	// --deploy: should run deploy.sh
 	doCmd.Flags().Parse([]string{"--deploy"})
 	if err := doCmd.RunE(doCmd, []string{}); err != nil {
 		t.Errorf("RunE with --deploy: %v", err)
 	}
 }
 
-// TestFlagsOnlyWithoutShort verifies backward compatibility: flags with type long only
-// (no Short field) are still registered and work with the long form only.
 func TestFlagsOnlyWithoutShort(t *testing.T) {
 	flagsLongOnly := map[string]plugins.FlagDef{
 		"deploy": {Type: "long", Entrypoint: "deploy.sh", Description: "Deploy"},
@@ -329,7 +226,7 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		CommandPath: "tools/do",
 		CommandName: "do",
 		Description: "Flags-only long only",
-		FlagsJSON:  string(flagsJSON),
+		FlagsJSON:   string(flagsJSON),
 		ConfigHash:  "test",
 	}
 	if err := store.UpsertPlugin(plugin); err != nil {
@@ -345,17 +242,11 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		t.Fatalf("upsert tools/hello: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
-	}
-	deps := config.NewDependencies(
-		runtime,
-		store,
-		plugins.NewScanner(runtime.PluginsDir),
-		executor.New(),
-	)
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	pluginsDir := filepath.Join(tmp, "mb", "plugins")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -382,7 +273,6 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 	}
 }
 
-// TestCobraPluginFieldsInjected verifies that plugin UseTemplate, ArgsCount, Aliases, Example, Long, Deprecated are applied to the leaf command.
 func TestCobraPluginFieldsInjected(t *testing.T) {
 	tmp := t.TempDir()
 	pluginsDir := filepath.Join(tmp, "plugins")
@@ -422,23 +312,15 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 		t.Fatalf("upsert plugin: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: pluginsDir,
-	}
-	deps := config.NewDependencies(
-		runtime,
-		store,
-		plugins.NewScanner(runtime.PluginsDir),
-		executor.New(),
-	)
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 
 	var helloCmd *cobra.Command
 	for _, c := range root.Commands() {
 		if c.Name() == "tools" {
 			for _, sub := range c.Commands() {
-				// Use is "command + use" = "hello <name>"
 				if sub.Use == "hello <name>" {
 					helloCmd = sub
 					break
@@ -466,10 +348,8 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	if helloCmd.Long != "Long desc" {
 		t.Errorf("Long = %q, want %q", helloCmd.Long, "Long desc")
 	}
-	// Deprecated: não setamos cmd.Deprecated; a mensagem em português é exibida via wrap do RunE ao executar.
 }
 
-// TestEntrypointCommandHelpShowsHelp verifies that --help on an entrypoint-only plugin shows Cobra help instead of passing --help to the script.
 func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	tmp := t.TempDir()
 	pluginsDir := filepath.Join(tmp, "plugins")
@@ -499,9 +379,10 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
-	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 	var out strings.Builder
 	root.SetOut(&out)
 	root.SetArgs([]string{"tools", "hello", "--help"})
@@ -516,7 +397,6 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	}
 }
 
-// TestEntrypointCommandGlobalFlagsNotPassedToPlugin verifies that -v (and other global flags) are not passed to the plugin script.
 func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 	tmp := t.TempDir()
 	pluginsDir := filepath.Join(tmp, "plugins")
@@ -525,7 +405,6 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 	argsFile := filepath.Join(tmp, "args.txt")
-	// Script: first arg is output file, rest are written to it; so we pass argsFile then "foo" and expect only "foo" (no -v)
 	script := "#!/bin/sh\nout=\"$1\"\nshift\necho \"$@\" > \"$out\"\n"
 	if err := os.WriteFile(filepath.Join(pluginDir, "run.sh"), []byte(script), 0o755); err != nil {
 		t.Fatalf("write run.sh: %v", err)
@@ -548,9 +427,10 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
-	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", "-v", argsFile, "foo"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -568,7 +448,6 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 	}
 }
 
-// TestEntrypointCommandPositionalArgsPassedToPlugin verifies that positional arguments are passed to the plugin (via cmd.Flags().Args()).
 func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 	tmp := t.TempDir()
 	pluginsDir := filepath.Join(tmp, "plugins")
@@ -599,9 +478,10 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	runtime := &config.RuntimeConfig{ConfigDir: filepath.Join(tmp, "mb"), PluginsDir: pluginsDir}
-	deps := config.NewDependencies(runtime, store, plugins.NewScanner(runtime.PluginsDir), executor.New())
-	root := NewRootCmd(deps)
+	cfgDir := filepath.Join(tmp, "mb")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	root := commands.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", argsFile, "foo", "bar"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)

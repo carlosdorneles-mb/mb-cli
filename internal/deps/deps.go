@@ -1,4 +1,4 @@
-package config
+package deps
 
 import (
 	"time"
@@ -8,11 +8,9 @@ import (
 	"mb/internal/plugins"
 )
 
+// RuntimeConfig combines resolved Paths with CLI/runtime flags.
 type RuntimeConfig struct {
-	ConfigDir       string
-	PluginsDir      string
-	CacheDBPath     string
-	DefaultEnvPath  string
+	Paths
 	Verbose         bool
 	Quiet           bool
 	EnvFilePath     string
@@ -21,6 +19,7 @@ type RuntimeConfig struct {
 	PluginTimeout time.Duration
 }
 
+// Dependencies groups services injected into commands.
 type Dependencies struct {
 	Runtime  *RuntimeConfig
 	Store    *cache.Store
@@ -28,6 +27,7 @@ type Dependencies struct {
 	Executor *executor.Executor
 }
 
+// NewDependencies constructs the dependency bundle for Fx / tests.
 func NewDependencies(
 	runtime *RuntimeConfig,
 	store *cache.Store,

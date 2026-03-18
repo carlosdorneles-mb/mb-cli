@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"path/filepath"
@@ -6,13 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/commands/self"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
 )
 
-func newPluginsListCmd(deps config.Dependencies) *cobra.Command {
+func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 	var checkUpdates bool
 
 	cmd := &cobra.Command{

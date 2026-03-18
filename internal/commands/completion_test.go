@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -40,17 +40,16 @@ func TestCompletionIncludesPluginCommands(t *testing.T) {
 		t.Fatalf("upsert plugin: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
-	}
-	deps := config.NewDependencies(
-		runtime,
+	cfgDir := filepath.Join(tmp, "mb")
+	pluginsDir := filepath.Join(tmp, "mb", "plugins")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
-		plugins.NewScanner(runtime.PluginsDir),
+		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := NewRootCmd(deps)
+	root := NewRootCmd(d)
 
 	var found bool
 	for _, c := range root.Commands() {
@@ -94,17 +93,16 @@ func TestLocalPluginCommandShortContainsLocal(t *testing.T) {
 		t.Fatalf("upsert plugin source: %v", err)
 	}
 
-	runtime := &config.RuntimeConfig{
-		ConfigDir:  filepath.Join(tmp, "mb"),
-		PluginsDir: filepath.Join(tmp, "mb", "plugins"),
-	}
-	deps := config.NewDependencies(
-		runtime,
+	cfgDir := filepath.Join(tmp, "mb")
+	pluginsDir := filepath.Join(tmp, "mb", "plugins")
+	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
+	d := deps.NewDependencies(
+		rt,
 		store,
-		plugins.NewScanner(runtime.PluginsDir),
+		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := NewRootCmd(deps)
+	root := NewRootCmd(d)
 
 	var toolsCmd *cobra.Command
 	for _, c := range root.Commands() {

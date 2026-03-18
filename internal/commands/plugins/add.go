@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"errors"
@@ -10,13 +10,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/commands/self"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/ui"
 )
 
-func newPluginsAddCmd(deps config.Dependencies) *cobra.Command {
+func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 	var name string
 	var tag string
 
@@ -40,7 +40,7 @@ func newPluginsAddCmd(deps config.Dependencies) *cobra.Command {
 	return cmd
 }
 
-func runAddRemote(cmd *cobra.Command, deps config.Dependencies, gitURL string, name string, tag string) error {
+func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, name string, tag string) error {
 	ctx := cmd.Context()
 
 	repoName, normalizedURL, err := mbplugins.ParseGitURL(gitURL)
@@ -134,7 +134,7 @@ func dirHasManifest(dir string) bool {
 	return errors.Is(err, errManifestFound)
 }
 
-func runAddLocal(cmd *cobra.Command, deps config.Dependencies, pathArg string, name string) error {
+func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, pathArg string, name string) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
 	}

@@ -7,8 +7,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands"
-	"mb/internal/commands/config"
-	"mb/internal/executor"
+	"mb/internal/deps"
 	"mb/internal/plugins"
 )
 
@@ -17,16 +16,14 @@ func Bootstrap() (*fx.App, commands.RootCommand, error) {
 
 	application := fx.New(
 		fx.NopLogger,
-		fx.Provide(
-			NewAppContext,
-			NewRuntimeConfig,
-			NewStoreFromContext,
-			NewScannerFromContext,
-			executor.New,
-			config.NewDependencies,
-			commands.NewRootCmd,
+		fx.Options(
+			PathsModule,
+			CacheModule,
+			PluginsModule,
+			ExecutorModule,
+			DepsModule,
+			CLIModule,
 		),
-		fx.Invoke(registerLifecycle),
 		fx.Populate(&root),
 	)
 
@@ -37,24 +34,20 @@ func Bootstrap() (*fx.App, commands.RootCommand, error) {
 	return application, root, nil
 }
 
-func NewRuntimeConfig(ctx *AppContext) *config.RuntimeConfig {
-	return &config.RuntimeConfig{
-		ConfigDir:      ctx.ConfigDir,
-		PluginsDir:     ctx.PluginsDir,
-		CacheDBPath:    ctx.CacheDBPath,
-		DefaultEnvPath: ctx.DefaultEnvPath,
-	}
+// NewRuntimeConfig builds runtime config from resolved paths (CLI flags stay at zero values until Cobra runs).
+func NewRuntimeConfig(p *deps.Paths) *deps.RuntimeConfig {
+	return &deps.RuntimeConfig{Paths: *p}
 }
 
-func NewStoreFromContext(ctx *AppContext) (*cache.Store, error) {
-	return cache.NewStore(ctx.CacheDBPath)
+func newStore(p *deps.Paths) (*cache.Store, error) {
+	return cache.NewStore(p.CacheDBPath)
 }
 
-func NewScannerFromContext(ctx *AppContext) *plugins.Scanner {
-	return plugins.NewScanner(ctx.PluginsDir)
+func newScanner(p *deps.Paths) *plugins.Scanner {
+	return plugins.NewScanner(p.PluginsDir)
 }
 
-func registerLifecycle(lifecycle fx.Lifecycle, store *cache.Store) {
+func registerStoreLifecycle(lifecycle fx.Lifecycle, store *cache.Store) {
 	lifecycle.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
 			return store.Close()

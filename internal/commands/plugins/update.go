@@ -1,4 +1,4 @@
-package plugincmd
+package plugins
 
 import (
 	"context"
@@ -8,13 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/config"
+	"mb/internal/deps"
 	"mb/internal/commands/self"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/ui"
 )
 
-func newPluginsUpdateCmd(deps config.Dependencies) *cobra.Command {
+func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
@@ -56,7 +56,7 @@ func newPluginsUpdateCmd(deps config.Dependencies) *cobra.Command {
 	return cmd
 }
 
-func updateOnePlugin(ctx context.Context, deps config.Dependencies, name string, cmd *cobra.Command) error {
+func updateOnePlugin(ctx context.Context, deps deps.Dependencies, name string, cmd *cobra.Command) error {
 	src, err := deps.Store.GetPluginSource(name)
 	if err != nil {
 		return err
