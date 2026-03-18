@@ -23,7 +23,7 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add <git-url|path|.>",
 		Aliases: []string{"install", "i", "a"},
-		Short:   "Instala um plugin a partir de uma URL Git (remoto) ou de um diretório local (path ou .)",
+		Short:   "Instala um plugin a partir de uma URL Git ou de um diretório local",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			arg := strings.TrimSpace(args[0])

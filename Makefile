@@ -28,10 +28,12 @@ help:
 	@echo "  clean          remove bin/, coverage, caches"
 	@echo ""
 	@echo "Outros:"
-	@echo "  install        install to GOPATH/bin"
-	@echo "  tidy           go mod tidy"
-	@echo "  deps           go mod download + instala svu (para make release)"
-	@echo "  lint           run golangci-lint (optional)"
+	@echo "  install        instala o binário do CLI em $GOPATH/bin"
+	@echo "  tidy           limpa dependências não usadas"
+	@echo "  deps           instala dependências"
+	@echo "  update-deps    atualiza todas as dependências"
+	@echo "  lint           executa o golangci-lint"
+	@echo "  format         formata o código"
 	@echo ""
 	@echo "Documentação (Docusaurus em $(DOCS_DIR)):"
 	@echo "  docs-install   npm install em $(DOCS_DIR)"
@@ -108,6 +110,12 @@ deps:
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/caarlos0/svu/v3@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
+# Update dependencies
+update-deps:
+	go get -u ./...
+	go mod tidy
+	go mod verify
 
 # Documentation (Docusaurus)
 docs-install:

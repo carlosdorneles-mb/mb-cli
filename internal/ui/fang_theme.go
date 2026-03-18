@@ -2,7 +2,7 @@ package ui
 
 import (
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/fang"
+	"charm.land/fang/v2"
 )
 
 // MBHelpTheme returns a fang ColorSchemeFunc that applies MB CLI colors:

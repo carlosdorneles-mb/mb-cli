@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/fang"
+	"charm.land/fang/v2"
 
 	"mb/internal/app"
 	"mb/internal/ui"

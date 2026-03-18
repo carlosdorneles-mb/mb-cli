@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/charmbracelet/glamour"
+	"charm.land/glamour/v2"
 	"golang.org/x/term"
 )
 
@@ -16,21 +16,18 @@ func RenderMarkdown(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	r, err := glamour.NewTermRenderer(glamour.WithAutoStyle())
+	out, err := glamour.RenderWithEnvironmentConfig(string(content))
 	if err != nil {
 		return err
 	}
-	out, err := r.RenderBytes(content)
-	if err != nil {
-		return err
-	}
+	outBytes := []byte(out)
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		if pagerErr := runPager(out); pagerErr == nil {
+		if pagerErr := runPager(outBytes); pagerErr == nil {
 			return nil
 		}
 		// Pager indisponível (ex.: less não instalado); imprime direto
 	}
-	_, err = os.Stdout.Write(out)
+	_, err = os.Stdout.Write(outBytes)
 	return err
 }
 
