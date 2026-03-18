@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	selenv "mb/internal/commands/self/env"
 	"mb/internal/deps"
 )
 
@@ -20,7 +21,7 @@ func NewSelfCmd(deps deps.Dependencies) *cobra.Command {
 	syncCmd := newSelfSyncCmd(deps)
 	syncCmd.GroupID = "commands"
 	selfCmd.AddCommand(syncCmd)
-	envCmd := newSelfEnvCmd(deps)
+	envCmd := selenv.NewCmd(deps)
 	envCmd.GroupID = "commands"
 	selfCmd.AddCommand(envCmd)
 	updateCmd := newSelfUpdateCmd(deps)
