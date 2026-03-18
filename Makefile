@@ -110,6 +110,8 @@ deps:
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/caarlos0/svu/v3@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	pip install pre-commit
+	pre-commit install
 
 # Update dependencies
 update-deps:
