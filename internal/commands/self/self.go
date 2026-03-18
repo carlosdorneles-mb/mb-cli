@@ -11,6 +11,7 @@ import (
 func NewSelfCmd(deps deps.Dependencies) *cobra.Command {
 	selfCmd := &cobra.Command{
 		Use:     "self",
+		Aliases: []string{"s"},
 		Short:   "Gerencia operações internas do MB CLI",
 		GroupID: "commands",
 	}

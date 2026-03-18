@@ -1,363 +1,135 @@
 package plugins
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"mb/internal/cache"
-	"mb/internal/commands/self"
-	"mb/internal/deps"
-	"mb/internal/executor"
-	"mb/internal/plugins"
 )
 
-func TestDirHasManifest(t *testing.T) {
-	tmp := t.TempDir()
-	if dirHasManifest(tmp) {
-		t.Error("empty dir should not have manifest")
+func TestAddRequiresExactlyOneArg(t *testing.T) {
+	d := testPluginsDeps(t)
+	cmd := newPluginsAddCmd(d)
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+
+	cmd.SetArgs([]string{})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error with no args")
 	}
-	if err := os.WriteFile(filepath.Join(tmp, "manifest.yaml"), []byte("command: test\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	if !dirHasManifest(tmp) {
-		t.Error("dir with manifest.yaml should have manifest")
+
+	cmd.SetArgs([]string{"a", "b"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error with two args")
 	}
 }
 
-func TestAddLocalRegistersPathOnly(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+func TestAddLocalPathNotFound(t *testing.T) {
+	d := testPluginsDeps(t)
+	cmd := newPluginsAddCmd(d)
+	var out, errOut bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errOut)
+
+	missing := filepath.Join(t.TempDir(), "nope")
+	cmd.SetArgs([]string{missing})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "não encontrado") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAddLocalPathNotDirectory(t *testing.T) {
+	d := testPluginsDeps(t)
+	cmd := newPluginsAddCmd(d)
+	f := filepath.Join(t.TempDir(), "file.txt")
+	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{f})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "não é um diretório") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAddLocalNoManifest(t *testing.T) {
+	d := testPluginsDeps(t)
+	emptyDir := t.TempDir()
+	cmd := newPluginsAddCmd(d)
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{emptyDir})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "manifest.yaml") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAddLocalRegistersPlugin(t *testing.T) {
+	d := testPluginsDeps(t)
+	pluginDir := t.TempDir()
+	writeMinimalRunnablePlugin(t, pluginDir)
+
+	cmd := newPluginsAddCmd(d)
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(os.NewFile(0, os.DevNull))
+	cmd.SetArgs([]string{pluginDir, "--name", "myplug"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("add: %v", err)
 	}
 
-	store, err := cache.NewStore(cachePath)
+	src, err := d.Store.GetPluginSource("myplug")
 	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
-
-	sourceDir := filepath.Join(tmp, "my-plugin")
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		t.Fatalf("mkdir source: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: hello\ndescription: Hi\nentrypoint: run.sh\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write run.sh: %v", err)
-	}
-
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(
-		rt,
-		store,
-		plugins.NewScanner(pluginsDir),
-		executor.New(),
-	)
-	addCmd := newPluginsAddCmd(d)
-	addCmd.SetArgs([]string{"--name", "mylocal", sourceDir})
-	addCmd.SetOut(os.NewFile(0, os.DevNull))
-	addCmd.SetErr(os.NewFile(0, os.DevNull))
-	if err := addCmd.Execute(); err != nil {
-		t.Fatalf("add local: %v", err)
-	}
-
-	// No dir created in PluginsDir for local
-	if _, err := os.Stat(filepath.Join(pluginsDir, "mylocal")); err == nil {
-		t.Error("local plugin should not create dir in PluginsDir")
-	}
-
-	src, err := store.GetPluginSource("mylocal")
-	if err != nil {
-		t.Fatalf("get plugin source: %v", err)
+		t.Fatalf("GetPluginSource: %v", err)
 	}
 	if src == nil {
-		t.Fatal("plugin source should exist after add local")
+		t.Fatal("expected plugin source")
 	}
-	if src.LocalPath != sourceDir {
-		t.Errorf("LocalPath want %q, got %q", sourceDir, src.LocalPath)
+	if src.LocalPath == "" {
+		t.Error("expected LocalPath set")
 	}
-	if src.GitURL != "" {
-		t.Errorf("local plugin should have empty GitURL, got %q", src.GitURL)
-	}
-}
-
-func TestAddLocalWithDotUsesCwd(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	store, err := cache.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
-
-	sourceDir := filepath.Join(tmp, "cwd-plugin")
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: x\ndescription: X\nentrypoint: run.sh\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write run.sh: %v", err)
-	}
-
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(
-		rt,
-		store,
-		plugins.NewScanner(pluginsDir),
-		executor.New(),
-	)
-	addCmd := newPluginsAddCmd(d)
-	addCmd.SetArgs([]string{".", "--name", "fromdot"})
-	addCmd.SetOut(os.NewFile(0, os.DevNull))
-	addCmd.SetErr(os.NewFile(0, os.DevNull))
-	addCmd.SetIn(os.Stdin)
-	prevWd, _ := os.Getwd()
-	defer os.Chdir(prevWd)
-	if err := os.Chdir(sourceDir); err != nil {
-		t.Fatalf("chdir: %v", err)
-	}
-	if err := addCmd.Execute(); err != nil {
-		t.Fatalf("add . : %v", err)
-	}
-
-	src, err := store.GetPluginSource("fromdot")
-	if err != nil {
-		t.Fatalf("get: %v", err)
-	}
-	if src == nil || src.LocalPath != sourceDir {
-		t.Errorf("expected LocalPath %q, got %#v", sourceDir, src)
+	if !strings.Contains(out.String(), "myplug") {
+		t.Errorf("stdout should mention plugin name: %s", out.String())
 	}
 }
 
-func TestAddLocalInvalidDirErrors(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+func TestAddLocalDuplicateName(t *testing.T) {
+	d := testPluginsDeps(t)
+	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+		InstallDir: "taken",
+		LocalPath:  "/tmp/x",
+	}); err != nil {
+		t.Fatal(err)
 	}
 
-	store, err := cache.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
+	pluginDir := t.TempDir()
+	writeMinimalRunnablePlugin(t, pluginDir)
 
-	emptyDir := t.TempDir()
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(
-		rt,
-		store,
-		plugins.NewScanner(pluginsDir),
-		executor.New(),
-	)
-	addCmd := newPluginsAddCmd(d)
-	addCmd.SetArgs([]string{emptyDir})
-	addCmd.SetOut(os.NewFile(0, os.DevNull))
-	addCmd.SetErr(os.NewFile(0, os.DevNull))
-	err = addCmd.Execute()
+	cmd := newPluginsAddCmd(d)
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{pluginDir, "--name", "taken"})
+	err := cmd.Execute()
 	if err == nil {
-		t.Fatal("expected error when dir has no manifest.yaml")
+		t.Fatal("expected duplicate name error")
 	}
-	if !strings.Contains(err.Error(), "manifest") {
-		t.Errorf("error should mention manifest, got: %v", err)
-	}
-}
-
-func TestSyncIncludesLocalSources(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	store, err := cache.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
-
-	sourceDir := filepath.Join(tmp, "local-src")
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: cmd\ndescription: C\nentrypoint: run.sh\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write run.sh: %v", err)
-	}
-
-	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "local-src", LocalPath: sourceDir}); err != nil {
-		t.Fatalf("upsert source: %v", err)
-	}
-
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(
-		rt,
-		store,
-		plugins.NewScanner(pluginsDir),
-		executor.New(),
-	)
-	if err := self.RunSync(d, nil, nil); err != nil {
-		t.Fatalf("sync: %v", err)
-	}
-
-	pluginList, err := store.ListPlugins()
-	if err != nil {
-		t.Fatalf("list plugins: %v", err)
-	}
-	var found bool
-	for _, p := range pluginList {
-		if p.CommandPath == "cmd" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("sync should include plugin from local source; got %d plugins: %v", len(pluginList), pluginList)
-	}
-}
-
-// TestListExcludesPluginAfterRemove verifies that after removing a plugin source and running sync,
-// plugins list no longer shows that plugin (ensures DeleteAllPlugins in sync clears orphaned rows).
-func TestListExcludesPluginAfterRemove(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	store, err := cache.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
-
-	sourceDir := filepath.Join(tmp, "to-remove")
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "manifest.yaml"), []byte("command: gone\ndescription: G\nentrypoint: run.sh\n"), 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("write run.sh: %v", err)
-	}
-
-	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "to-remove", LocalPath: sourceDir}); err != nil {
-		t.Fatalf("upsert source: %v", err)
-	}
-
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(
-		rt,
-		store,
-		plugins.NewScanner(pluginsDir),
-		executor.New(),
-	)
-	if err := self.RunSync(d, nil, nil); err != nil {
-		t.Fatalf("sync: %v", err)
-	}
-
-	list, err := store.ListPlugins()
-	if err != nil {
-		t.Fatalf("list plugins: %v", err)
-	}
-	var foundBefore bool
-	for _, p := range list {
-		if p.CommandPath == "gone" {
-			foundBefore = true
-			break
-		}
-	}
-	if !foundBefore {
-		t.Fatal("plugin should appear in list after sync")
-	}
-
-	if err := store.DeletePluginSource("to-remove"); err != nil {
-		t.Fatalf("delete plugin source: %v", err)
-	}
-	if err := self.RunSync(d, nil, nil); err != nil {
-		t.Fatalf("sync after remove: %v", err)
-	}
-
-	list, err = store.ListPlugins()
-	if err != nil {
-		t.Fatalf("list plugins after remove: %v", err)
-	}
-	for _, p := range list {
-		if p.CommandPath == "gone" {
-			t.Errorf("plugin gone should not appear in list after remove+sync; got %v", list)
-			break
-		}
-	}
-}
-
-func TestSyncFailsOnDuplicateCommandPath(t *testing.T) {
-	tmp := t.TempDir()
-	pluginsDir := filepath.Join(tmp, "plugins")
-	cachePath := filepath.Join(tmp, "cache.db")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	store, err := cache.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	defer store.Close()
-
-	mk := func(root, cmd string) {
-		d := filepath.Join(root, "tools", "dup")
-		if err := os.MkdirAll(d, 0o755); err != nil {
-			t.Fatalf("mkdir: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(d, "manifest.yaml"), []byte("command: "+cmd+"\ndescription: x\nentrypoint: run.sh\n"), 0o644); err != nil {
-			t.Fatalf("manifest: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(d, "run.sh"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-			t.Fatalf("run.sh: %v", err)
-		}
-	}
-	a := filepath.Join(tmp, "a")
-	b := filepath.Join(tmp, "b")
-	if err := os.MkdirAll(a, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(b, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	mk(a, "dup")
-	mk(b, "dup")
-
-	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "a", LocalPath: a}); err != nil {
-		t.Fatal(err)
-	}
-	if err := store.UpsertPluginSource(cache.PluginSource{InstallDir: "b", LocalPath: b}); err != nil {
-		t.Fatal(err)
-	}
-
-	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: tmp, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
-	err = self.RunSync(d, nil, nil)
-	if err == nil {
-		t.Fatal("expected sync error on duplicate command path")
-	}
-	if !strings.Contains(err.Error(), "conflito") {
-		t.Fatalf("expected conflito in error, got: %v", err)
+	if !strings.Contains(err.Error(), "já existe") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

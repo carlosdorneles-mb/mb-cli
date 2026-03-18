@@ -26,6 +26,7 @@ func newSelfUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var checkOnly bool
 	cmd := &cobra.Command{
 		Use:   "update",
+		Aliases: []string{"up", "u"},
 		Short: "Atualiza o MB CLI para a última release estável do GitHub",
 		Long: `Só se aplica a binários da release oficial (versão definida no build). Builds locais recebem uma mensagem a orientar o install.sh.
 

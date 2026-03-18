@@ -65,3 +65,18 @@ func TestListShowsLocalAndPath(t *testing.T) {
 		t.Errorf("list output should contain local path, got:\n%s", out.String())
 	}
 }
+
+func TestListEmptyRegistry(t *testing.T) {
+	d := testPluginsDeps(t)
+	listCmd := newPluginsListCmd(d)
+	var out bytes.Buffer
+	listCmd.SetOut(&out)
+	listCmd.SetErr(os.NewFile(0, os.DevNull))
+	if err := listCmd.Execute(); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	// GumTable still renders headers / empty table
+	if out.Len() == 0 {
+		t.Error("expected some output from list")
+	}
+}

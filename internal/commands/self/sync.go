@@ -94,6 +94,7 @@ func checkPluginPathCollisions(plugins []cache.Plugin) error {
 func newSelfSyncCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sync",
+		Aliases: []string{"s"},
 		Short: "Rescaneia plugins e reconstrói o cache SQLite",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return RunSync(deps, func(msg string) {

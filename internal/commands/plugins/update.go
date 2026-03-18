@@ -19,6 +19,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "update <name>",
+		Aliases: []string{"up", "u"},
 		Short: "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()

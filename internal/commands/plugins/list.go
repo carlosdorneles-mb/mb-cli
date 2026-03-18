@@ -17,6 +17,7 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
+		Aliases: []string{"ls", "l"},
 		Short: "Lista plugins instalados (name, command, description, version, url)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginList, err := deps.Store.ListPlugins()

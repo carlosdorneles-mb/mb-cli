@@ -9,6 +9,7 @@ import (
 func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
 	pluginsCmd := &cobra.Command{
 		Use:     "plugins",
+		Aliases: []string{"p", "extensions", "e"},
 		Short:   "Gerencia plugins instalados (add, list, remove, update)",
 		GroupID: "commands",
 	}

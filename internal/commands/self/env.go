@@ -23,6 +23,7 @@ func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	var listGroup string
 	listCmd := &cobra.Command{
 		Use:   "list",
+		Aliases: []string{"ls", "l"},
 		Short: "Lista variáveis padrão ou de um grupo específico",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var rows [][]string
@@ -97,6 +98,7 @@ func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	var setGroup string
 	setCmd := &cobra.Command{
 		Use:   "set <KEY> <VALUE>",
+		Aliases: []string{"s"},
 		Short: "Define uma variável padrão ou pra um grupo específico",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -131,6 +133,7 @@ func newSelfEnvCmd(d deps.Dependencies) *cobra.Command {
 	var unsetGroup string
 	unsetCmd := &cobra.Command{
 		Use:   "unset <KEY>",
+		Aliases: []string{"u"},
 		Short: "Remove uma variável padrão ou de um grupo específico",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
