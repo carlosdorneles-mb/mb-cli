@@ -50,7 +50,7 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 			if err := deps.Store.DeletePluginSource(name); err != nil {
 				return err
 			}
-			if err := self.RunSync(deps, nil, cmd.ErrOrStderr()); err != nil {
+			if err := self.RunSync(ctx, deps, log, false); err != nil {
 				return err
 			}
 			_ = log.Info(ctx, "plugin %q removido", name)

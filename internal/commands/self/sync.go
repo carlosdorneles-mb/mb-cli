@@ -1,21 +1,24 @@
 package self
 
 import (
+	"context"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/helpers/shell"
-	"mb/internal/ui"
+	"mb/internal/system"
 )
 
 // RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
 // Used by both "mb self sync" and after plugins add/remove/update.
-// outWarnings: if non-nil, validation warnings (skipped plugins) are written here.
-func RunSync(deps deps.Dependencies, outSuccess func(string), outWarnings io.Writer) error {
+// log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
+func RunSync(ctx context.Context, deps deps.Dependencies, log *system.Logger, emitSuccess bool) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	plugins, categories, warnings, err := deps.Scanner.Scan()
 	if err != nil {
 		return err
@@ -39,9 +42,9 @@ func RunSync(deps deps.Dependencies, outSuccess func(string), outWarnings io.Wri
 		categories = append(categories, c...)
 		warnings = append(warnings, w...)
 	}
-	if outWarnings != nil {
+	if log != nil {
 		for _, w := range warnings {
-			fmt.Fprintf(outWarnings, "aviso: %s: %s\n", w.Path, w.Message)
+			_ = log.Warn(ctx, "aviso: %s: %s", w.Path, w.Message)
 		}
 	}
 
@@ -67,8 +70,8 @@ func RunSync(deps deps.Dependencies, outSuccess func(string), outWarnings io.Wri
 		}
 	}
 
-	if outSuccess != nil {
-		outSuccess(fmt.Sprintf("%d plugin(s) foram sincronizados", len(plugins)))
+	if emitSuccess && log != nil {
+		_ = log.Info(ctx, "%d plugin(s) foram sincronizados", len(plugins))
 	}
 	return nil
 }
@@ -93,13 +96,13 @@ func checkPluginPathCollisions(plugins []cache.Plugin) error {
 
 func newSelfSyncCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
-		Use:   "sync",
+		Use:     "sync",
 		Aliases: []string{"s"},
-		Short: "Rescaneia plugins e reconstrói o cache SQLite",
+		Short:   "Rescaneia plugins e reconstrói o cache SQLite",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return RunSync(deps, func(msg string) {
-				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
-			}, cmd.ErrOrStderr())
+			ctx := cmd.Context()
+			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			return RunSync(ctx, deps, log, true)
 		},
 	}
 }

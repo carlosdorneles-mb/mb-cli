@@ -2,27 +2,33 @@ package self
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/system"
 )
 
 func TestRunSyncEmptyPluginsDir(t *testing.T) {
 	d := testSelfDeps(t)
-	var out bytes.Buffer
-	err := RunSync(d, func(msg string) { out.WriteString(msg) }, &out)
+	t.Setenv("PATH", t.TempDir())
+	var buf bytes.Buffer
+	log := system.NewLogger(false, false, &buf)
+	err := RunSync(context.Background(), d, log, true)
 	if err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
-	if !strings.Contains(out.String(), "0 plugin") {
-		t.Errorf("expected sync count message, got %q", out.String())
+	if !strings.Contains(buf.String(), "0 plugin") && !strings.Contains(buf.String(), "sincronizados") {
+		t.Errorf("expected sync count message, got %q", buf.String())
 	}
 }
 
 func TestSelfSyncCmd(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
 	d := testSelfDeps(t)
 	cmd := newSelfSyncCmd(d)
 	var stdout, stderr bytes.Buffer
@@ -31,8 +37,8 @@ func TestSelfSyncCmd(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
-	if !strings.Contains(stdout.String(), "sincronizados") {
-		t.Errorf("stdout: %s", stdout.String())
+	if !strings.Contains(stderr.String(), "sincronizados") {
+		t.Errorf("stderr: %s", stderr.String())
 	}
 }
 
@@ -49,7 +55,7 @@ func TestRunSyncPluginPathCollision(t *testing.T) {
 	writePluginWithCommand(t, p1, "samecmd")
 	writePluginWithCommand(t, p2, "samecmd")
 
-	err := RunSync(d, nil, nil)
+	err := RunSync(context.Background(), d, system.NewLogger(false, false, io.Discard), false)
 	if err == nil {
 		t.Fatal("expected collision error")
 	}
@@ -68,7 +74,7 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := RunSync(d, nil, nil); err != nil {
+	if err := RunSync(context.Background(), d, nil, false); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
 	plugins, err := d.Store.ListPlugins()

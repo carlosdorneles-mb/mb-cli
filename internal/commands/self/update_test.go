@@ -9,7 +9,7 @@ import (
 	"mb/internal/version"
 )
 
-func TestSelfUpdateQuietNonReleaseNoStdout(t *testing.T) {
+func TestSelfUpdateQuietNonReleaseNoOutput(t *testing.T) {
 	orig := version.Version
 	t.Cleanup(func() { version.Version = orig })
 	version.Version = ""
@@ -17,14 +17,19 @@ func TestSelfUpdateQuietNonReleaseNoStdout(t *testing.T) {
 	rt := &deps.RuntimeConfig{Quiet: true}
 	d := deps.Dependencies{Runtime: rt}
 
-	var buf bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := newSelfUpdateCmd(d)
-	cmd.SetOut(&buf)
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	t.Setenv("PATH", t.TempDir())
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if buf.Len() != 0 {
-		t.Fatalf("quiet: expected empty stdout, got %q", buf.String())
+	if stdout.Len() != 0 {
+		t.Fatalf("quiet: expected empty stdout, got %q", stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("quiet: expected empty stderr, got %q", stderr.String())
 	}
 }
 
@@ -36,13 +41,16 @@ func TestSelfUpdateNonQuietNonReleasePrints(t *testing.T) {
 	rt := &deps.RuntimeConfig{Quiet: false}
 	d := deps.Dependencies{Runtime: rt}
 
-	var buf bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := newSelfUpdateCmd(d)
-	cmd.SetOut(&buf)
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	t.Setenv("PATH", t.TempDir())
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(buf.String(), "release oficial") {
-		t.Fatalf("expected non-release message, got %q", buf.String())
+	combined := stderr.String() + stdout.String()
+	if !strings.Contains(combined, "release oficial") {
+		t.Fatalf("expected non-release message, stderr=%q stdout=%q", stderr.String(), stdout.String())
 	}
 }

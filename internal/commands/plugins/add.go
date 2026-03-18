@@ -114,11 +114,11 @@ func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, nam
 		return err
 	}
 
-	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
+	log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+	if err := self.RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
-	log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-	_ = log.Info(cmd.Context(), "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
+	_ = log.Info(ctx, "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
@@ -217,7 +217,7 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *syst
 	if added == 0 {
 		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
 	}
-	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
+	if err := self.RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
 	return nil
@@ -239,7 +239,7 @@ func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *system.L
 	if err := deps.Store.UpsertPluginSource(cache.PluginSource{InstallDir: installDir, LocalPath: absPath}); err != nil {
 		return err
 	}
-	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
+	if err := self.RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
 	_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, absPath)

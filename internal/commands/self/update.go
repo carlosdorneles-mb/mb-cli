@@ -2,7 +2,6 @@ package self
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/selfupdate"
+	"mb/internal/system"
 	"mb/internal/version"
 )
 
@@ -21,6 +21,15 @@ Para instalar ou atualizar a versão estável:
 
 Releases: https://github.com/carlosdorneles-mb/mb-cli/releases
 `
+
+func logInfoLines(ctx context.Context, log *system.Logger, text string) {
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			_ = log.Info(ctx, "%s", line)
+		}
+	}
+}
 
 func newSelfUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var checkOnly bool
@@ -37,21 +46,22 @@ Só atualiza o binário mb (não reinstala gum, glow, jq nem fzf). Linux/macOS, 
 Com --check-only apenas verifica se há release mais nova (sem download). Códigos de saída: 0 = ok; 2 = há atualização; 1 = erro.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			quiet := deps.Runtime != nil && deps.Runtime.Quiet
-			if !version.IsReleaseBuild() {
-				if !quiet {
-					fmt.Fprint(cmd.OutOrStdout(), selfUpdateNonReleaseMsg)
-				}
-				return nil
-			}
+			log := system.NewLogger(quiet, deps.Runtime != nil && deps.Runtime.Verbose, cmd.ErrOrStderr())
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
+			}
+			if !version.IsReleaseBuild() {
+				if !quiet {
+					logInfoLines(ctx, log, selfUpdateNonReleaseMsg)
+				}
+				return nil
 			}
 			local := strings.TrimSpace(version.Version)
 			if checkOnly {
 				out, code, err := selfupdate.RunCheckOnly(ctx, &selfupdate.Config{}, local)
 				if out != "" && !quiet {
-					fmt.Fprint(cmd.OutOrStdout(), out)
+					logInfoLines(ctx, log, out)
 				}
 				if err != nil {
 					return err
@@ -63,7 +73,7 @@ Com --check-only apenas verifica se há release mais nova (sem download). Códig
 			}
 			out, err := selfupdate.Run(ctx, &selfupdate.Config{}, local)
 			if out != "" && !quiet {
-				fmt.Fprint(cmd.OutOrStdout(), out)
+				logInfoLines(ctx, log, out)
 			}
 			return err
 		},
