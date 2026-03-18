@@ -14,9 +14,11 @@ import (
 	"mb/internal/plugins"
 )
 
-// TestCompletionIncludesPluginCommands verifies that after AttachDynamicCommands,
+// Root command tree with dynamically attached plugin commands (e.g. shell completion suggestions).
+
+// TestRootCmdAttachIncludesPluginTools verifies that after AttachDynamicCommands,
 // the root command includes plugin commands (so shell completion will suggest them).
-func TestCompletionIncludesPluginCommands(t *testing.T) {
+func TestRootCmdAttachIncludesPluginTools(t *testing.T) {
 	tmp := t.TempDir()
 	cachePath := filepath.Join(tmp, "mb", "cache.db")
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
@@ -65,7 +67,7 @@ func TestCompletionIncludesPluginCommands(t *testing.T) {
 	}
 }
 
-func TestLocalPluginCommandShortContainsLocal(t *testing.T) {
+func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 	tmp := t.TempDir()
 	cachePath := filepath.Join(tmp, "mb", "cache.db")
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
