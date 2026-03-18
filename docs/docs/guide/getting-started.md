@@ -38,7 +38,7 @@ Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow
 
 ### Pré-requisitos
 
-- Go 1.22+ (apenas se for compilar a partir do código)
+- Go 1.26.1+ (apenas se for compilar a partir do código)
 
 ### Build e instalação
 
