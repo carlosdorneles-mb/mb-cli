@@ -65,10 +65,21 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	// Inconsistências de group_id no cache: debug via gum log (mesmo pipeline que mb self sync -v).
 	dbgLog := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, root.ErrOrStderr())
 
-	addParentGroupsForNestedLeaves := func(parent *cobra.Command) {
-		parent.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+	// Cobra requires every child GroupID to exist on the direct parent. Category commands
+	// get this via ensureNestedPluginHelpGroups; a manifest leaf (e.g. tools) later used
+	// as parent for tools/bruno must receive the same groups before AddCommand.
+	ensureNestedPluginHelpGroups := func(cmd *cobra.Command) {
+		if cmd == nil {
+			return
+		}
+		if !cmd.ContainsGroup("commands") {
+			cmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+		}
 		for _, hg := range helpGroups {
-			parent.AddGroup(&cobra.Group{ID: hg.GroupID, Title: hg.Title})
+			if hg.GroupID == "" || cmd.ContainsGroup(hg.GroupID) {
+				continue
+			}
+			cmd.AddGroup(&cobra.Group{ID: hg.GroupID, Title: hg.Title})
 		}
 	}
 
@@ -127,7 +138,10 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 				}
 				setHelpFang(categoryCmd)
 				categoryCmd.Hidden = cat.Hidden
-				addParentGroupsForNestedLeaves(categoryCmd)
+				if parent != root {
+					ensureNestedPluginHelpGroups(parent)
+				}
+				ensureNestedPluginHelpGroups(categoryCmd)
 				parent.AddCommand(categoryCmd)
 				byPath[pathSoFar] = &node{cmd: categoryCmd}
 			}
@@ -167,6 +181,9 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			}
 		} else {
 			leafCmd.GroupID = "commands"
+		}
+		if parent != root {
+			ensureNestedPluginHelpGroups(parent)
 		}
 		parent.AddCommand(leafCmd)
 		byPath[pathSoFar] = &node{cmd: leafCmd, plugins: []cache.Plugin{plugin}}
