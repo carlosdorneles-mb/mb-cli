@@ -1,0 +1,3 @@
+# Registo global no sync: qualquer manifest pode referenciar estes ids (ex.: k8s/manifest.yaml → group_id: infra).
+- id: infra
+  title: INFRAESTRUTURA

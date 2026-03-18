@@ -92,3 +92,35 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 		t.Errorf("expected plugin from local path, got %#v", plugins)
 	}
 }
+
+func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
+	d := testSelfDeps(t)
+	pkg := filepath.Join(d.Runtime.PluginsDir, "nest")
+	if err := os.MkdirAll(filepath.Join(pkg, "sub", "leaf"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "manifest.yaml"), []byte("command: pkg\ndescription: r\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "sub", "manifest.yaml"), []byte("command: sub\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "sub", "leaf", "manifest.yaml"), []byte("command: leaf\ndescription: l\ngroup_id: not_registered\nentrypoint: run.sh\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pkg, "sub", "leaf", "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := RunSync(context.Background(), d, nil, false); err != nil {
+		t.Fatalf("RunSync: %v", err)
+	}
+	plugins, err := d.Store.ListPlugins()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range plugins {
+		if p.CommandName == "leaf" && p.GroupID != "" {
+			t.Errorf("unknown group_id should be cleared in cache, got GroupID=%q", p.GroupID)
+		}
+	}
+}

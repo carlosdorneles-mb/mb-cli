@@ -1,2 +1,3 @@
 command: k8s
 description: Comandos Kubernetes (apply, etc.)
+group_id: infra

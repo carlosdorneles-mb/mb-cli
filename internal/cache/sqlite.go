@@ -23,11 +23,15 @@ var schemaCategoriesSQL string
 //go:embed schema_plugin_sources.sql
 var schemaPluginSourcesSQL string
 
+//go:embed schema_plugin_help_groups.sql
+var schemaPluginHelpGroupsSQL string
+
 type Category struct {
 	Path        string
 	Description string
 	ReadmePath  string
 	Hidden      bool
+	GroupID     string // help group for nested categories (e.g. infra/k8s → INFRAESTRUTURA)
 }
 
 type Plugin struct {
@@ -49,6 +53,13 @@ type Plugin struct {
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 	Hidden          bool   // Cobra Hidden: omit from help, still invokable
 	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
+	GroupID         string // help group for nested leaves; empty = default COMANDOS
+}
+
+// PluginHelpGroup is a Cobra help section for nested plugin commands (from groups.yaml).
+type PluginHelpGroup struct {
+	GroupID string
+	Title   string
 }
 
 // PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
@@ -102,6 +113,9 @@ func (s *Store) InitSchema() error {
 	if _, err := s.db.Exec(schemaPluginSourcesSQL); err != nil {
 		return err
 	}
+	if _, err := s.db.Exec(schemaPluginHelpGroupsSQL); err != nil {
+		return err
+	}
 	if err := s.migratePluginSourcesLocalPath(); err != nil {
 		return err
 	}
@@ -136,7 +150,37 @@ func (s *Store) migrateCobraPluginFields() error {
 	if err := s.migrateHiddenColumns(); err != nil {
 		return err
 	}
-	return s.migrateEnvFilesJSONColumn()
+	if err := s.migrateEnvFilesJSONColumn(); err != nil {
+		return err
+	}
+	if err := s.migratePluginGroupIDColumn(); err != nil {
+		return err
+	}
+	return s.migrateCategoryGroupIDColumn()
+}
+
+func (s *Store) migrateCategoryGroupIDColumn() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='group_id'").Scan(&has); err != nil {
+		return err
+	}
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE categories ADD COLUMN group_id TEXT")
+	return err
+}
+
+func (s *Store) migratePluginGroupIDColumn() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='group_id'").Scan(&has); err != nil {
+		return err
+	}
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN group_id TEXT")
+	return err
 }
 
 func (s *Store) migrateEnvFilesJSONColumn() error {
@@ -258,8 +302,8 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 		hidden = 1
 	}
 	_, err := s.db.Exec(`
-INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden, env_files_json)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden, env_files_json, group_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
   command_name = excluded.command_name,
   description = excluded.description,
@@ -277,9 +321,10 @@ ON CONFLICT(command_path) DO UPDATE SET
   plugin_dir = excluded.plugin_dir,
   hidden = excluded.hidden,
   env_files_json = excluded.env_files_json,
+  group_id = excluded.group_id,
   updated_at = CURRENT_TIMESTAMP
 `, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
-		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden, nullEmpty(plugin.EnvFilesJSON))
+		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden, nullEmpty(plugin.EnvFilesJSON), nullEmpty(plugin.GroupID))
 	return err
 }
 
@@ -293,7 +338,7 @@ func nullEmpty(s string) interface{} {
 func (s *Store) ListPlugins() ([]Plugin, error) {
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, ''), COALESCE(group_id, '')
 FROM plugins
 ORDER BY command_path
 `)
@@ -312,7 +357,7 @@ func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
 	}
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, '')
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, ''), COALESCE(group_id, '')
 FROM plugins
 WHERE command_path LIKE ? OR command_path = ?
 ORDER BY command_path
@@ -331,13 +376,14 @@ func (s *Store) UpsertCategory(cat Category) error {
 		h = 1
 	}
 	_, err := s.db.Exec(`
-INSERT INTO categories (path, description, readme_path, hidden)
-VALUES (?, ?, ?, ?)
+INSERT INTO categories (path, description, readme_path, hidden, group_id)
+VALUES (?, ?, ?, ?, ?)
 ON CONFLICT(path) DO UPDATE SET
   description = excluded.description,
   readme_path = excluded.readme_path,
-  hidden = excluded.hidden
-`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath), h)
+  hidden = excluded.hidden,
+  group_id = excluded.group_id
+`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath), h, nullEmpty(cat.GroupID))
 	return err
 }
 
@@ -353,7 +399,7 @@ func (s *Store) DeleteAllPlugins() error {
 
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.db.Query(`
-SELECT path, COALESCE(description, ''), COALESCE(readme_path, ''), COALESCE(hidden, 0)
+SELECT path, COALESCE(description, ''), COALESCE(readme_path, ''), COALESCE(hidden, 0), COALESCE(group_id, '')
 FROM categories
 ORDER BY path
 `)
@@ -366,7 +412,7 @@ ORDER BY path
 	for rows.Next() {
 		var c Category
 		var hid int
-		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath, &hid); err != nil {
+		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath, &hid, &c.GroupID); err != nil {
 			return nil, err
 		}
 		c.Hidden = hid != 0
@@ -456,6 +502,7 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 			&plugin.PluginDir,
 			&hidden,
 			&plugin.EnvFilesJSON,
+			&plugin.GroupID,
 		); err != nil {
 			return nil, err
 		}
@@ -463,4 +510,34 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 		plugins = append(plugins, plugin)
 	}
 	return plugins, rows.Err()
+}
+
+func (s *Store) DeleteAllPluginHelpGroups() error {
+	_, err := s.db.Exec("DELETE FROM plugin_help_groups")
+	return err
+}
+
+func (s *Store) UpsertPluginHelpGroup(g PluginHelpGroup) error {
+	_, err := s.db.Exec(`
+INSERT INTO plugin_help_groups (group_id, title) VALUES (?, ?)
+ON CONFLICT(group_id) DO UPDATE SET title = excluded.title
+`, g.GroupID, g.Title)
+	return err
+}
+
+func (s *Store) ListPluginHelpGroups() ([]PluginHelpGroup, error) {
+	rows, err := s.db.Query(`SELECT group_id, title FROM plugin_help_groups ORDER BY group_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []PluginHelpGroup
+	for rows.Next() {
+		var g PluginHelpGroup
+		if err := rows.Scan(&g.GroupID, &g.Title); err != nil {
+			return nil, err
+		}
+		list = append(list, g)
+	}
+	return list, rows.Err()
 }

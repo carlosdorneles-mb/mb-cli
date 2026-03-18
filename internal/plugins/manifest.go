@@ -84,6 +84,7 @@ type Manifest struct {
 	Deprecated      string       `yaml:"deprecated"` // optional; Cobra Deprecated message
 	Hidden          bool         `yaml:"hidden"`     // optional; omit from mb help (still invokable)
 	EnvFiles        EnvFilesSpec `yaml:"env_files"`  // optional; .env per group (executável only)
+	GroupID         string       `yaml:"group_id"`   // optional; nested leaves only, see groups.yaml
 }
 
 // ManifestEnvGroupDefault is the logical group when env_files entry omits group or --env-group is not set.

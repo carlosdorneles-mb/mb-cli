@@ -4,89 +4,160 @@ sidebar_position: 2
 
 # Plugins
 
-Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para como **criar** um plugin e usar os comandos `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../guide/creating-plugins.md) e [Comandos de plugins](../guide/plugin-commands.md).
+Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para **criar** um plugin e usar `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../guide/creating-plugins.md) e [Comandos de plugins](../guide/plugin-commands.md).
 
 ## Diretório de plugins e plugins locais
 
-O MB usa um único diretório de plugins derivado de `os.UserConfigDir()`:
+O MB usa um diretório de plugins derivado de `os.UserConfigDir()`:
 
 - **Linux**: `~/.config/mb/plugins`
 - **macOS**: `~/Library/Application Support/mb/plugins`
 
-Além desse diretório, o CLI suporta **plugins locais**: em vez de clonar ou copiar para `PluginsDir`, o usuário pode registrar um path do sistema de arquivos (ou `.` para o diretório atual) com `mb plugins add <path|.>`. Nesse caso, nada é copiado para `PluginsDir`; o path fica gravado em `plugin_sources.local_path` e o conteúdo é escaneado a partir desse path no sync.
+O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo `ConfigDir` que `~/.config/mb` no Linux), **não** dentro da pasta de plugins.
 
-## Descoberta: scanner e manifest.yaml
+**Plugins locais:** com `mb plugins add <path|.>` o path fica em `plugin_sources.local_path`; nada é copiado para `PluginsDir`. No sync, esse path é escaneado como uma fonte extra.
 
-O **scanner** percorre um diretório em busca de arquivos `manifest.yaml`. Para cada manifesto encontrado:
+## Descoberta: scanner e `manifest.yaml`
 
-- Validação: `type` deve ser `sh` ou `bin` se houver `entrypoint`; o arquivo do entrypoint deve existir.
-- A partir da árvore sob a **raiz da fonte** (cada subdiretório imediato de `PluginsDir`, ou o `local_path` registrado), o CLI monta o `command_path`: em cada nível usa `manifest.command` se existir, senão o nome da pasta; na folha, o último segmento é o nome da pasta do plugin.
-- Cada manifesto pode definir um **plugin** (com entrypoint ou com `flags`) ou apenas uma **categoria** (sem entrypoint e sem flags).
+O **scanner** percorre a árvore à procura de `manifest.yaml`. Para cada ficheiro:
 
-Dois modos de scan:
+**Validação (alinhada ao código):**
 
-- **Scan(pluginsDir)** — Para cada subdiretório de `PluginsDir` (cada clone/cópia), percorre essa árvore como raiz. O `command_path` **não** inclui o nome da pasta do clone.
-- **ScanDir(rootPath, installName)** — O segundo parâmetro é ignorado para o path no CLI; percorre `rootPath` (ex.: `local_path`) com a mesma regra. `installName` identifica só a fonte em `plugin_sources`.
+- Com **entrypoint**: o ficheiro tem de existir e estar **dentro** do diretório do plugin; o entrypoint não pode apontar para fora.
+- Com **entrypoint** ou **flags**: o campo **`command`** no manifest é **obrigatório**.
+- **Readme** e ficheiros em **env_files**: paths relativos ao plugin e validados sob o diretório do plugin.
+- **flags** (entrypoints por flag): cada entrypoint declarado tem de estar sob o diretório do plugin.
 
-Os resultados guardam `plugin_dir` (pasta do manifest), `ExecPath` e `ReadmePath` absolutos.
+Manifestos inválidos geram **avisos** no sync; o manifest é ignorado.
 
-## Cache e sync
+**Tipo no cache (`sh` / `bin`):** não há campo `type` obrigatório no manifest. O scanner define o tipo pelo entrypoint: termina em `.sh` → `sh`; caso contrário → `bin`.
 
-O cache SQLite (`cache.db`) armazena:
+### `command_path` e tipos de manifest
 
-- **plugins** — command_path, command_name, plugin_dir, descrição, exec_path, tipo, config_hash, readme_path, flags_json, **env_files_json** (lista `{file, group}` do manifest), **hidden** (manifest `hidden: true` → comando Cobra oculto no help).
-- **categories** — Path, descrição, readme_path, **hidden** (categoria oculta no help quando o manifest de categoria define `hidden: true`).
-- **plugin_sources** — Por install_dir: git_url, ref, version (para remotos) ou local_path (para locais).
+Sob a **raiz da fonte** (cada subpasta imediata de `PluginsDir`, ou o `local_path` registado), o CLI monta o `command_path`:
 
-O **sync** (`mb self sync` ou após add/remove/update):
+- Em cada nível de pasta usa `manifest.command` se existir; senão o nome da pasta.
+- Na folha, o último segmento é o nome da pasta do plugin (ou `command` se for folha na raiz com entrypoint/flags).
 
-1. Garante que os **helpers de shell** existem em `ConfigDir/lib/shell` (cria ou atualiza `all.sh`, `log.sh` e `.checksum`). Se falhar (ex.: permissão), o sync retorna erro.
-2. Chama o scanner em `PluginsDir` e obtém listas de plugins e categories.
-3. Obtém `ListPluginSources()`; para cada source com `local_path` não vazio, chama `ScanDir` nesse path e faz **merge**. Se dois pacotes definem o mesmo `command_path`, o sync **falha** com erro de conflito.
-4. Faz upsert de todos os plugins e categories no cache.
-5. **plugin_sources** só é alterado por `plugins add/remove/update`, não pelo sync a partir dos comandos descobertos.
+Tipos:
 
-Assim, a árvore de comandos reflete tanto o conteúdo de `PluginsDir` quanto dos diretórios registrados como locais.
+- **Folha com entrypoint** — um executável por comando.
+- **Folha flags-only** — só `flags`; o CLI escolhe o entrypoint pela flag.
+- **Categoria** — sem entrypoint e sem `flags`; aparece como subcomando intermédio (descrição, opcionalmente README com `-r`).
 
-## Execução: como o binário/script é localizado
+**Modos de scan:**
 
-- Para plugins com **entrypoint** (um único script ou binário): o cache já guarda `ExecPath` absoluto (preenchido pelo scanner). O executor recebe esse path e o ambiente mesclado e invoca o processo (quando o entrypoint termina em `.sh`, invoca **bash** com o script como argumento; caso contrário, executa o binário diretamente).
-- Para plugins **flags-only**: o `baseDir` da execução é o **`plugin_dir`** guardado no cache (pasta do manifest). O `exec_path` da flag é resolvido dentro desse diretório.
+- **Scan(`PluginsDir`)** — Para cada subdiretório de `PluginsDir`, essa pasta é a raiz da árvore. O `command_path` **não** inclui o nome da pasta clone.
+- **ScanDir(`rootPath`, `installName`)** — O segundo argumento **não** entra no path do CLI; serve para identificar a fonte em `plugin_sources`. Usado para cada `local_path`.
 
-A indicação **(local)** no Short do comando folha quando a fonte do plugin tem `local_path` em `plugin_sources` (match pelo diretório do plugin).
+São guardados `plugin_dir`, `exec_path` e `readme_path` **absolutos** quando aplicável.
 
-## Execução: flags e argumentos passados ao plugin
+## Grupos de help (`groups.yaml`, `group_id` e Cobra)
 
-O processo do plugin (script ou binário) **nunca recebe flags na linha de comando**. O CLI trata as flags que conhece e repassa ao entrypoint apenas **argumentos posicionais** (como `$1`, `$2`, … no shell). O ambiente do processo inclui variáveis injetadas (por exemplo `MB_VERBOSE`, `MB_QUIET` quando se usa `-v` ou `-q`).
+### Ficheiro `groups.yaml`
 
-### Flags que o CLI conhece
+Pode existir em **qualquer pasta** do pacote. Formato: lista de pares `id` / `title`:
 
-| Origem | Flags | O que acontece |
-|--------|--------|----------------|
-| **Root (globais)** | `-v` / `--verbose`, `-q` / `--quiet`, `--env-file`, `-e` / `--env` | Consumidas pelo CLI. `-v` e `-q` não vão para o script; em troca, o CLI define no ambiente do plugin `MB_VERBOSE=1` ou `MB_QUIET=1`. Podem ser usadas em qualquer posição (ex.: `mb tools hello -v`). |
-| **Plugin com README** | `-r` / `--readme` | Consumida pelo CLI; abre a documentação no terminal. Não é repassada ao script. |
-| **Plugin com `flags` no manifesto** | As flags declaradas no manifesto (ex.: `--deploy`, `--rollback`) | Consumidas pelo CLI para **escolher qual entrypoint** rodar. Não são repassadas como argumentos ao script; apenas os argumentos posicionais restantes são passados. |
+```yaml
+- id: meu_grupo
+  title: TÍTULO NO HELP
+```
 
-### O que o script/binário recebe
+Regras de **`id`** (validação ao carregar o ficheiro):
 
-- **Argumentos:** apenas os **posicionais** que sobraram depois de o CLI consumir as flags acima. Exemplo: `mb tools hello foo bar` → o script recebe `foo` e `bar` em `$1` e `$2`. Se o usuário passar `mb tools hello -v`, o `-v` é consumido pelo CLI (e vira `MB_VERBOSE=1` no env); o script recebe **nenhum** argumento posicional.
-- **Ambiente:** ambiente do sistema + arquivo de defaults + `--env-file` + `--env` + `MB_VERBOSE=1` e/ou `MB_QUIET=1` quando as flags globais forem usadas. Ver [Variáveis de ambiente](../guide/environment-variables.md) e [Flags globais](../guide/global-flags.md).
+- Deve coincidir com `^[a-zA-Z][a-zA-Z0-9_]*$` — **começa com letra**, depois letras, dígitos ou `_`.
+- Não pode ser `commands` nem `plugin_commands` (reservados para o Cobra).
+- **`title`** não pode ser vazio.
+- O mesmo **`id` repetido dentro do mesmo ficheiro** é **erro** (o ficheiro é rejeitado com aviso no sync).
 
-### Quando você passa flags que **existem** (conhecidas pelo CLI)
+### Merge no sync e registo global
 
-As flags listadas na tabela acima são reconhecidas e **não** aparecem em `$1`, `$2`, … O comportamento é o descrito: globais afetam o ambiente; `--readme` abre o README; flags do manifesto (no caso de plugin com `flags`) escolhem o entrypoint. Os argumentos posicionais restantes são os únicos passados ao entrypoint.
+No **sync**, cada `groups.yaml` válido é um **lote**. Dentro de cada árvore, os paths dos ficheiros são processados em **ordem lexicográfica**. A ordem global dos lotes é:
 
-### --help / -h
+1. Cada subpasta de `PluginsDir`, na ordem devolvida pelo sistema de ficheiros (`ReadDir`).
+2. Depois, cada fonte com `local_path` não vazio, na ordem de `ListPluginSources()`.
 
-Em **qualquer** comando de plugin, `--help` ou `-h` exibe o help do Cobra (descrição, uso, flags conhecidas) e **não** é repassado ao script. O entrypoint não é executado quando o usuário pede help.
+Para o mesmo **`id`** em lotes diferentes: prevalece a **última** definição. Se o **título** mudar relativamente ao valor já fixado, o CLI regista **log debug** (visível com **`mb -v`**, via gum quando disponível).
 
-### Quando você passa flags que **não existem**
+O resultado é gravado na tabela **`plugin_help_groups`** (`group_id` → `title`). Qualquer folha ou categoria **aninhada** pode referenciar **qualquer** `id` presente nesse registo após o merge (não está limitado ao `groups.yaml` do pai imediato).
 
-- **Plugin com um único entrypoint (com ou sem README):** o CLI faz parsing das flags globais (`-v`, `-q`, `--env-file`, `-e`) e, se houver README, da flag `--readme`. Essas flags são sempre consumidas pelo CLI e não chegam ao script. Os **argumentos posicionais** restantes são repassados ao entrypoint. Flags não declaradas (desconhecidas) podem não ser repassadas ao script, dependendo do analisador de argumentos; para máxima compatibilidade, use apenas argumentos posicionais ou declare flags no manifesto.
-- **Plugin com `flags` no manifesto:** o comando do plugin faz parsing das flags declaradas. Se o usuário passar uma flag que **não** está declarada (nem no root, nem no plugin), o Cobra retorna erro do tipo *unknown flag* e o plugin **não** é executado.
+### Campo `group_id` no `manifest.yaml`
 
-Resumindo: as flags globais e `--help` são sempre tratadas pelo CLI; apenas os argumentos posicionais (e, quando aplicável, flags não mapeadas) são repassados ao entrypoint.
+Campo opcional YAML: `group_id`.
+
+- Só é usado para entradas **aninhadas**, isto é, quando o path tem **`/`** (`command_path` de plugin ou `path` de categoria, ex. `infra/k8s`).
+- **Top-level** (sem `/`): `group_id` é **ignorado** e gera log **debug** se estiver preenchido.
+- O manifest **não** valida o formato de `group_id` como o `groups.yaml`; convém usar o mesmo padrão de `id`. No **sync**, se o `group_id` **não** existir em `plugin_help_groups` após o merge, o campo é **removido** no cache e é emitido log **debug**. O sync **não falha**.
+
+### Como o help aparece no CLI
+
+Ao registar comandos a partir do cache:
+
+- Comandos cuja categoria está **diretamente sob a raiz `mb`** ficam no grupo **COMANDOS DE PLUGINS** (id interno `plugin_commands`).
+- Subcomandos **aninhados** (ex. `mb infra ci`):
+  - Com `group_id` válido no cache → secção com o **título** definido em `plugin_help_groups`.
+  - Sem `group_id` ou inválido no cache → secção **COMANDOS** (id `commands`).
+- Nos comandos **pai** aninhados, o MB também regista no Cobra os grupos custom do registo, para as folhas herdarem as mesmas secções.
+
+## Cache SQLite e sync
+
+### Tabelas relevantes
+
+- **plugins** — Entre outros: `command_path`, `command_name`, `plugin_dir`, descrição, `exec_path`, tipo (`sh`/`bin` ou vazio), `config_hash`, `readme_path`, `flags_json`, `env_files_json`, `hidden`, **`group_id`** (só faz sentido para paths aninhados; valores inválidos são limpos no sync).
+- **categories** — `path`, descrição, `readme_path`, `hidden`, **`group_id`** (categorias aninhadas; mesma regra de validação que nos plugins).
+- **plugin_help_groups** — `group_id` → `title` (resultado do merge dos `groups.yaml`).
+- **plugin_sources** — Por `install_dir`: remoto (`git_url`, ref, versão) ou **`local_path`** para plugins adicionados localmente.
+
+### Fluxo do sync (`mb self sync` e após add/remove/update de plugins)
+
+Ordem **efetiva** no código:
+
+1. **Scan** de todas as subpastas de `PluginsDir` → plugins, categorias, avisos e lotes de `groups.yaml`.
+2. Garantir **helpers de shell** em `ConfigDir/lib/shell` (`all.sh`, `log.sh`, `.checksum`). Falha → erro.
+3. **ScanDir** de cada `local_path` registado → acrescenta plugins, categorias, avisos e lotes.
+4. **Merge global** dos grupos de help; em seguida, emissão de **avisos** de scan (warn) se houver logger.
+5. Verificação de **colisão de `command_path`** entre pacotes distintos → **erro** e sync abortado.
+6. **Normalização de `group_id`**: plugins e categorias aninhados com `group_id` inexistente no merge são limpos (+ debug).
+7. **Apagar** todos os plugins e todas as linhas de `plugin_help_groups`; **inserir** o merge em `plugin_help_groups`; **upsert** de cada plugin.
+8. **Apagar** todas as categorias; **upsert** de cada categoria.
+
+**Nota:** `plugin_sources` **não** é alterado pelo sync; só por `mb plugins add/remove/update`.
+
+A árvore de comandos no CLI reflete `PluginsDir` **mais** os paths locais registados.
+
+## Execução: binário ou script
+
+- **Com entrypoint:** o cache guarda `ExecPath` absoluto. Se o ficheiro termina em `.sh`, o executor usa **bash** com esse script; senão executa o ficheiro diretamente.
+- **Flags-only:** o diretório de trabalho é o `plugin_dir`; o entrypoint de cada flag é resolvido dentro dele.
+
+**Indicação (local)** no Short da folha quando a fonte tem `local_path` em `plugin_sources` (match pelo diretório do plugin).
+
+## Execução: flags e argumentos
+
+O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas **argumentos posicionais** (e o ambiente mesclado, incl. `MB_VERBOSE` / `MB_QUIET` quando aplicável).
+
+### Flags que o CLI consome
+
+| Origem | Flags | Efeito |
+|--------|--------|--------|
+| **Root** | `-v` / `--verbose`, `-q` / `--quiet`, `--env-file`, `-e` / `--env` | Consumidas pelo CLI; `-v`/`-q` viram variáveis de ambiente do plugin. |
+| **Plugin com README** | `-r` / `--readme` | Abre a documentação no terminal. |
+| **Plugin com `flags` no manifest** | Flags declaradas | Escolhem o entrypoint; não são repassadas como args ao script. |
+
+### O que o script recebe
+
+- **Posicionais** após o consumo das flags acima. Ex.: `mb tools hello foo bar` → `$1`, `$2`.
+- **Ambiente:** sistema + defaults + `--env-file` / `--env` + `MB_VERBOSE`/`MB_QUIET` se usados. Ver [Variáveis de ambiente](../guide/environment-variables.md) e [Flags globais](../guide/global-flags.md).
+
+### `--help` / `-h`
+
+Mostra o help Cobra do comando; o entrypoint **não** é executado.
+
+### Flags desconhecidas
+
+- **Um único entrypoint:** globais e opcionalmente `--readme` são consumidas pelo CLI; o restante depende do parser — para compatibilidade, prefira posicionais ou declare flags no manifest.
+- **Plugin com `flags` no manifest:** flags não declaradas provocam erro *unknown flag* e o plugin não corre.
 
 ## Segurança
 
-Os plugins rodam com as permissões do usuário; o CLI restringe a execução a scripts **dentro do diretório do plugin** (confinamento de path no scan e no executor) e suporta timeout opcional. Para o modelo completo e recomendações, veja [Segurança](../guide/security.md).
+Os plugins correm com as permissões do utilizador; o CLI confina paths ao diretório do plugin no scan e no executor e suporta timeout opcional. Ver [Segurança](../guide/security.md).

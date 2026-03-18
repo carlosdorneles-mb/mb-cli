@@ -15,11 +15,17 @@ Exemplos:
 - Plugin em `tools/hello/` → `mb tools hello`
 - Plugin em `infra/ci/deploy/` → `mb infra ci deploy`
 
+Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do campo **`command`** do `manifest.yaml` (o último segmento do caminho interno continua a ser o nome da pasta). Plugins **só com `flags`** (sem entrypoint raiz) precisam de uma **flag declarada** para correr um script — ex.: `mb tools do --deploy`.
+
+**Cache:** os comandos vêm do SQLite após **`mb self sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb self sync`** para atualizar listagem, help e completion.
+
 ## Como descobrir os comandos
 
 - **`mb plugins list`** — Lista todos os plugins instalados, com nome, caminho do comando, descrição, versão, origem (local ou remoto) e URL/path. Use essa saída para saber exatamente quais comandos estão disponíveis.
 - **`mb help`** — Mostra a árvore de comandos, incluindo as categorias e comandos de plugins. Comandos de plugins locais aparecem com a indicação "(local)" na descrição.
-- **Completion** — Depois de rodar `mb self sync`, o completion do shell (TAB) sugere categorias e comandos de plugins. Instale com `mb self completion <bash|zsh|fish|powershell>`.
+- **Completion** — Depois de `mb self sync`, o completion (TAB) sugere categorias e comandos. Instale com `mb self completion <bash|zsh|fish|powershell>`.
+
+No help (`mb help`), subcomandos aninhados podem aparecer em **COMANDOS** ou em secções definidas com `groups.yaml` / `group_id` — ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
 
 ## Executando um comando de plugin
 
@@ -30,13 +36,14 @@ mb tools hello
 mb infra ci deploy --ambiente prod
 ```
 
-Se o plugin declarou um README no manifesto, o comando ganha a flag **`--readme`** (ou `-r`), que abre a documentação em Markdown no terminal (via glow, se instalado):
+Com **`readme`** no manifest, a **folha** e também uma **categoria** (manifest sem entrypoint/flags) podem expor **`--readme`** / **`-r`** para ver o Markdown no terminal (glow, se instalado):
 
 ```bash
 mb tools meu-comando --readme
+mb infra --readme
 ```
 
-Para detalhes do que acontece com **flags e argumentos** ao chamar um comando de plugin (quais flags o CLI consome, o que o script recebe em `$1`, `$2`, etc., e o que ocorre quando se passam flags que não existem), veja a seção [Execução: flags e argumentos passados ao plugin](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin) na referência técnica.
+Para **flags globais do CLI**, argumentos posicionais no script e flags desconhecidas, veja [Execução: flags e argumentos](../technical-reference/plugins.md#execução-flags-e-argumentos).
 
 ## Repositório com vários plugins
 

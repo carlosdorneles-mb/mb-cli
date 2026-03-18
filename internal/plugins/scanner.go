@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -25,10 +26,52 @@ type ValidationWarning struct {
 
 type Scanner struct {
 	pluginsDir string
+	// DebugLog receives plugin help inconsistency messages (e.g. invalid group_id). Usually wired to system.Logger.Debug when verbose.
+	DebugLog func(msg string)
 }
 
 func NewScanner(pluginsDir string) *Scanner {
 	return &Scanner{pluginsDir: pluginsDir}
+}
+
+// nestedPluginGroupIDRaw returns manifest group_id for nested leaves; top-level returns "" and may log.
+func nestedPluginGroupIDRaw(dbCommandPath, manifestGroupID string, debug func(string)) string {
+	gid := strings.TrimSpace(manifestGroupID)
+	if !strings.Contains(dbCommandPath, "/") {
+		if gid != "" && debug != nil {
+			debug(fmt.Sprintf("plugin help: command_path=%q group_id=%q ignorado (comando top-level fica em COMANDOS DE PLUGINS)", dbCommandPath, gid))
+		}
+		return ""
+	}
+	return gid
+}
+
+// collectHelpGroupBatchesUnderRoot returns one batch per groups.yaml (paths sorted) for global merge at sync.
+func collectHelpGroupBatchesUnderRoot(rootPath string, warnings *[]ValidationWarning) [][]HelpGroupDef {
+	var paths []string
+	_ = filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || d.Name() != "groups.yaml" {
+			return nil
+		}
+		paths = append(paths, path)
+		return nil
+	})
+	sort.Strings(paths)
+	var batches [][]HelpGroupDef
+	for _, path := range paths {
+		defs, err := LoadGroupsFile(path)
+		if err != nil {
+			*warnings = append(*warnings, ValidationWarning{
+				Path:    path,
+				Message: "groups.yaml inválido: " + err.Error(),
+			})
+			continue
+		}
+		if len(defs) > 0 {
+			batches = append(batches, defs)
+		}
+	}
+	return batches
 }
 
 // pathSegmentForDir returns a CLI path segment for dir: manifest.command if set, else the directory base name.
@@ -222,10 +265,11 @@ func marshalEnvFilesJSON(m Manifest) (string, error) {
 	return string(b), nil
 }
 
-func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
+func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	plugins := []cache.Plugin{}
 	categories := []cache.Category{}
 	warnings := []ValidationWarning{}
+	debug := s.DebugLog
 
 	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -292,6 +336,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 			if err != nil {
 				return fmt.Errorf("env_files %s: %w", path, err)
 			}
+			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
 			plugins = append(plugins, cache.Plugin{
 				CommandPath:     dbCommandPath,
 				CommandName:     commandName,
@@ -310,6 +355,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				PluginDir:       pluginDir,
 				Hidden:          manifest.Hidden,
 				EnvFilesJSON:    envFilesJ,
+				GroupID:         gid,
 			})
 			return nil
 		}
@@ -330,6 +376,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 			if err != nil {
 				return fmt.Errorf("env_files %s: %w", path, err)
 			}
+			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
 			plugins = append(plugins, cache.Plugin{
 				CommandPath:     dbCommandPath,
 				CommandName:     commandName,
@@ -348,6 +395,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				PluginDir:       pluginDir,
 				Hidden:          manifest.Hidden,
 				EnvFilesJSON:    envFilesJ,
+				GroupID:         gid,
 			})
 			return nil
 		}
@@ -359,17 +407,21 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 		if catPath == "" {
 			return nil
 		}
+		catGid := nestedPluginGroupIDRaw(catPath, manifest.GroupID, debug)
 		categories = append(categories, cache.Category{
 			Path:        catPath,
 			Description: manifest.Description,
 			ReadmePath:  readmePath,
 			Hidden:      manifest.Hidden,
+			GroupID:     catGid,
 		})
 		return nil
 	})
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
+
+	helpBatches := collectHelpGroupBatchesUnderRoot(rootPath, &warnings)
 
 	rootManifestPath := filepath.Join(rootPath, "manifest.yaml")
 	if raw, err := os.ReadFile(rootManifestPath); err == nil {
@@ -400,46 +452,48 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 		}
 	}
 
-	return plugins, categories, warnings, nil
+	return plugins, categories, warnings, helpBatches, nil
 }
 
-func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
+func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	plugins := []cache.Plugin{}
 	categories := []cache.Category{}
 	warnings := []ValidationWarning{}
+	var batches [][]HelpGroupDef
 	if _, err := os.Stat(s.pluginsDir); os.IsNotExist(err) {
-		return plugins, categories, warnings, nil
+		return plugins, categories, warnings, batches, nil
 	}
 
 	entries, err := os.ReadDir(s.pluginsDir)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
 		rootPath := filepath.Join(s.pluginsDir, e.Name())
-		p, c, w, err := s.scanTree(rootPath)
+		p, c, w, hg, err := s.scanTree(rootPath)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		plugins = append(plugins, p...)
 		categories = append(categories, c...)
 		warnings = append(warnings, w...)
+		batches = append(batches, hg...)
 	}
-	return plugins, categories, warnings, nil
+	return plugins, categories, warnings, batches, nil
 }
 
 // ScanDir scans a single directory (local plugin path or one install root). Command paths are
 // relative to the manifest tree only; installName is ignored for CLI paths (kept for API compatibility).
-func (s *Scanner) ScanDir(rootPath string, _ string) ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
+func (s *Scanner) ScanDir(rootPath string, _ string) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	rootPath, err := filepath.Abs(rootPath)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
-		return []cache.Plugin{}, []cache.Category{}, []ValidationWarning{}, nil
+		return []cache.Plugin{}, []cache.Category{}, []ValidationWarning{}, nil, nil
 	}
 	return s.scanTree(rootPath)
 }

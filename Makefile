@@ -77,7 +77,7 @@ run-local:
 
 # Registra os plugins de exemplo (apenas diretórios diretos em examples/plugins: infra, tools, etc.).
 # Executa na raiz do repo: para cada subdir, mb plugins add <path>. Não copia arquivos.
-install-examples:
+install-plugins-examples:
 	@root=$$(pwd); \
 	for subdir in examples/plugins/*/; do \
 	  [ -d "$$subdir" ] || continue; \
@@ -86,7 +86,7 @@ install-examples:
 	done
 
 # Remove os plugins de exemplo do config (mb plugins remove <name>). Usa os mesmos nomes que install-examples (infra, tools, etc.).
-uninstall-examples:
+uninstall-plugins-examples:
 	@root=$$(pwd); \
 	for subdir in examples/plugins/*/; do \
 	  [ -d "$$subdir" ] || continue; \
@@ -106,6 +106,7 @@ tidy:
 deps:
 	go mod download
 	go install github.com/caarlos0/svu/v3@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # Documentation (Docusaurus)
 docs-install:
