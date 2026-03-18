@@ -13,6 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"mb/internal/cache"
+	"mb/internal/envgroup"
 	"mb/internal/safepath"
 )
 
@@ -145,6 +146,23 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 	if (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) && strings.TrimSpace(manifest.Command) == "" {
 		errs = append(errs, "command é obrigatório quando há entrypoint ou flags")
 	}
+	if manifest.Entrypoint != "" || manifest.Flags.Len() > 0 {
+		for _, ef := range manifest.EnvFiles.List {
+			if strings.TrimSpace(ef.File) == "" {
+				errs = append(errs, "env_files: file não pode ser vazio")
+				break
+			}
+			if err := envgroup.Validate(ef.Group); err != nil {
+				errs = append(errs, "env_files grupo inválido ("+ef.File+"): "+err.Error())
+				break
+			}
+			envPath := filepath.Join(baseDir, ef.File)
+			if err := safepath.ValidateUnderDir(envPath, baseDir); err != nil {
+				errs = append(errs, "env_files fora do diretório do plugin: "+ef.File)
+				break
+			}
+		}
+	}
 	return errs
 }
 
@@ -162,6 +180,17 @@ func cobraFieldsFromManifest(manifest Manifest) (useTemplate string, argsCount i
 		aliasesJSON = string(b)
 	}
 	return manifest.Use, argsCount, aliasesJSON, manifest.Example, manifest.LongDescription, manifest.Deprecated, nil
+}
+
+func marshalEnvFilesJSON(m Manifest) (string, error) {
+	if m.EnvFiles.Len() == 0 {
+		return "", nil
+	}
+	b, err := json.Marshal(m.EnvFiles.List)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, []ValidationWarning, error) {
@@ -230,6 +259,10 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 			} else {
 				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
 			}
+			envFilesJ, err := marshalEnvFilesJSON(manifest)
+			if err != nil {
+				return fmt.Errorf("env_files %s: %w", path, err)
+			}
 			plugins = append(plugins, cache.Plugin{
 				CommandPath:     dbCommandPath,
 				CommandName:     commandName,
@@ -247,6 +280,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				Deprecated:      dep,
 				PluginDir:       pluginDir,
 				Hidden:          manifest.Hidden,
+				EnvFilesJSON:    envFilesJ,
 			})
 			return nil
 		}
@@ -262,6 +296,10 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				return fmt.Errorf("cobra fields %s: %w", path, err)
 			} else {
 				useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+			}
+			envFilesJ, err := marshalEnvFilesJSON(manifest)
+			if err != nil {
+				return fmt.Errorf("env_files %s: %w", path, err)
 			}
 			plugins = append(plugins, cache.Plugin{
 				CommandPath:     dbCommandPath,
@@ -280,6 +318,7 @@ func (s *Scanner) scanTree(rootPath string) ([]cache.Plugin, []cache.Category, [
 				Deprecated:      dep,
 				PluginDir:       pluginDir,
 				Hidden:          manifest.Hidden,
+				EnvFilesJSON:    envFilesJ,
 			})
 			return nil
 		}

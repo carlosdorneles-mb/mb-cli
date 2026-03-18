@@ -199,6 +199,34 @@ func TestStorePluginHiddenRoundTrip(t *testing.T) {
 	}
 }
 
+func TestStoreEnvFilesJSONRoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "envfiles.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+	j := `[{"file":".env","group":"staging"}]`
+	p := Plugin{
+		CommandPath:  "tools/x",
+		CommandName:  "x",
+		ExecPath:     "/x/run.sh",
+		PluginType:   "sh",
+		ConfigHash:   "h",
+		EnvFilesJSON: j,
+	}
+	if err := store.UpsertPlugin(p); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	all, err := store.ListPlugins()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(all) != 1 || all[0].EnvFilesJSON != j {
+		t.Fatalf("got EnvFilesJSON=%q", all[0].EnvFilesJSON)
+	}
+}
+
 func TestStoreCategoryHiddenRoundTrip(t *testing.T) {
 	tmp := t.TempDir()
 	store, err := NewStore(filepath.Join(tmp, "cathidden.db"))

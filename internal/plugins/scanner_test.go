@@ -226,6 +226,74 @@ func TestScannerRejectsEntrypointPathTraversal(t *testing.T) {
 	}
 }
 
+func TestScannerEnvFileOutsidePlugin(t *testing.T) {
+	tmp := t.TempDir()
+	pluginDir := filepath.Join(tmp, "plugins", "tools", "x")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	runPath := filepath.Join(pluginDir, "run.sh")
+	if err := os.WriteFile(runPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write script: %v", err)
+	}
+	manifest := []byte(`command: x
+description: X
+entrypoint: run.sh
+env_files:
+  - file: ../../../../secrets.env
+    group: default
+`)
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	scanner := NewScanner(filepath.Join(tmp, "plugins"))
+	plugins, _, warnings, err := scanner.Scan()
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(plugins) != 0 {
+		t.Fatalf("expected no plugins, got %d", len(plugins))
+	}
+	if len(warnings) != 1 || !strings.Contains(warnings[0].Message, "env_files") {
+		t.Fatalf("want env_files warning, got %v", warnings)
+	}
+}
+
+func TestScannerEnvFilesJSONStored(t *testing.T) {
+	tmp := t.TempDir()
+	pluginDir := filepath.Join(tmp, "plugins", "p", "cmd")
+	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	runPath := filepath.Join(pluginDir, "run.sh")
+	_ = os.WriteFile(runPath, []byte("#!/bin/sh\nexit 0\n"), 0o755)
+	_ = os.WriteFile(filepath.Join(pluginDir, ".env.staging"), []byte("K=v\n"), 0o600)
+	manifest := []byte(`command: cmd
+description: C
+entrypoint: run.sh
+env_files:
+  - file: .env.staging
+    group: staging
+`)
+	if err := os.WriteFile(filepath.Join(pluginDir, "manifest.yaml"), manifest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scanner := NewScanner(filepath.Join(tmp, "plugins"))
+	plugins, _, warnings, err := scanner.Scan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("warnings: %v", warnings)
+	}
+	if len(plugins) != 1 {
+		t.Fatalf("plugins: %d", len(plugins))
+	}
+	if !strings.Contains(plugins[0].EnvFilesJSON, ".env.staging") || !strings.Contains(plugins[0].EnvFilesJSON, "staging") {
+		t.Errorf("EnvFilesJSON=%q", plugins[0].EnvFilesJSON)
+	}
+}
+
 func TestScannerEntrypointAndFlags(t *testing.T) {
 	tmp := t.TempDir()
 	pluginDir := filepath.Join(tmp, "plugins", "p", "tools", "do")

@@ -48,6 +48,7 @@ type Plugin struct {
 	Deprecated      string // Cobra Deprecated message
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 	Hidden          bool   // Cobra Hidden: omit from help, still invokable
+	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
 }
 
 // PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
@@ -132,7 +133,22 @@ func (s *Store) migrateCobraPluginFields() error {
 	if err := s.migratePluginDir(); err != nil {
 		return err
 	}
-	return s.migrateHiddenColumns()
+	if err := s.migrateHiddenColumns(); err != nil {
+		return err
+	}
+	return s.migrateEnvFilesJSONColumn()
+}
+
+func (s *Store) migrateEnvFilesJSONColumn() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugins') WHERE name='env_files_json'").Scan(&has); err != nil {
+		return err
+	}
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE plugins ADD COLUMN env_files_json TEXT")
+	return err
 }
 
 func (s *Store) migratePluginDir() error {
@@ -242,8 +258,8 @@ func (s *Store) UpsertPlugin(plugin Plugin) error {
 		hidden = 1
 	}
 	_, err := s.db.Exec(`
-INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO plugins (command_path, command_name, description, exec_path, plugin_type, config_hash, readme_path, flags_json, use_template, args_count, aliases_json, example, long_description, deprecated, plugin_dir, hidden, env_files_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(command_path) DO UPDATE SET
   command_name = excluded.command_name,
   description = excluded.description,
@@ -260,9 +276,10 @@ ON CONFLICT(command_path) DO UPDATE SET
   deprecated = excluded.deprecated,
   plugin_dir = excluded.plugin_dir,
   hidden = excluded.hidden,
+  env_files_json = excluded.env_files_json,
   updated_at = CURRENT_TIMESTAMP
 `, plugin.CommandPath, plugin.CommandName, plugin.Description, nullEmpty(plugin.ExecPath), nullEmpty(plugin.PluginType), plugin.ConfigHash, nullEmpty(plugin.ReadmePath), nullEmpty(plugin.FlagsJSON),
-		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden)
+		nullEmpty(plugin.UseTemplate), plugin.ArgsCount, nullEmpty(plugin.AliasesJSON), nullEmpty(plugin.Example), nullEmpty(plugin.LongDescription), nullEmpty(plugin.Deprecated), nullEmpty(plugin.PluginDir), hidden, nullEmpty(plugin.EnvFilesJSON))
 	return err
 }
 
@@ -276,7 +293,7 @@ func nullEmpty(s string) interface{} {
 func (s *Store) ListPlugins() ([]Plugin, error) {
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0)
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, '')
 FROM plugins
 ORDER BY command_path
 `)
@@ -295,7 +312,7 @@ func (s *Store) ListByPathPrefix(prefix string) ([]Plugin, error) {
 	}
 	rows, err := s.db.Query(`
 SELECT id, command_path, command_name, COALESCE(description, ''), COALESCE(exec_path, ''), COALESCE(plugin_type, ''), config_hash, COALESCE(readme_path, ''), COALESCE(flags_json, ''),
-  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0)
+  COALESCE(use_template, ''), COALESCE(args_count, 0), COALESCE(aliases_json, ''), COALESCE(example, ''), COALESCE(long_description, ''), COALESCE(deprecated, ''), COALESCE(plugin_dir, ''), COALESCE(hidden, 0), COALESCE(env_files_json, '')
 FROM plugins
 WHERE command_path LIKE ? OR command_path = ?
 ORDER BY command_path
@@ -438,6 +455,7 @@ func scanPlugins(rows *sql.Rows) ([]Plugin, error) {
 			&plugin.Deprecated,
 			&plugin.PluginDir,
 			&hidden,
+			&plugin.EnvFilesJSON,
 		); err != nil {
 			return nil, err
 		}

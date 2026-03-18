@@ -13,10 +13,11 @@ Da **menor** para a **maior** precedência:
 1. **Variáveis do sistema** — O que já está em `os.Environ()` (incluindo o que você exportou no shell).
 2. **`env.defaults`** — `~/.config/mb/env.defaults`.
 3. **Grupo (`--env-group`)** — Se você passar **`--env-group <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (mesmas chaves do grupo sobrescrevem as do default).
-4. **`--env-file <path>`** — Mesclado em seguida e sobrescreve chaves anteriores em caso de conflito.
-5. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
+4. **`env_files` do manifest** — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **grupo efetivo**: sem `--env-group`, entram só entradas com grupo `default` (ou com `group` omitido no YAML); com **`--env-group test`**, entram só entradas com `group: test`. Vários arquivos para o mesmo grupo são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela.
+5. **`--env-file <path>`** — Mesclado em seguida e sobrescreve chaves anteriores em caso de conflito.
+6. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
 
-Ou seja: sem `--env-group`, só entram as variáveis de `env.defaults` como base (além do sistema); com grupo, o arquivo do grupo complementa/sobrescreve o default. **`--env`** continua com a última palavra.
+Ou seja: sem `--env-group`, só entram as variáveis de `env.defaults` como base (além do sistema); com grupo, o arquivo do grupo na config complementa/sobrescreve o default; em seguida vêm os `.env` do manifest para aquele grupo. **`--env`** continua com a última palavra.
 
 ## Tema padrão do gum
 
@@ -58,7 +59,7 @@ Para usar um arquivo `.env` em um caminho específico (por exemplo, por projeto)
 mb --env-file .env tools meu-comando
 ```
 
-O conteúdo do arquivo é mesclado ao ambiente antes de rodar o plugin.
+O conteúdo do arquivo é mesclado ao ambiente antes de rodar o plugin (depois dos `env_files` do manifest do comando).
 
 ### Variáveis na linha de comando: `--env`
 

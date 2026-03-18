@@ -71,18 +71,57 @@ func (f *FlagsSpec) ToMap() map[string]FlagDef {
 
 // Manifest is the per-directory manifest. Path hierarchy defines categories/subcategories.
 type Manifest struct {
-	Command          string   `yaml:"command"`           // optional; default = dir name
-	Description      string   `yaml:"description"`       // Short for Cobra
-	LongDescription  string   `yaml:"long_description"` // optional; Long for Cobra (multi-line ok)
-	Entrypoint       string   `yaml:"entrypoint"`        // if set = executable leaf (type inferred by .sh suffix)
-	Readme           string   `yaml:"readme"`
-	Flags            FlagsSpec `yaml:"flags"`            // list only; only used when Entrypoint is empty (flags-only leaf)
-	Use              string   `yaml:"use"`               // optional; Cobra Use template (e.g. "<name>" or "[env]")
-	Args             int      `yaml:"args"`              // optional; number of required positional args (0 = no validation)
-	Aliases          []string `yaml:"aliases"`           // optional; Cobra Aliases
-	Example          string   `yaml:"example"`            // optional; Cobra Example
-	Deprecated       string   `yaml:"deprecated"`        // optional; Cobra Deprecated message
-	Hidden           bool     `yaml:"hidden"`            // optional; omit from mb help (still invokable)
+	Command         string       `yaml:"command"`          // optional; default = dir name
+	Description     string       `yaml:"description"`      // Short for Cobra
+	LongDescription string       `yaml:"long_description"` // optional; Long for Cobra (multi-line ok)
+	Entrypoint      string       `yaml:"entrypoint"`       // if set = executable leaf (type inferred by .sh suffix)
+	Readme          string       `yaml:"readme"`
+	Flags           FlagsSpec    `yaml:"flags"`      // list only; only used when Entrypoint is empty (flags-only leaf)
+	Use             string       `yaml:"use"`        // optional; Cobra Use template (e.g. "<name>" or "[env]")
+	Args            int          `yaml:"args"`       // optional; number of required positional args (0 = no validation)
+	Aliases         []string     `yaml:"aliases"`    // optional; Cobra Aliases
+	Example         string       `yaml:"example"`    // optional; Cobra Example
+	Deprecated      string       `yaml:"deprecated"` // optional; Cobra Deprecated message
+	Hidden          bool         `yaml:"hidden"`     // optional; omit from mb help (still invokable)
+	EnvFiles        EnvFilesSpec `yaml:"env_files"`  // optional; .env per group (executável only)
+}
+
+// ManifestEnvGroupDefault is the logical group when env_files entry omits group or --env-group is not set.
+const ManifestEnvGroupDefault = "default"
+
+// EnvFileEntry is one manifest env_files item (paths relative to plugin dir).
+type EnvFileEntry struct {
+	File  string `yaml:"file" json:"file"`
+	Group string `yaml:"group" json:"group"`
+}
+
+// EnvFilesSpec is a list of env file bindings in the manifest.
+type EnvFilesSpec struct {
+	List []EnvFileEntry
+}
+
+// UnmarshalYAML accepts only a sequence of { file, group }.
+func (e *EnvFilesSpec) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.SequenceNode {
+		return fmt.Errorf("env_files must be a list of entries (file, optional group)")
+	}
+	e.List = nil
+	return value.Decode(&e.List)
+}
+
+// Len returns the number of env_files entries.
+func (e *EnvFilesSpec) Len() int {
+	return len(e.List)
+}
+
+func (m *Manifest) normalizeEnvFileGroups() {
+	for i := range m.EnvFiles.List {
+		if strings.TrimSpace(m.EnvFiles.List[i].Group) == "" {
+			m.EnvFiles.List[i].Group = ManifestEnvGroupDefault
+		} else {
+			m.EnvFiles.List[i].Group = strings.TrimSpace(m.EnvFiles.List[i].Group)
+		}
+	}
 }
 
 // PluginTypeFromEntrypoint returns "sh" if entrypoint ends with .sh, otherwise "bin".
@@ -103,6 +142,7 @@ func LoadManifest(path string) (Manifest, []byte, error) {
 	if err := yaml.Unmarshal(raw, &manifest); err != nil {
 		return Manifest{}, nil, err
 	}
+	manifest.normalizeEnvFileGroups()
 
 	return manifest, raw, nil
 }

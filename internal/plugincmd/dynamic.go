@@ -241,6 +241,9 @@ func runEntrypointCommand(plugin cache.Plugin, d deps.Dependencies, pluginRoot s
 		if err != nil {
 			return err
 		}
+		if err := mergeManifestEnvIntoFileValues(fileValues, plugin, d.Runtime); err != nil {
+			return err
+		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
 		merged = ui.PrependGumThemeDefaults(merged)
 		merged = appendVerbosityEnv(merged, d.Runtime)
@@ -286,6 +289,9 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 				if err != nil {
 					return err
 				}
+				if err := mergeManifestEnvIntoFileValues(fileValues, plugin, d.Runtime); err != nil {
+					return err
+				}
 				merged := env.Merge(os.Environ(), fileValues, cliValues)
 				merged = ui.PrependGumThemeDefaults(merged)
 				merged = appendVerbosityEnv(merged, d.Runtime)
@@ -317,11 +323,13 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		}
 		pluginType := plugins.PluginTypeFromEntrypoint(chosenEntrypoint)
 		syntheticPlugin := cache.Plugin{
-			CommandPath: plugin.CommandPath,
-			CommandName: plugin.CommandName,
-			ExecPath:    execPath,
-			PluginType:  pluginType,
-			ConfigHash:  plugin.ConfigHash,
+			CommandPath:  plugin.CommandPath,
+			CommandName:  plugin.CommandName,
+			ExecPath:     execPath,
+			PluginType:   pluginType,
+			ConfigHash:   plugin.ConfigHash,
+			PluginDir:    baseDir,
+			EnvFilesJSON: plugin.EnvFilesJSON,
 		}
 
 		cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
@@ -330,6 +338,9 @@ func runFlagsOnlyCommand(plugin cache.Plugin, flagsMap map[string]plugins.FlagDe
 		}
 		fileValues, err := buildEnvFileValues(d.Runtime)
 		if err != nil {
+			return err
+		}
+		if err := mergeManifestEnvIntoFileValues(fileValues, syntheticPlugin, d.Runtime); err != nil {
 			return err
 		}
 		merged := env.Merge(os.Environ(), fileValues, cliValues)
@@ -389,4 +400,19 @@ func runReadmeWithGlow(path string) error {
 
 func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
 	return deps.BuildEnvFileValues(rt)
+}
+
+func mergeManifestEnvIntoFileValues(fileValues map[string]string, plugin cache.Plugin, rt *deps.RuntimeConfig) error {
+	group := plugins.ManifestEnvGroupDefault
+	if rt != nil && strings.TrimSpace(rt.EnvGroup) != "" {
+		group = strings.TrimSpace(rt.EnvGroup)
+	}
+	extra, err := plugins.MergeManifestEnvFiles(plugin.PluginDir, plugin.EnvFilesJSON, group)
+	if err != nil {
+		return err
+	}
+	for k, v := range extra {
+		fileValues[k] = v
+	}
+	return nil
 }

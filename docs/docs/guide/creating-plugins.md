@@ -71,6 +71,26 @@ O usuário executa o comando passando a flag desejada: **`mb tools do --deploy`*
 
 Detalhes em [Plugins (referência técnica)](../technical-reference/plugins.md#execução-flags-e-argumentos-passados-ao-plugin).
 
+#### `env_files` (opcional)
+
+Lista de arquivos `.env` **dentro da pasta do plugin** carregados na execução, conforme o **`--env-group`** global do MB:
+
+- **`file`** — Caminho relativo ao `manifest.yaml` (ex.: `.env`, `.env.local`).
+- **`group`** — Opcional. Se omitido, vale o grupo lógico **`default`** (mesmo conjunto usado quando você **não** passa `--env-group`). Com **`--env-group local`**, só entram linhas cujo `group` é `local`.
+
+Exemplo:
+
+```yaml
+env_files:
+  - file: .env
+  - file: .env.local
+    group: local
+```
+
+Assim, `mb --env-group local … seu-comando` mescla as variáveis de `.env` daquele plugin; sem `--env-group`, `.env.local` (grupo default) entra na pilha. O nome do grupo segue as mesmas regras de `mb self env --group`. Se o arquivo declarado não existir na hora de rodar, o comando falha com mensagem clara. Manifestos que são **só categoria** (sem `entrypoint` nem `flags`) ignoram `env_files`.
+
+Ordem de precedência completa: veja [Variáveis de ambiente](environment-variables.md).
+
 #### Uso, argumentos e ajuda (Cobra)
 
 Você pode customizar a linha de uso, a quantidade de argumentos e o help do comando com estes campos opcionais:

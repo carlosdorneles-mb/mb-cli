@@ -20,7 +20,7 @@ O CLI não executa código arbitrário em qualquer path. Ele aplica regras para 
 No momento do **scan** (quando o CLI lê os `manifest.yaml` e monta o cache):
 
 - O **entrypoint** declarado no manifesto deve ser um arquivo que exista e que, após resolução de path, fique **dentro do diretório do plugin**. Paths com `..` que “saiam” do diretório do plugin são considerados inválidos e o plugin é rejeitado (aparece como aviso no sync).
-- O mesmo vale para o **readme** (arquivo de documentação) e para os **entrypoints das flags** (quando o plugin usa `flags` no manifesto). Nenhum deles pode apontar para fora do diretório do plugin.
+- O mesmo vale para o **readme** (arquivo de documentação), para os **entrypoints das flags** (quando o plugin usa `flags` no manifesto) e para os arquivos listados em **`env_files`**. Nenhum deles pode apontar para fora do diretório do plugin; na execução, os `.env` do manifest são lidos de novo com a mesma regra.
 
 Assim, um manifesto malicioso não pode, por exemplo, apontar para um script em `/tmp` ou em outro projeto no disco.
 

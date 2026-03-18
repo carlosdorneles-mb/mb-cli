@@ -116,6 +116,40 @@ entrypoint: run.sh
 	}
 }
 
+func TestEnvFilesSpecAndNormalize(t *testing.T) {
+	yamlDoc := `
+env_files:
+  - file: .env
+    group: test
+  - file: .env.local
+`
+	var m Manifest
+	if err := yaml.Unmarshal([]byte(yamlDoc), &m); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	m.normalizeEnvFileGroups()
+	if m.EnvFiles.Len() != 2 {
+		t.Fatalf("len %d", m.EnvFiles.Len())
+	}
+	if m.EnvFiles.List[0].File != ".env" || m.EnvFiles.List[0].Group != "test" {
+		t.Errorf("first: %+v", m.EnvFiles.List[0])
+	}
+	if m.EnvFiles.List[1].File != ".env.local" || m.EnvFiles.List[1].Group != ManifestEnvGroupDefault {
+		t.Errorf("second: %+v", m.EnvFiles.List[1])
+	}
+}
+
+func TestEnvFilesSpecMapRejected(t *testing.T) {
+	yamlMap := `env_files:
+  x: .env
+`
+	var m Manifest
+	err := yaml.Unmarshal([]byte(yamlMap), &m)
+	if err == nil {
+		t.Fatal("expected error for map env_files")
+	}
+}
+
 func TestPluginTypeFromEntrypoint(t *testing.T) {
 	tests := []struct {
 		entrypoint string

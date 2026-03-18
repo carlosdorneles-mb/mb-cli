@@ -34,7 +34,7 @@ Os resultados guardam `plugin_dir` (pasta do manifest), `ExecPath` e `ReadmePath
 
 O cache SQLite (`cache.db`) armazena:
 
-- **plugins** — command_path, command_name, plugin_dir, descrição, exec_path, tipo, config_hash, readme_path, flags_json, **hidden** (manifest `hidden: true` → comando Cobra oculto no help).
+- **plugins** — command_path, command_name, plugin_dir, descrição, exec_path, tipo, config_hash, readme_path, flags_json, **env_files_json** (lista `{file, group}` do manifest), **hidden** (manifest `hidden: true` → comando Cobra oculto no help).
 - **categories** — Path, descrição, readme_path, **hidden** (categoria oculta no help quando o manifest de categoria define `hidden: true`).
 - **plugin_sources** — Por install_dir: git_url, ref, version (para remotos) ou local_path (para locais).
 
