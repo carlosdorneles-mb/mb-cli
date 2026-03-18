@@ -10,7 +10,8 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/commands/self"
-	"mb/internal/ui"
+	"mb/internal/gumlog"
+	"mb/internal/system"
 )
 
 func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
@@ -20,6 +21,8 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 		Short: "Remove um plugin instalado",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 			name := strings.TrimSpace(args[0])
 			src, err := deps.Store.GetPluginSource(name)
 			if err != nil {
@@ -29,12 +32,13 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 				return fmt.Errorf("plugin %q não encontrado", name)
 			}
 
-			confirmed, err := confirmRemove(cmd, name)
+			prompt := fmt.Sprintf("Remover o plugin %q?", name)
+			confirmed, err := system.Confirm(ctx, prompt, cmd.InOrStdin(), cmd.ErrOrStderr())
 			if err != nil {
 				return err
 			}
 			if !confirmed {
-				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderInfo("remoção cancelada"))
+				_ = log.Info(ctx, "remoção cancelada")
 				return nil
 			}
 
@@ -50,19 +54,8 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 			if err := self.RunSync(deps, nil, cmd.ErrOrStderr()); err != nil {
 				return err
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q removido", name)))
+			_ = log.Info(ctx, "plugin %q removido", name)
 			return nil
 		},
 	}
-}
-
-func confirmRemove(cmd *cobra.Command, name string) (bool, error) {
-	fmt.Fprintf(cmd.ErrOrStderr(), "Tem certeza que deseja remover o plugin %q? (y/N): ", name)
-	var answer string
-	_, err := fmt.Fscanln(cmd.InOrStdin(), &answer)
-	if err != nil && err.Error() != "unexpected newline" {
-		return false, err
-	}
-	answer = strings.TrimSpace(strings.ToLower(answer))
-	return answer == "y" || answer == "yes", nil
 }

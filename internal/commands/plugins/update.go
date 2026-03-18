@@ -10,8 +10,8 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/commands/self"
+	"mb/internal/gumlog"
 	mbplugins "mb/internal/plugins"
-	"mb/internal/ui"
 )
 
 func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
@@ -23,6 +23,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 		Short: "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
+			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if all {
 				sources, err := deps.Store.ListPluginSources()
@@ -33,8 +34,8 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 					if src.GitURL == "" || src.LocalPath != "" {
 						continue
 					}
-					if err := updateOnePlugin(ctx, deps, src.InstallDir, cmd); err != nil {
-						fmt.Fprintln(cmd.ErrOrStderr(), ui.RenderError(fmt.Sprintf("%s: %v", src.InstallDir, err)))
+					if err := updateOnePlugin(ctx, deps, log, src.InstallDir, cmd); err != nil {
+						_ = log.Error(ctx, "%s: %v", src.InstallDir, err)
 					}
 				}
 				return self.RunSync(deps, nil, cmd.ErrOrStderr())
@@ -44,11 +45,11 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 				return fmt.Errorf("informe o nome do plugin ou use --all")
 			}
 			name := strings.TrimSpace(args[0])
-			if err := updateOnePlugin(ctx, deps, name, cmd); err != nil {
+			if err := updateOnePlugin(ctx, deps, log, name, cmd); err != nil {
 				return err
 			}
 			return self.RunSync(deps, func(msg string) {
-				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(msg))
+				_ = log.Info(ctx, "%s", msg)
 			}, cmd.ErrOrStderr())
 		},
 	}
@@ -57,7 +58,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	return cmd
 }
 
-func updateOnePlugin(ctx context.Context, deps deps.Dependencies, name string, cmd *cobra.Command) error {
+func updateOnePlugin(ctx context.Context, deps deps.Dependencies, log *gumlog.Logger, name string, cmd *cobra.Command) error {
 	src, err := deps.Store.GetPluginSource(name)
 	if err != nil {
 		return err
@@ -93,8 +94,8 @@ func updateOnePlugin(ctx context.Context, deps deps.Dependencies, name string, c
 			}
 		}
 		if newerTag == "" {
-			if cmd != nil {
-				fmt.Fprintln(cmd.OutOrStdout(), ui.RenderInfo(fmt.Sprintf("%s: já está na versão mais recente (%s)", name, src.Ref)))
+			if cmd != nil && log != nil {
+				_ = log.Info(ctx, "%s: já está na versão mais recente (%s)", name, src.Ref)
 			}
 			return nil
 		}
@@ -107,8 +108,8 @@ func updateOnePlugin(ctx context.Context, deps deps.Dependencies, name string, c
 		if err := deps.Store.UpsertPluginSource(*src); err != nil {
 			return err
 		}
-		if cmd != nil {
-			fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("%s atualizado para %s", name, version)))
+		if cmd != nil && log != nil {
+			_ = log.Info(ctx, "%s atualizado para %s", name, version)
 		}
 		return nil
 	}
@@ -124,8 +125,8 @@ func updateOnePlugin(ctx context.Context, deps deps.Dependencies, name string, c
 	if err := deps.Store.UpsertPluginSource(*src); err != nil {
 		return err
 	}
-	if cmd != nil {
-		fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("%s atualizado para %s", name, version)))
+	if cmd != nil && log != nil {
+		_ = log.Info(ctx, "%s atualizado para %s", name, version)
 	}
 	return nil
 }

@@ -12,8 +12,8 @@ import (
 	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/commands/self"
+	"mb/internal/gumlog"
 	mbplugins "mb/internal/plugins"
-	"mb/internal/ui"
 )
 
 func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
@@ -32,7 +32,8 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 			if err == nil {
 				return runAddRemote(cmd, deps, arg, name, tag)
 			}
-			return runAddLocal(cmd, deps, arg, name)
+			log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			return runAddLocal(cmd, deps, log, arg, name)
 		},
 	}
 
@@ -116,11 +117,12 @@ func runAddRemote(cmd *cobra.Command, deps deps.Dependencies, gitURL string, nam
 	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q instalado em %s (versão %s)", installDir, destDir, version)))
+	log := gumlog.New(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+	_ = log.Info(cmd.Context(), "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
-func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, pathArg string, name string) error {
+func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, pathArg string, name string) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
 	}
@@ -151,12 +153,13 @@ func runAddLocal(cmd *cobra.Command, deps deps.Dependencies, pathArg string, nam
 
 	rootManifest := filepath.Join(absPath, "manifest.yaml")
 	if _, err := os.Stat(rootManifest); os.IsNotExist(err) {
-		return runAddLocalCollection(cmd, deps, absPath, name)
+		return runAddLocalCollection(cmd, deps, log, absPath, name)
 	}
-	return runAddLocalSingle(cmd, deps, absPath, name)
+	return runAddLocalSingle(cmd, deps, log, absPath, name)
 }
 
-func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath string, name string) error {
+func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, absPath string, name string) error {
+	ctx := cmd.Context()
 	entries, err := os.ReadDir(absPath)
 	if err != nil {
 		return err
@@ -172,11 +175,11 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath s
 		}
 		child := filepath.Join(absPath, e.Name())
 		if _, err := os.Stat(filepath.Join(child, "manifest.yaml")); os.IsNotExist(err) {
-			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: ignorando %q: sem manifest.yaml na raiz do subdiretório\n", e.Name())
+			_ = log.Warn(ctx, "ignorando %q: sem manifest.yaml na raiz do subdiretório", e.Name())
 			continue
 		}
 		if err := mbplugins.ValidatePluginRoot(child); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: ignorando %q: %v\n", e.Name(), err)
+			_ = log.Warn(ctx, "ignorando %q: %v", e.Name(), err)
 			continue
 		}
 		candidates = append(candidates, candidate{path: child, installDir: e.Name()})
@@ -199,7 +202,7 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath s
 		}
 		existing, _ := deps.Store.GetPluginSource(installDir)
 		if existing != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "aviso: plugin %q já registrado, ignorando\n", installDir)
+			_ = log.Warn(ctx, "plugin %q já registrado, ignorando", installDir)
 			continue
 		}
 		if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
@@ -209,7 +212,7 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath s
 			return err
 		}
 		added++
-		fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("plugin %q registrado localmente em %s", installDir, c.path)))
+		_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, c.path)
 	}
 	if added == 0 {
 		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
@@ -220,7 +223,8 @@ func runAddLocalCollection(cmd *cobra.Command, deps deps.Dependencies, absPath s
 	return nil
 }
 
-func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, absPath string, name string) error {
+func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, log *gumlog.Logger, absPath string, name string) error {
+	ctx := cmd.Context()
 	installDir := name
 	if installDir == "" {
 		installDir = filepath.Base(absPath)
@@ -238,7 +242,7 @@ func runAddLocalSingle(cmd *cobra.Command, deps deps.Dependencies, absPath strin
 	if err := self.RunSync(deps, func(msg string) {}, cmd.ErrOrStderr()); err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), ui.RenderSuccess(fmt.Sprintf("O plugin %q foi registrado localmente em %s", installDir, absPath)))
+	_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, absPath)
 	return nil
 }
 

@@ -174,9 +174,9 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 	writeMinimalRunnablePlugin(t, pluginDir)
 
 	cmd := newPluginsAddCmd(d)
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetErr(os.NewFile(0, os.DevNull))
+	var errBuf bytes.Buffer
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&errBuf)
 	cmd.SetArgs([]string{pluginDir, "--name", "myplug"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("add: %v", err)
@@ -192,8 +192,8 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 	if src.LocalPath == "" {
 		t.Error("expected LocalPath set")
 	}
-	if !strings.Contains(out.String(), "myplug") {
-		t.Errorf("stdout should mention plugin name: %s", out.String())
+	if !strings.Contains(errBuf.String(), "myplug") {
+		t.Errorf("log should mention plugin name: %s", errBuf.String())
 	}
 }
 

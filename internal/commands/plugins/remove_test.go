@@ -2,12 +2,16 @@ package plugins
 
 import (
 	"bytes"
-	"os"
 	"strings"
 	"testing"
 
 	"mb/internal/cache"
 )
+
+func forceConfirmFallback(t *testing.T) {
+	t.Helper()
+	t.Setenv("PATH", t.TempDir())
+}
 
 func TestRemovePluginNotFound(t *testing.T) {
 	d := testPluginsDeps(t)
@@ -26,6 +30,7 @@ func TestRemovePluginNotFound(t *testing.T) {
 }
 
 func TestRemoveCancelled(t *testing.T) {
+	forceConfirmFallback(t)
 	d := testPluginsDeps(t)
 	if err := d.Store.UpsertPluginSource(cache.PluginSource{
 		InstallDir: "keepme",
@@ -34,17 +39,17 @@ func TestRemoveCancelled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var out bytes.Buffer
+	var errBuf bytes.Buffer
 	cmd := newPluginsRemoveCmd(d)
-	cmd.SetOut(&out)
-	cmd.SetErr(os.NewFile(0, os.DevNull))
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&errBuf)
 	cmd.SetIn(strings.NewReader("n\n"))
 	cmd.SetArgs([]string{"keepme"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if !strings.Contains(out.String(), "cancelada") {
-		t.Errorf("expected cancel message, got: %s", out.String())
+	if !strings.Contains(errBuf.String(), "cancelada") {
+		t.Errorf("expected cancel message, got: %s", errBuf.String())
 	}
 	src, err := d.Store.GetPluginSource("keepme")
 	if err != nil {
@@ -56,6 +61,7 @@ func TestRemoveCancelled(t *testing.T) {
 }
 
 func TestRemoveLocalConfirmed(t *testing.T) {
+	forceConfirmFallback(t)
 	d := testPluginsDeps(t)
 	if err := d.Store.UpsertPluginSource(cache.PluginSource{
 		InstallDir: "gone",
@@ -64,17 +70,17 @@ func TestRemoveLocalConfirmed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var out bytes.Buffer
+	var errBuf2 bytes.Buffer
 	cmd := newPluginsRemoveCmd(d)
-	cmd.SetOut(&out)
-	cmd.SetErr(os.NewFile(0, os.DevNull))
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&errBuf2)
 	cmd.SetIn(strings.NewReader("yes\n"))
 	cmd.SetArgs([]string{"gone"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if !strings.Contains(out.String(), "removido") {
-		t.Errorf("expected success message: %s", out.String())
+	if !strings.Contains(errBuf2.String(), "removido") {
+		t.Errorf("expected success message: %s", errBuf2.String())
 	}
 	src, err := d.Store.GetPluginSource("gone")
 	if err != nil {
@@ -85,22 +91,3 @@ func TestRemoveLocalConfirmed(t *testing.T) {
 	}
 }
 
-func TestConfirmRemoveYesShort(t *testing.T) {
-	cmd := newPluginsRemoveCmd(testPluginsDeps(t))
-	cmd.SetErr(os.NewFile(0, os.DevNull))
-	cmd.SetIn(strings.NewReader("y\n"))
-	ok, err := confirmRemove(cmd, "p")
-	if err != nil || !ok {
-		t.Fatalf("confirmRemove y: ok=%v err=%v", ok, err)
-	}
-}
-
-func TestConfirmRemoveEmptyLine(t *testing.T) {
-	cmd := newPluginsRemoveCmd(testPluginsDeps(t))
-	cmd.SetErr(os.NewFile(0, os.DevNull))
-	cmd.SetIn(strings.NewReader("\n"))
-	ok, err := confirmRemove(cmd, "p")
-	if err != nil || ok {
-		t.Fatalf("empty line should be N: ok=%v err=%v", ok, err)
-	}
-}

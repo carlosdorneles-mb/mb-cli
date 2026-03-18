@@ -62,7 +62,7 @@ func TestNewPluginsCmd(t *testing.T) {
 	if cmd.Use != "plugins" {
 		t.Errorf("Use = %q, want plugins", cmd.Use)
 	}
-	wantAliases := []string{"p", "extensions", "e"}
+	wantAliases := []string{"plugin", "p", "extensions", "e"}
 	if len(cmd.Aliases) != len(wantAliases) {
 		t.Fatalf("Aliases = %v", cmd.Aliases)
 	}
