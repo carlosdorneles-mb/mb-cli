@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/commands/self"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
 )
@@ -34,7 +33,7 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 
 			rows := make([][]string, 0, len(pluginList))
 			for _, p := range pluginList {
-				src := self.SourceForPlugin(p, sources, deps.Runtime.PluginsDir)
+				src := mbplugins.SourceForPlugin(p, sources, deps.Runtime.PluginsDir)
 				name := p.CommandPath
 				if name == "" {
 					name = p.CommandName

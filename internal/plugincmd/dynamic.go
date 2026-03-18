@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/self"
 	"mb/internal/deps"
 	"mb/internal/env"
 	"mb/internal/plugins"
@@ -102,10 +101,10 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 		if byPath[pathSoFar] != nil {
 			continue
 		}
-		src := self.SourceForPlugin(plugin, sources, d.Runtime.PluginsDir)
+		src := plugins.SourceForPlugin(plugin, sources, d.Runtime.PluginsDir)
 		pluginRoot := plugin.PluginDir
 		if pluginRoot == "" {
-			installDir := self.FirstPathSegment(plugin.CommandPath)
+			installDir := plugins.FirstPathSegment(plugin.CommandPath)
 			s := sourceByDir[installDir]
 			pluginRoot = filepath.Join(d.Runtime.PluginsDir, installDir)
 			if s != nil && s.LocalPath != "" {

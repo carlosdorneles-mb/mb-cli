@@ -1,4 +1,4 @@
-package self
+package plugins
 
 import (
 	"path/filepath"
@@ -6,6 +6,18 @@ import (
 
 	"mb/internal/cache"
 )
+
+// FirstPathSegment returns the first segment of path (before the first "/"), or path if no "/".
+func FirstPathSegment(path string) string {
+	if path == "" {
+		return ""
+	}
+	idx := strings.Index(path, "/")
+	if idx == -1 {
+		return path
+	}
+	return path[:idx]
+}
 
 // PluginDirUnderRoot reports whether dir is root or a subdirectory of root.
 func PluginDirUnderRoot(root, dir string) bool {

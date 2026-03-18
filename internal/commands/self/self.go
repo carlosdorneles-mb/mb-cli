@@ -1,8 +1,6 @@
 package self
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 
 	selenv "mb/internal/commands/self/env"
@@ -68,16 +66,4 @@ func findCommand(cmds []*cobra.Command, name string) *cobra.Command {
 		}
 	}
 	return nil
-}
-
-// FirstPathSegment returns the first segment of path (before the first "/"), or path if no "/".
-func FirstPathSegment(path string) string {
-	if path == "" {
-		return ""
-	}
-	idx := strings.Index(path, "/")
-	if idx == -1 {
-		return path
-	}
-	return path[:idx]
 }
