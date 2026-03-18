@@ -12,7 +12,7 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set <KEY> <VALUE>",
 		Aliases: []string{"s"},
-		Short:   "Define uma variável padrão ou pra um grupo específico",
+		Short:   "Define ou atualiza uma variável padrão ou pra um grupo específico",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()

@@ -10,6 +10,7 @@ import (
 func NewCmd(d deps.Dependencies) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "env",
+		Aliases: []string{"e", "envs", "settings"},
 		Short: "Gerencia variáveis de ambiente padrão",
 	}
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})

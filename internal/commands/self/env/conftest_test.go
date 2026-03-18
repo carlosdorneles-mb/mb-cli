@@ -1,5 +1,7 @@
 package env
 
+// Fixtures compartilhados para testes do pacote env (deps temporários, dirs, cache).
+
 import (
 	"os"
 	"path/filepath"
