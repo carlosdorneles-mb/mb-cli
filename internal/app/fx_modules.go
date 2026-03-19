@@ -5,7 +5,7 @@ import (
 
 	"mb/internal/commands"
 	"mb/internal/deps"
-	"mb/internal/executor"
+	"mb/internal/infra/executor"
 )
 
 // PathsModule resolves MB data directory paths and runtime shell (paths only until flags parse).

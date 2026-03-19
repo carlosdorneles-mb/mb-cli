@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"mb/internal/deps"
-	"mb/internal/executor"
+	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
