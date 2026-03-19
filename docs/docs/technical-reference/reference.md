@@ -16,9 +16,9 @@ sidebar_position: 3
 | `mb plugins list [--check-updates]` | Lista plugins instalados (nome, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
 | `mb plugins remove <name>` | Remove um plugin instalado (com confirmação). Se for local, só remove o registro. O cache é atualizado e o plugin deixa de aparecer em `plugins list`. |
 | `mb plugins update [name \| --all]` | Atualiza um plugin remoto ou todos (plugins locais não são atualizados) |
-| `mb envs list [--group G]` | Lista variáveis em tabela (VAR, GRUPO); com `--group`, só o arquivo `.env.G` |
-| `mb envs set <KEY> <VALUE> [--group G]` | Define em `env.defaults` ou em `.env.G` |
-| `mb envs unset <KEY> [--group G]` | Remove de `env.defaults` ou de `.env.G` |
+| `mb envs list [--group G] [--show-secrets]` | Lista variáveis em tabela (VAR, GRUPO); secrets mostram `***`; com `--show-secrets` mostra o valor do keyring |
+| `mb envs set <KEY> <VALUE> [--group G] [--secret]` | Define em `env.defaults` ou em `.env.G`; com `--secret` guarda no keyring do sistema |
+| `mb envs unset <KEY> [--group G]` | Remove de `env.defaults` ou de `.env.G` (e do keyring se for secret) |
 | `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](../guide/plugin-commands.md)) |
 
 ## Completion de shell

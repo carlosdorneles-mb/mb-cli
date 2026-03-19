@@ -6,13 +6,17 @@ sidebar_position: 5
 
 O MB CLI controla o ambiente em que os plugins são executados. As variáveis são mescladas em uma ordem bem definida e só o processo do plugin recebe esse ambiente final; o CLI em si não altera o ambiente do seu shell.
 
+## Secrets no keyring
+
+Variáveis definidas com **`mb envs set <KEY> <VALUE> --secret`** não são gravadas em ficheiro: o valor fica no **keyring do sistema** (macOS Keychain, Linux Secret Service, Windows Credential Manager). Ao listar com **`mb envs list`**, essas chaves aparecem com valor **`***`**; use **`mb envs list --show-secrets`** para ver o valor real. Ao executar plugins, o CLI resolve os secrets a partir do keyring e injecta o valor real no ambiente do processo. **`mb envs unset <KEY>`** remove a variável do ficheiro e, se for secret, também do keyring.
+
 ## Ordem de precedência
 
 Da **menor** para a **maior** precedência:
 
 1. **Variáveis do sistema** — O que já está em `os.Environ()` (incluindo o que você exportou no shell).
-2. **`env.defaults`** — `~/.config/mb/env.defaults`.
-3. **Grupo (`--env-group`)** — Se você passar **`--env-group <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (mesmas chaves do grupo sobrescrevem as do default).
+2. **`env.defaults`** — `~/.config/mb/env.defaults` (e secrets do grupo default resolvidos do keyring).
+3. **Grupo (`--env-group`)** — Se você passar **`--env-group <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (e os secrets desse grupo são resolvidos do keyring; mesmas chaves do grupo sobrescrevem as do default).
 4. **`env_files` do manifest** — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **grupo efetivo**: sem `--env-group`, entram só entradas com grupo `default` (ou com `group` omitido no YAML); com **`--env-group test`**, entram só entradas com `group: test`. Vários arquivos para o mesmo grupo são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela.
 5. **`--env-file <path>`** — Mesclado em seguida e sobrescreve chaves anteriores em caso de conflito.
 6. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
@@ -36,10 +40,10 @@ Esses defaults só são aplicados quando a chave ainda não existe no ambiente m
 
 Você pode definir variáveis que serão usadas em toda execução de plugins, sem precisar passar `--env` toda vez:
 
-- **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`).
+- **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`). Variáveis guardadas como secret mostram o valor como **`***`**; use **`--show-secrets`** para ver o valor real (lido do keyring).
 - **`mb envs list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
-- **`mb envs set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`.
-- **`mb envs unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo.
+- **`mb envs set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`. Com **`--secret`**, o valor é guardado no **keyring do sistema** (não em ficheiro); ao executar plugins, o valor é injectado a partir do keyring.
+- **`mb envs unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo. Se a variável estava guardada como secret, é também removida do keyring.
 
 ### Grupo na linha de comando: `--env-group`
 

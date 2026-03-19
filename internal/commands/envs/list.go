@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	"mb/internal/keyring"
 	"mb/internal/system"
 )
 
@@ -17,7 +18,11 @@ type envListRow struct {
 	key, value, group string
 }
 
-func collectEnvListRows(d deps.Dependencies, listGroup string) ([]envListRow, error) {
+func collectEnvListRows(
+	d deps.Dependencies,
+	listGroup string,
+	showSecrets bool,
+) ([]envListRow, error) {
 	var rows []envListRow
 	if listGroup != "" {
 		if err := deps.ValidateEnvGroup(listGroup); err != nil {
@@ -27,23 +32,18 @@ func collectEnvListRows(d deps.Dependencies, listGroup string) ([]envListRow, er
 		if err != nil {
 			return nil, err
 		}
-		values, err := deps.LoadDefaultEnvValues(p)
+		r, err := rowsForPath(p, listGroup, showSecrets)
 		if err != nil {
 			return nil, err
 		}
-		for _, key := range sortedKeys(values) {
-			rows = append(rows, envListRow{key: key, value: values[key], group: listGroup})
-		}
-		return rows, nil
+		return r, nil
 	}
 
-	defVals, err := deps.LoadDefaultEnvValues(d.Runtime.DefaultEnvPath)
+	defRows, err := rowsForPath(d.Runtime.DefaultEnvPath, "default", showSecrets)
 	if err != nil {
 		return nil, err
 	}
-	for _, key := range sortedKeys(defVals) {
-		rows = append(rows, envListRow{key: key, value: defVals[key], group: "default"})
-	}
+	rows = append(rows, defRows...)
 	matches, err := filepath.Glob(filepath.Join(d.Runtime.ConfigDir, ".env.*"))
 	if err != nil {
 		return nil, err
@@ -58,13 +58,15 @@ func collectEnvListRows(d deps.Dependencies, listGroup string) ([]envListRow, er
 		if g == "" || deps.ValidateEnvGroup(g) != nil {
 			continue
 		}
-		vals, err := deps.LoadDefaultEnvValues(path)
+		// skip .env.*.secrets files
+		if strings.HasSuffix(path, secretsSuffix) {
+			continue
+		}
+		r, err := rowsForPath(path, g, showSecrets)
 		if err != nil {
 			return nil, err
 		}
-		for _, key := range sortedKeys(vals) {
-			rows = append(rows, envListRow{key: key, value: vals[key], group: g})
-		}
+		rows = append(rows, r...)
 	}
 	sort.Slice(rows, func(i, j int) bool {
 		gi, gj := rows[i].group, rows[j].group
@@ -85,15 +87,68 @@ func collectEnvListRows(d deps.Dependencies, listGroup string) ([]envListRow, er
 	return rows, nil
 }
 
+const secretsSuffix = ".secrets"
+
+func rowsForPath(path, group string, showSecrets bool) ([]envListRow, error) {
+	values, err := deps.LoadDefaultEnvValues(path)
+	if err != nil {
+		return nil, err
+	}
+	secretKeys, err := deps.LoadSecretKeys(path)
+	if err != nil {
+		return nil, err
+	}
+	keyringGroup := envGroupForKeyring(group)
+	seen := make(map[string]bool)
+	var rows []envListRow
+	for _, key := range sortedKeys(values) {
+		seen[key] = true
+		if isSecret(secretKeys, key) {
+			val := "***"
+			if showSecrets {
+				if v, err := keyring.Get(keyringGroup, key); err == nil {
+					val = v
+				}
+			}
+			rows = append(rows, envListRow{key: key, value: val, group: group})
+		} else {
+			rows = append(rows, envListRow{key: key, value: values[key], group: group})
+		}
+	}
+	for _, key := range secretKeys {
+		if seen[key] {
+			continue
+		}
+		val := "***"
+		if showSecrets {
+			if v, err := keyring.Get(keyringGroup, key); err == nil {
+				val = v
+			}
+		}
+		rows = append(rows, envListRow{key: key, value: val, group: group})
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].key < rows[j].key })
+	return rows, nil
+}
+
+func isSecret(secretKeys []string, key string) bool {
+	for _, sk := range secretKeys {
+		if sk == key {
+			return true
+		}
+	}
+	return false
+}
+
 func newListCmd(d deps.Dependencies) *cobra.Command {
 	var listGroup string
-	var asJSON, asText bool
+	var asJSON, asText, showSecrets bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
 		Short:   "Lista variáveis padrão ou de um grupo específico",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			rows, err := collectEnvListRows(d, listGroup)
+			rows, err := collectEnvListRows(d, listGroup, showSecrets)
 			if err != nil {
 				return err
 			}
@@ -128,6 +183,8 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&listGroup, "group", "", "Lista apenas variáveis do grupo informado")
+	cmd.Flags().
+		BoolVar(&showSecrets, "show-secrets", false, "Mostra o valor real das variáveis guardadas no keyring (por defeito mostram ***)")
 	cmd.Flags().
 		BoolVarP(&asJSON, "json", "J", false, "Emite variáveis como objeto JSON {\"CHAVE\":\"valor\",...}")
 	cmd.Flags().

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/joho/godotenv"
+
+	"mb/internal/keyring"
 )
 
 // LoadDefaultEnvValues reads KEY=VALUE pairs from the given path (e.g. env.defaults).
@@ -30,8 +32,24 @@ func SaveDefaultEnvValues(path string, values map[string]string) error {
 	return godotenv.Write(values, path)
 }
 
+// mergeSecretKeysInto resolves keys listed in path.secrets from the keyring and adds them to merged.
+func mergeSecretKeysInto(merged map[string]string, path, keyringGroup string) {
+	keys, err := LoadSecretKeys(path)
+	if err != nil {
+		return
+	}
+	for _, key := range keys {
+		val, err := keyring.Get(keyringGroup, key)
+		if err != nil {
+			continue
+		}
+		merged[key] = val
+	}
+}
+
 // BuildEnvFileValues loads env.defaults, overlays .env.<EnvGroup> when EnvGroup is set,
-// then overlays --env-file. Used for plugin execution defaults.
+// then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring.
+// Used for plugin execution defaults.
 func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 	merged := map[string]string{}
 
@@ -42,6 +60,7 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 	for key, value := range defaultValues {
 		merged[key] = value
 	}
+	mergeSecretKeysInto(merged, rt.DefaultEnvPath, "default")
 
 	if rt.EnvGroup != "" {
 		if err := ValidateEnvGroup(rt.EnvGroup); err != nil {
@@ -58,6 +77,7 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 		for key, value := range groupValues {
 			merged[key] = value
 		}
+		mergeSecretKeysInto(merged, groupPath, rt.EnvGroup)
 	}
 
 	if rt.EnvFilePath != "" {
