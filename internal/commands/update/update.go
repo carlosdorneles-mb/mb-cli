@@ -42,9 +42,7 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 			runCLI := !onlyPlugins
 
 			if runPlugins {
-				if d.Runtime != nil && !d.Runtime.Quiet {
-					_ = log.Info(ctx, "Atualizando plugins...")
-				}
+				_ = log.Info(ctx, "Atualizando plugins...")
 				if err := plugins.RunUpdateAll(ctx, d, log); err != nil {
 					return err
 				}
@@ -54,7 +52,7 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 					suCfg := selfupdateFromAppConfig(d)
 					local := strings.TrimSpace(version.Version)
 					out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
-					if out != "" && d.Runtime != nil && !d.Runtime.Quiet {
+					if out != "" {
 						logInfoLines(ctx, log, out)
 					}
 					if err != nil {
@@ -65,9 +63,7 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 					}
 					return nil
 				}
-				if d.Runtime != nil && !d.Runtime.Quiet {
-					_ = log.Info(ctx, "Atualizando MB CLI...")
-				}
+				_ = log.Info(ctx, "Atualizando MB CLI...")
 				return RunCLIUpdate(ctx, d, log)
 			}
 			return nil

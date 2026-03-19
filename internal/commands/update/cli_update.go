@@ -31,15 +31,13 @@ func logInfoLines(ctx context.Context, log *system.Logger, text string) {
 // RunCLIUpdate updates the MB CLI binary to the latest release. Non-release builds get the usual message and nil.
 func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
 	if !version.IsReleaseBuild() {
-		if deps.Runtime != nil && !deps.Runtime.Quiet {
-			logInfoLines(ctx, log, cliUpdateNonReleaseMsg)
-		}
+		logInfoLines(ctx, log, cliUpdateNonReleaseMsg)
 		return nil
 	}
 	local := strings.TrimSpace(version.Version)
 	suCfg := selfupdateFromAppConfig(deps)
 	out, err := selfupdate.Run(ctx, suCfg, local)
-	if out != "" && deps.Runtime != nil && !deps.Runtime.Quiet {
+	if out != "" {
 		logInfoLines(ctx, log, out)
 	}
 	return err
