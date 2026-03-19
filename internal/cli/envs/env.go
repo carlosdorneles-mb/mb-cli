@@ -11,7 +11,7 @@ func NewCmd(d deps.Dependencies) *cobra.Command {
 	root := &cobra.Command{
 		Use:     "envs",
 		Aliases: []string{"e", "env"},
-		Short:   "Gerencia variáveis de ambiente padrão",
+		Short:   "Gerencia variáveis de ambiente globais",
 	}
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 

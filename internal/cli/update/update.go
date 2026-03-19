@@ -21,7 +21,7 @@ func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "Atualiza plugins e o MB CLI",
+		Short: "Atualiza o CLI, plugins e o sistema operacional (quando possível)",
 		Long: `Atualiza, em sequência, os plugins instalados e o binário do MB CLI (conforme config).
 Use --only-plugins para atualizar só os plugins; use --only-cli para atualizar só o binário.
 Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simultâneo.`,
