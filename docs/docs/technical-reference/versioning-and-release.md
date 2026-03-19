@@ -10,7 +10,7 @@ Esta página descreve como a **versão** do MB CLI é definida e como os **relea
 
 - O MB segue [Semantic Versioning](https://semver.org/) (SemVer): **MAJOR.MINOR.PATCH** (ex.: `v1.2.3`).
 - A versão é definida por **tags Git** no repositório. Não existe arquivo `VERSION` nem versão hardcoded no código: o número vem sempre da tag usada no build.
-- O binário exibe a versão em `mb -V` ou `mb --version`. Esse valor é injetado em tempo de **build** via ldflags (variável `mb/internal/version.Version`). Em desenvolvimento (`go run` ou `make build` sem tag), o CLI mostra `dev`.
+- O binário exibe a versão em `mb -V` ou `mb --version`. Esse valor é injetado em tempo de **build** via ldflags (variável `mb/internal/shared/version.Version`). Em desenvolvimento (`go run` ou `make build` sem tag), o CLI mostra `dev`.
 - **`mb update --only-cli`** (e `--check-only`) só funcionam quando essa variável está definida — ou seja, binários publicados no GitHub Releases. Builds locais recebem um aviso e devem usar `install.sh` ou o asset da release.
 
 ## Geração da próxima versão (svu)
@@ -53,7 +53,7 @@ O fluxo de publicação de release **não** cria a tag; ele **reage** ao push de
 
 2. **GoReleaser:** o workflow chama o [GoReleaser](https://goreleaser.com/) em modo `release`. O GoReleaser:
    - Lê a tag que disparou o workflow (ex.: `v1.0.0`),
-   - Injeta essa tag nos ldflags do build: `-X mb/internal/version.Version={{.Tag}}`,
+   - Injeta essa tag nos ldflags do build: `-X mb/internal/shared/version.Version={{.Tag}}`,
    - Compila o binário para **Linux** e **macOS** (amd64 e arm64),
    - Gera os arquivos (tar.gz, checksums) conforme `.goreleaser.yaml`,
    - Cria ou atualiza o **GitHub Release** correspondente à tag e anexa os artefatos.

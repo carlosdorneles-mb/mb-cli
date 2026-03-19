@@ -12,7 +12,7 @@ import (
 	"mb/internal/deps"
 	"mb/internal/selfupdate"
 	"mb/internal/shared/system"
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 // NewUpdateCmd returns the root "mb update" command.

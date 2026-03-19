@@ -9,7 +9,7 @@ import (
 
 	"mb/internal/app"
 	"mb/internal/shared/ui"
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 func main() {

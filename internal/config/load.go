@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 // Load ensures config.yaml exists (creates it with defaults if missing), then reads and validates it.

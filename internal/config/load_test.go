@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 func TestLoad_CreatesConfigWhenMissing(t *testing.T) {

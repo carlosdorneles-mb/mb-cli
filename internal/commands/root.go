@@ -17,7 +17,7 @@ import (
 	"mb/internal/env"
 	"mb/internal/plugincmd"
 	"mb/internal/shared/ui"
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 type RootCommand = *cobra.Command

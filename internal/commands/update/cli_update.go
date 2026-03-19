@@ -7,7 +7,7 @@ import (
 	"mb/internal/deps"
 	"mb/internal/selfupdate"
 	"mb/internal/shared/system"
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 const cliUpdateNonReleaseMsg = `Este binário não veio da release oficial do MB CLI (build local, go install, etc.).

@@ -2,7 +2,7 @@ package version
 
 import "strings"
 
-// Version is set at build time via ldflags (e.g. -X mb/internal/version.Version=v1.0.0).
+// Version is set at build time via ldflags (e.g. -X mb/internal/shared/version.Version=v1.0.0).
 // If not set, the CLI falls back to runtime/debug.ReadBuildInfo or "dev".
 var Version string
 

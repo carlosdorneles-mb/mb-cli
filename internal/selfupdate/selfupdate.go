@@ -22,7 +22,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"mb/internal/config"
-	"mb/internal/version"
+	"mb/internal/shared/version"
 )
 
 // Config controls where to fetch release metadata and artifacts (for tests, use custom URLs).
