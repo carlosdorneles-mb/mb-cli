@@ -12,7 +12,7 @@ import (
 	"mb/internal/cache"
 	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {

@@ -10,7 +10,7 @@ import (
 
 	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 // RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.

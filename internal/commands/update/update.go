@@ -11,7 +11,7 @@ import (
 	"mb/internal/commands/plugins"
 	"mb/internal/deps"
 	"mb/internal/selfupdate"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 	"mb/internal/version"
 )
 

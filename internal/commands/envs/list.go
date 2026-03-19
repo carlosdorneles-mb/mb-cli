@@ -11,7 +11,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/keyring"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 type envListRow struct {

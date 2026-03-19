@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 func TestRunSyncEmptyPluginsDir(t *testing.T) {

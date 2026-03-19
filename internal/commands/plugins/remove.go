@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {

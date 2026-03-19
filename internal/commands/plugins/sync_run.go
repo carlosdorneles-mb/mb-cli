@@ -10,7 +10,7 @@ import (
 	"mb/internal/deps"
 	"mb/internal/helpers/shell"
 	plugpkg "mb/internal/plugins"
-	"mb/internal/system"
+	"mb/internal/shared/system"
 )
 
 // RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
