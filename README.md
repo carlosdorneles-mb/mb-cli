@@ -38,6 +38,7 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 
 | Comando | Descrição |
 |--------|-----------|
+| `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o binário do MB; sem flags executa as duas fases |
 | `mb self sync` | Atualiza cache de plugins |
 | `mb self update` | Atualiza o binário `mb` (só binários da release oficial) |
 | `mb self update --check-only` | Verifica atualização (release); saída `2` se houver |

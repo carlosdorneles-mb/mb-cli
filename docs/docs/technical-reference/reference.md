@@ -8,6 +8,7 @@ sidebar_position: 3
 
 | Comando | Descrição |
 |--------|-----------|
+| `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o MB CLI. Sem flags: primeiro plugins (como `mb plugins update --all`), depois o binário (como `mb self update`). **`--only-plugins`** só atualiza plugins; **`--only-cli`** só o binário. Não use as duas flags em simultâneo. |
 | `mb self sync` | Garante os helpers de shell em `~/.config/mb/lib/shell`; escaneia o diretório de plugins e os paths locais registrados e atualiza o cache SQLite |
 | `mb self update` | **Só para binários da release oficial** (versão embutida via ldflags no GitHub Release). Builds locais ou `go install` mostram mensagem a usar `install.sh`. Se a release for mais nova, baixa o `mb`, valida SHA256 e substitui o executável (Linux/macOS, amd64/arm64). |
 | `mb self update --check-only` | Igual: só em binários de release. Compara com a última release (sem download). **Códigos de saída:** `0` = já atualizado ou versão local mais nova; `2` = há atualização; `1` = erro. Em build local: mensagem + saída `0`. |

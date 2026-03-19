@@ -207,7 +207,7 @@ func newSelfSyncCmd(deps deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:     "sync",
 		Aliases: []string{"s"},
-		Short:   "Rescaneia plugins e reconstrói o cache SQLite",
+		Short:   "Rescaneia plugins e reconstrói o cache de plugins",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())

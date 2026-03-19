@@ -31,6 +31,23 @@ func logInfoLines(ctx context.Context, log *system.Logger, text string) {
 	}
 }
 
+// RunCLIUpdate updates the MB CLI binary to the latest release. Non-release builds get the usual message and nil.
+func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
+	if !version.IsReleaseBuild() {
+		if deps.Runtime != nil && !deps.Runtime.Quiet {
+			logInfoLines(ctx, log, selfUpdateNonReleaseMsg)
+		}
+		return nil
+	}
+	local := strings.TrimSpace(version.Version)
+	suCfg := selfupdateFromAppConfig(deps)
+	out, err := selfupdate.Run(ctx, suCfg, local)
+	if out != "" && deps.Runtime != nil && !deps.Runtime.Quiet {
+		logInfoLines(ctx, log, out)
+	}
+	return err
+}
+
 func newSelfUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var checkOnly bool
 	cmd := &cobra.Command{
@@ -76,11 +93,7 @@ Com --check-only apenas verifica se há release mais nova (sem download). Códig
 				}
 				return nil
 			}
-			out, err := selfupdate.Run(ctx, suCfg, local)
-			if out != "" && !quiet {
-				logInfoLines(ctx, log, out)
-			}
-			return err
+			return RunCLIUpdate(ctx, deps, log)
 		},
 	}
 	cmd.Flags().

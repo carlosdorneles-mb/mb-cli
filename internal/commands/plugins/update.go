@@ -14,6 +14,23 @@ import (
 	"mb/internal/system"
 )
 
+// RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.
+func RunUpdateAll(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
+	sources, err := deps.Store.ListPluginSources()
+	if err != nil {
+		return err
+	}
+	for _, src := range sources {
+		if src.GitURL == "" || src.LocalPath != "" {
+			continue
+		}
+		if err := updateOnePlugin(ctx, deps, log, src.InstallDir, nil); err != nil {
+			_ = log.Error(ctx, "%s: %v", src.InstallDir, err)
+		}
+	}
+	return self.RunSync(ctx, deps, log, false)
+}
+
 func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var all bool
 
@@ -26,19 +43,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if all {
-				sources, err := deps.Store.ListPluginSources()
-				if err != nil {
-					return err
-				}
-				for _, src := range sources {
-					if src.GitURL == "" || src.LocalPath != "" {
-						continue
-					}
-					if err := updateOnePlugin(ctx, deps, log, src.InstallDir, cmd); err != nil {
-						_ = log.Error(ctx, "%s: %v", src.InstallDir, err)
-					}
-				}
-				return self.RunSync(ctx, deps, log, false)
+				return RunUpdateAll(ctx, deps, log)
 			}
 
 			if len(args) == 0 {

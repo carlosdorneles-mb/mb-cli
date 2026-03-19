@@ -41,7 +41,7 @@ func nestedPluginGroupIDRaw(dbCommandPath, manifestGroupID string, debug func(st
 		if gid != "" && debug != nil {
 			debug(
 				fmt.Sprintf(
-					"plugin help: command_path=%q group_id=%q ignorado (commando top-level fica em COMMANDOS DE PLUGINS)",
+					"plugin help: command_path=%q group_id=%q ignorado (commando top-level fica em PLUGINS)",
 					dbCommandPath,
 					gid,
 				),

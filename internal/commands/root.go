@@ -11,6 +11,7 @@ import (
 	"mb/internal/browser"
 	"mb/internal/commands/plugins"
 	"mb/internal/commands/self"
+	"mb/internal/commands/update"
 	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/env"
@@ -78,12 +79,13 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
-	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "COMMANDOS DE PLUGINS"})
+	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "PLUGINS"})
 
 	rootCmd.SetHelpCommandGroupID("commands")
 
 	rootCmd.AddCommand(self.NewSelfCmd(d))
 	rootCmd.AddCommand(plugins.NewPluginsCmd(d))
+	rootCmd.AddCommand(update.NewUpdateCmd(d))
 	plugincmd.Attach(rootCmd, d)
 
 	rootCmd.InitDefaultHelpCmd()
