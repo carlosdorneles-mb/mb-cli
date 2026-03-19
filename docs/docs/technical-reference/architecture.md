@@ -6,6 +6,54 @@ sidebar_position: 1
 
 Esta página descreve, em alto nível, como o MB CLI está organizado para quem quiser contribuir ou entender o fluxo de execução. Detalhes de scanner, `groups.yaml` e cache estão em [Plugins](./plugins.md).
 
+## Estrutura FX (internal/)
+
+O código em `internal/` segue uma organização orientada a [Uber FX](https://uber-go.github.io/fx/):
+
+- **`bootstrap`** — Ponto de entrada da aplicação: `fx.New` com Options que agregam todos os módulos e `fx.Populate(&rootCmd)` para obter o comando Cobra raiz.
+- **`module/`** — Módulos FX por contexto: `runtime` (paths, config), `cache`, `plugins`, `executor`, `deps`, `cli`. Cada um expõe um `fx.Option` (ex.: `PathsModule`, `CacheModule`).
+- **`cli/`** — Cobra: root, plugins, envs, update, plugincmd (comandos dinâmicos a partir do cache).
+- **`app/`** — Use cases (ex.: sync de plugins em `app/plugins`).
+- **`infra/`** — Implementações: sqlite (Store), plugins (scanner, Git, manifest), executor, browser, selfupdate, shellhelpers.
+- **`shared/`** — Código partilhado sem dependências de negócio: ui, system, safepath, version, env, envgroup, config.
+- **`domain/`** — Tipos de domínio (ex.: plugin); **`ports/`** — Interfaces opcionais para desacoplar infra.
+
+Ordem de dependência (evitar ciclos): `shared` → `domain`/`ports` → `infra` → `app` → `module` → `cli` → `bootstrap`. Ver mapa detalhado em `internal/README.md` no repositório.
+
+```mermaid
+flowchart LR
+  subgraph layer1 [shared]
+    shared[shared]
+  end
+  subgraph layer2 [domain/ports]
+    domain[domain]
+    ports[ports]
+  end
+  subgraph layer3 [infra]
+    infra[infra]
+  end
+  subgraph layer4 [app]
+    app[app]
+  end
+  subgraph layer5 [module]
+    module[module]
+  end
+  subgraph layer6 [cli]
+    cli[cli]
+  end
+  subgraph layer7 [bootstrap]
+    bootstrap[bootstrap]
+  end
+  shared --> domain
+  shared --> ports
+  domain --> infra
+  ports --> infra
+  infra --> app
+  app --> module
+  module --> cli
+  cli --> bootstrap
+```
+
 ## Entrada e árvore de comandos
 
 O CLI usa [Cobra](https://github.com/spf13/cobra) para a árvore de comandos. O **root command** (`mb`) combina:

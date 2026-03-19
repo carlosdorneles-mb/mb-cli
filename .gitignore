@@ -6,4 +6,4 @@ docs/node_modules/
 docs/dist/
 .DS_Store
 mb
-internal/commands/plugins/lib/
+internal/cli/plugins/lib/

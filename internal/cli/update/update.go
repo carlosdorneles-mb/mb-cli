@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/plugins"
+	"mb/internal/cli/plugins"
 	"mb/internal/deps"
 	"mb/internal/infra/selfupdate"
 	"mb/internal/shared/system"

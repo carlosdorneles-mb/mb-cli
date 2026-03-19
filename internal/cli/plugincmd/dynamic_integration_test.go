@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands"
+	"mb/internal/cli/root"
 	"mb/internal/deps"
 	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
@@ -79,7 +79,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -192,7 +192,7 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -275,7 +275,7 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 
 	var doCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -354,7 +354,7 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 
 	var helloCmd *cobra.Command
 	for _, c := range root.Commands() {
@@ -431,7 +431,7 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 	var out strings.Builder
 	root.SetOut(&out)
 	root.SetArgs([]string{"tools", "hello", "--help"})
@@ -485,7 +485,7 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", "-v", argsFile, "foo"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -542,7 +542,7 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", argsFile, "foo", "bar"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -628,7 +628,7 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 	)
-	root := commands.NewRootCmd(d)
+	root := root.NewRootCmd(d)
 
 	defer func() {
 		if r := recover(); r != nil {

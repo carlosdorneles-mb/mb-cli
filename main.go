@@ -7,7 +7,7 @@ import (
 
 	"charm.land/fang/v2"
 
-	"mb/internal/app"
+	"mb/internal/bootstrap"
 	"mb/internal/shared/ui"
 	"mb/internal/shared/version"
 )
@@ -15,7 +15,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	fxApp, rootCmd, err := app.Bootstrap()
+	fxApp, rootCmd, err := bootstrap.Bootstrap()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.RenderError(fmt.Sprintf("bootstrap failure: %v", err)))
 		os.Exit(1)

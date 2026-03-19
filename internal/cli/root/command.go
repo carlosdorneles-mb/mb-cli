@@ -1,4 +1,4 @@
-package commands
+package root
 
 import (
 	"fmt"
@@ -8,12 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/envs"
-	"mb/internal/commands/plugins"
-	"mb/internal/commands/update"
+	"mb/internal/cli/envs"
+	"mb/internal/cli/plugincmd"
+	"mb/internal/cli/plugins"
+	"mb/internal/cli/update"
 	"mb/internal/deps"
 	"mb/internal/infra/browser"
-	"mb/internal/plugincmd"
 	"mb/internal/shared/config"
 	"mb/internal/shared/env"
 	"mb/internal/shared/ui"
