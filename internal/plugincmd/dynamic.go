@@ -73,7 +73,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			return
 		}
 		if !cmd.ContainsGroup("commands") {
-			cmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+			cmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 		}
 		for _, hg := range helpGroups {
 			if hg.GroupID == "" || cmd.ContainsGroup(hg.GroupID) {
@@ -101,7 +101,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			pathSoFar := strings.Join(segments[:i+1], "/")
 			if byPath[pathSoFar] == nil {
 				cat := categoriesByPath[pathSoFar]
-				short := seg + " COMMANDOS"
+				short := seg + " COMANDOS"
 				if cat.Description != "" {
 					short = cat.Description
 				}
@@ -117,7 +117,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 					} else {
 						_ = dbgLog.Debug(
 							context.Background(),
-							"plugin help: category_path=%q group_id=%q não registado no cache; usando COMMANDOS",
+							"plugin help: category_path=%q group_id=%q não registado no cache; usando COMANDOS",
 							pathSoFar,
 							cat.GroupID,
 						)
@@ -173,7 +173,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			} else {
 				_ = dbgLog.Debug(
 					context.Background(),
-					"plugin help: command_path=%q group_id=%q não registado no cache; usando COMMANDOS",
+					"plugin help: command_path=%q group_id=%q não registado no cache; usando COMANDOS",
 					plugin.CommandPath,
 					plugin.GroupID,
 				)

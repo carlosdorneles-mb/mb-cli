@@ -13,7 +13,7 @@ func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
 		Short:   "Gerencia plugins instalados (add, list, remove, update, sync)",
 		GroupID: "commands",
 	}
-	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
 	addCmd := newPluginsAddCmd(deps)
 	addCmd.GroupID = "commands"

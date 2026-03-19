@@ -138,7 +138,7 @@ func normalizeCategoryGroupIDs(
 			if debug != nil {
 				debug(
 					fmt.Sprintf(
-						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMMANDOS",
+						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
 						c.Path,
 						c.GroupID,
 					),
@@ -167,7 +167,7 @@ func normalizePluginGroupIDs(
 			if debug != nil {
 				debug(
 					fmt.Sprintf(
-						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMMANDOS",
+						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
 						p.CommandPath,
 						p.GroupID,
 					),

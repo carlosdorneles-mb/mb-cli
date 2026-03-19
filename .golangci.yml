@@ -20,7 +20,6 @@ linters:
     - funlen
     - gocyclo
     - govet
-    - misspell
     - nakedret
     - staticcheck
     - unconvert

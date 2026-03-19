@@ -76,7 +76,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
 	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
-	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
+	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "PLUGINS"})
 
 	rootCmd.SetHelpCommandGroupID("commands")
@@ -165,7 +165,7 @@ func customizeCompletionPT(rootCmd *cobra.Command) {
 	completionCmd.GroupID = "commands"
 	completionCmd.Long = "Gera o script de autocompletar para o MB CLI para o shell especificado.\nConsulte a ajuda de cada subcomando para detalhes de como usar o script gerado."
 	const completionGroupID = "completion_shells"
-	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMMANDOS"})
+	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMANDOS"})
 	shortPT := map[string]string{
 		"bash":       "Gera o script de autocompletar para bash",
 		"zsh":        "Gera o script de autocompletar para zsh",

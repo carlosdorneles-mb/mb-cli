@@ -53,7 +53,7 @@ type Plugin struct {
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 	Hidden          bool   // Cobra Hidden: omit from help, still invokable
 	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
-	GroupID         string // help group for nested leaves; empty = default COMMANDOS
+	GroupID         string // help group for nested leaves; empty = default COMANDOS
 }
 
 // PluginHelpGroup is a Cobra help section for nested plugin commands (from groups.yaml).
