@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"mb/internal/deps"
-	"mb/internal/selfupdate"
+	"mb/internal/infra/selfupdate"
 	"mb/internal/shared/system"
 	"mb/internal/shared/version"
 )
