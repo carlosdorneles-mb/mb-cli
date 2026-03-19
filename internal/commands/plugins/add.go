@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	mbplugins "mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
-	mbplugins "mb/internal/plugins"
 	"mb/internal/shared/system"
 )
 

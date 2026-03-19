@@ -8,8 +8,8 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/helpers/shell"
+	plugpkg "mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
-	plugpkg "mb/internal/plugins"
 	"mb/internal/shared/system"
 )
 

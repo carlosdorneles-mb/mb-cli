@@ -7,8 +7,8 @@ import (
 
 	"mb/internal/commands"
 	"mb/internal/deps"
+	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
-	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
 

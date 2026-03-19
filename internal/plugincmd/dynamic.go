@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
-	"mb/internal/plugins"
 	"mb/internal/shared/env"
 	"mb/internal/shared/safepath"
 	"mb/internal/shared/system"

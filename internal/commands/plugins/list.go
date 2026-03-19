@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	mbplugins "mb/internal/plugins"
+	mbplugins "mb/internal/infra/plugins"
 	"mb/internal/shared/system"
 )
 
