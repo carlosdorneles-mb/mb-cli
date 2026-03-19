@@ -8,7 +8,7 @@ import (
 	"os/exec"
 
 	"mb/internal/cache"
-	"mb/internal/safepath"
+	"mb/internal/shared/safepath"
 )
 
 type Executor struct{}

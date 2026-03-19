@@ -9,7 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"mb/internal/safepath"
+	"mb/internal/shared/safepath"
 )
 
 // MergeManifestEnvFiles loads KEY=VALUE from manifest env_files entries whose group

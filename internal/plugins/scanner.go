@@ -15,7 +15,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/envgroup"
-	"mb/internal/safepath"
+	"mb/internal/shared/safepath"
 )
 
 // ValidationWarning represents a plugin that was skipped during scan due to validation errors.
