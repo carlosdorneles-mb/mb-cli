@@ -14,8 +14,8 @@ import (
 	"mb/internal/commands/update"
 	"mb/internal/config"
 	"mb/internal/deps"
-	"mb/internal/env"
 	"mb/internal/plugincmd"
+	"mb/internal/shared/env"
 	"mb/internal/shared/ui"
 	"mb/internal/shared/version"
 )

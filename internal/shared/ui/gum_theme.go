@@ -1,6 +1,6 @@
 package ui
 
-import "mb/internal/env"
+import "mb/internal/shared/env"
 
 // GumThemeDefaults returns the default GUM_* environment variables for the MB CLI
 // theme (orange header/titles, green selected/cursor) so plugins using gum inherit the look.

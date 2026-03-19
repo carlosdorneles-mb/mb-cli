@@ -14,8 +14,8 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/deps"
-	"mb/internal/env"
 	"mb/internal/plugins"
+	"mb/internal/shared/env"
 	"mb/internal/shared/safepath"
 	"mb/internal/shared/system"
 	"mb/internal/shared/ui"
