@@ -20,6 +20,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper de Homebrew:** `. "$MB_HELPERS_PATH/homebrew.sh"`
 - **Só o helper de Flatpak:** `. "$MB_HELPERS_PATH/flatpak.sh"`
 - **Só o helper de GitHub:** `. "$MB_HELPERS_PATH/github.sh"`
+- **Só o helper de sudo:** `. "$MB_HELPERS_PATH/sudo.sh"`
 
 Exemplo:
 
@@ -351,3 +352,27 @@ github_download_and_verify "cli/cli" "v${version}" "$url" "/tmp/gh.tar.gz" "gh_$
 dir=$(github_extract_tarball "/tmp/gh.tar.gz")
 github_install_binary "$dir" "gh" "/usr/local/bin"
 ```
+
+### sudo
+
+Helper para validação e solicitação de privilégios de superusuário em scripts shell. Útil para comandos que exigem permissões elevadas. Depende do helper de `log` para exibir mensagens.
+
+> **Requisito:** `sudo` precisa estar disponível no sistema para autenticação quando o script não estiver rodando como root.
+
+**Funções disponíveis:**
+
+- `check_sudo` — verifica se o script está com privilégios de root (`EUID=0`). Retorna `0` se sim, `1` se não. Quando não estiver com privilégio, exibe um warning.
+- `required_sudo` — garante privilégios elevados. Se já for root, segue normalmente. Caso contrário, executa `sudo -v`; se falhar, loga erro e encerra o script com `exit 1`.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/sudo.sh"
+
+# Garante autenticação sudo antes de operações privilegiadas
+required_sudo
+
+apt-get update
+apt-get install -y jq
+```
+

@@ -13,3 +13,4 @@
 . "${MB_HELPERS_PATH}/snap.sh"
 . "${MB_HELPERS_PATH}/homebrew.sh"
 . "${MB_HELPERS_PATH}/github.sh"
+. "${MB_HELPERS_PATH}/sudo.sh"
