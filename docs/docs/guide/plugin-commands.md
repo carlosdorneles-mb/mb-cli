@@ -21,7 +21,7 @@ Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do cam
 
 ## Como descobrir os comandos
 
-- **`mb plugins list`** — Lista todos os plugins instalados, com nome, caminho do comando, descrição, versão, origem (local ou remoto) e URL/path. Use essa saída para saber exatamente quais comandos estão disponíveis.
+- **`mb plugins list`** — Lista todos os plugins instalados, com pacote (identificador da instalação), caminho do comando, descrição, versão, origem (local ou remoto) e URL/path. Use essa saída para saber exatamente quais comandos estão disponíveis.
 - **`mb help`** — Mostra a árvore de comandos, incluindo as categorias e comandos de plugins. Comandos de plugins locais aparecem com a indicação "(local)" na descrição.
 - **Completion** — Depois de `mb plugins sync`, o completion (TAB) sugere categorias e comandos. Instale com `mb completion <bash|zsh|fish|powershell>`.
 
@@ -47,7 +47,7 @@ Para **flags globais do CLI**, argumentos posicionais no script e flags desconhe
 
 ## Repositório com vários plugins
 
-Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo nome da instalação. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **NOME** é o identificador da instalação (`--name` ou nome do diretório clone), usado em `mb plugins remove <nome>`.
+Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **PACOTE** é o identificador da instalação (`--package` ou nome do diretório clone), usado em `mb plugins remove <package>` e `mb plugins update <package>`.
 
 ## Plugin local vs remoto
 

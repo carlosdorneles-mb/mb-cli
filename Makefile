@@ -87,7 +87,7 @@ install-plugins-examples:
 	  (cd "$$root" && go run . plugins add "$$abs"); \
 	done
 
-# Remove os plugins de exemplo do config (mb plugins remove <name>). Usa os mesmos nomes que install-examples (infra, tools, etc.).
+# Remove os plugins de exemplo do config (mb plugins remove <package>). Usa os mesmos identificadores que install-examples (infra, tools, etc.).
 uninstall-plugins-examples:
 	@root=$$(pwd); \
 	for subdir in examples/plugins/*/; do \

@@ -105,7 +105,7 @@ func TestAddCollectionTwoPlugins(t *testing.T) {
 	}
 }
 
-func TestAddCollectionNameWithMultipleFails(t *testing.T) {
+func TestAddCollectionPackageWithMultipleFails(t *testing.T) {
 	d := testPluginsDeps(t)
 	parent := t.TempDir()
 	for _, pair := range []struct{ dir, cmd string }{{"a", "acmd"}, {"b", "bcmd"}} {
@@ -116,10 +116,10 @@ func TestAddCollectionNameWithMultipleFails(t *testing.T) {
 	cmd := newPluginsAddCmd(d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{parent, "--name", "x"})
+	cmd.SetArgs([]string{parent, "--package", "x"})
 	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "--name") {
-		t.Fatalf("expected --name error: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "--package") {
+		t.Fatalf("expected --package error: %v", err)
 	}
 }
 
@@ -154,7 +154,7 @@ func TestAddCollectionSkipsInvalidSubdir(t *testing.T) {
 	}
 }
 
-func TestAddCollectionSingleWithCustomName(t *testing.T) {
+func TestAddCollectionSingleWithCustomPackage(t *testing.T) {
 	d := testPluginsDeps(t)
 	parent := t.TempDir()
 	dir := filepath.Join(parent, "orig")
@@ -163,7 +163,7 @@ func TestAddCollectionSingleWithCustomName(t *testing.T) {
 	cmd := newPluginsAddCmd(d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(os.NewFile(0, os.DevNull))
-	cmd.SetArgs([]string{parent, "--name", "custom"})
+	cmd.SetArgs([]string{parent, "--package", "custom"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 	var errBuf bytes.Buffer
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&errBuf)
-	cmd.SetArgs([]string{pluginDir, "--name", "myplug"})
+	cmd.SetArgs([]string{pluginDir, "--package", "myplug"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("add: %v", err)
 	}
@@ -197,11 +197,11 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 		t.Error("expected LocalPath set")
 	}
 	if !strings.Contains(errBuf.String(), "myplug") {
-		t.Errorf("log should mention plugin name: %s", errBuf.String())
+		t.Errorf("log should mention package id: %s", errBuf.String())
 	}
 }
 
-func TestAddLocalDuplicateName(t *testing.T) {
+func TestAddLocalDuplicatePackage(t *testing.T) {
 	d := testPluginsDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "taken",
@@ -216,10 +216,10 @@ func TestAddLocalDuplicateName(t *testing.T) {
 	cmd := newPluginsAddCmd(d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{pluginDir, "--name", "taken"})
+	cmd.SetArgs([]string{pluginDir, "--package", "taken"})
 	err := cmd.Execute()
 	if err == nil {
-		t.Fatal("expected duplicate name error")
+		t.Fatal("expected duplicate package error")
 	}
 	if !strings.Contains(err.Error(), "já existe") {
 		t.Errorf("unexpected error: %v", err)

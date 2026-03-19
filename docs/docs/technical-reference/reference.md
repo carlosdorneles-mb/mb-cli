@@ -12,10 +12,10 @@ sidebar_position: 3
 | `mb plugins sync` | Rescaneia o diretório de plugins e paths locais, atualiza o cache SQLite e garante os helpers de shell em `~/.config/mb/lib/shell` |
 | `mb update --only-cli` | **Só para binários da release oficial** (versão embutida via ldflags no GitHub Release). Builds locais ou `go install` mostram mensagem a usar `install.sh`. Se a release for mais nova, baixa o `mb`, valida SHA256 e substitui o executável (Linux/macOS, amd64/arm64). |
 | `mb update --only-cli --check-only` | Igual: só em binários de release. Compara com a última release (sem download). **Códigos de saída:** `0` = já atualizado ou versão local mais nova; `2` = há atualização; `1` = erro. Em build local: mensagem + saída `0`. |
-| `mb plugins add <url \| path \| .> [--name N] [--tag TAG]` | Instala um plugin: **URL Git** = remoto (clone); **path** ou **`.`** = local (registra o path, sem cópia). **`--name`** = id. da instalação (list/remove/clone), não muda o path do comando. `--tag` só para remoto. |
-| `mb plugins list [--check-updates]` | Lista plugins instalados (nome, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
-| `mb plugins remove <name>` | Remove um plugin instalado (com confirmação). Se for local, só remove o registro. O cache é atualizado e o plugin deixa de aparecer em `plugins list`. |
-| `mb plugins update [name \| --all]` | Atualiza um plugin remoto ou todos (plugins locais não são atualizados) |
+| `mb plugins add <url \| path \| .> [--package P] [--tag TAG]` | Instala um plugin: **URL Git** = remoto (clone); **path** ou **`.`** = local (registra o path, sem cópia). **`--package`** = identificador do pacote / diretório de instalação (list/remove/update/clone), não muda o path do comando. `--tag` só para remoto. |
+| `mb plugins list [--check-updates]` | Lista plugins instalados (pacote, comando, descrição, versão, **ORIGEM** (local/remoto), URL/path) |
+| `mb plugins remove <package>` | Remove um pacote instalado (com confirmação). Se for local, só remove o registro. O cache é atualizado e o plugin deixa de aparecer em `plugins list`. |
+| `mb plugins update [package \| --all]` | Atualiza um pacote remoto ou todos (plugins locais não são atualizados) |
 | `mb envs list [--group G] [--show-secrets]` | Lista variáveis em tabela (VAR, GRUPO); secrets mostram `***`; com `--show-secrets` mostra o valor do keyring |
 | `mb envs set <KEY> <VALUE> [--group G] [--secret]` | Define em `env.defaults` ou em `.env.G`; com `--secret` guarda no keyring do sistema |
 | `mb envs unset <KEY> [--group G]` | Remove de `env.defaults` ou de `.env.G` (e do keyring se for secret) |

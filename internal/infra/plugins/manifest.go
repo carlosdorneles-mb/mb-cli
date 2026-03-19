@@ -11,7 +11,7 @@ import (
 // FlagDef defines a flag that can run an entrypoint (for manifests without default entrypoint).
 // Used internally and in FlagsJSON; produced from FlagEntry (list format in manifest).
 type FlagDef struct {
-	Type        string `yaml:"type"        json:"type"`        // "long" (--name) or "short" (-s)
+	Type        string `yaml:"type"        json:"type"`        // "long" (e.g. --flag) or "short" (-s)
 	Short       string `yaml:"short"       json:"short"`       // optional; single letter for -x form
 	Entrypoint  string `yaml:"entrypoint"  json:"entrypoint"`  // script to run when this flag is set
 	Description string `yaml:"description" json:"description"` // shown in command help (Cobra usage)

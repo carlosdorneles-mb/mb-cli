@@ -34,12 +34,12 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 			rows := make([][]string, 0, len(pluginList))
 			for _, p := range pluginList {
 				src := mbplugins.SourceForPlugin(p, sources, deps.Runtime.PluginsDir)
-				name := p.CommandPath
-				if name == "" {
-					name = p.CommandName
+				pkgID := p.CommandPath
+				if pkgID == "" {
+					pkgID = p.CommandName
 				}
 				if src != nil {
-					name = src.InstallDir
+					pkgID = src.InstallDir
 				}
 				version := "-"
 				origem := "-"
@@ -76,12 +76,20 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 
 				rows = append(
 					rows,
-					[]string{name, p.CommandPath, p.Description, version, origem, url, updateAvail},
+					[]string{
+						pkgID,
+						p.CommandPath,
+						p.Description,
+						version,
+						origem,
+						url,
+						updateAvail,
+					},
 				)
 			}
 
 			headers := []string{
-				"NOME",
+				"PACOTE",
 				"COMMANDO",
 				"DESCRIÇÃO",
 				"VERSÃO",
@@ -90,7 +98,7 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 				"ATUALIZAR",
 			}
 			if !checkUpdates {
-				headers = []string{"NOME", "COMMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL"}
+				headers = []string{"PACOTE", "COMMANDO", "DESCRIÇÃO", "VERSÃO", "ORIGEM", "URL"}
 				for i := range rows {
 					rows[i] = rows[i][:6]
 				}

@@ -16,7 +16,7 @@ import (
 )
 
 func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
-	var name string
+	var pkg string
 	var tag string
 
 	cmd := &cobra.Command{
@@ -29,15 +29,15 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 			// URL = remoto; path ou "." = local
 			_, _, err := mbplugins.ParseGitURL(arg)
 			if err == nil {
-				return runAddRemote(cmd, deps, arg, name, tag)
+				return runAddRemote(cmd, deps, arg, pkg, tag)
 			}
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			return runAddLocal(cmd, deps, log, arg, name)
+			return runAddLocal(cmd, deps, log, arg, pkg)
 		},
 	}
 
 	cmd.Flags().
-		StringVar(&name, "name", "", "Nome do plugin (diretório de instalação). Se não informado, usa o nome do repositório ou do diretório.")
+		StringVar(&pkg, "package", "", "Identificador do pacote. Se não informado, usa o nome do repositório ou do diretório.")
 	cmd.Flags().
 		StringVar(&tag, "tag", "", "Instalar uma tag específica (apenas para plugin remoto).")
 	return cmd
@@ -47,7 +47,7 @@ func runAddRemote(
 	cmd *cobra.Command,
 	deps deps.Dependencies,
 	gitURL string,
-	name string,
+	pkg string,
 	tag string,
 ) error {
 	ctx := cmd.Context()
@@ -57,7 +57,7 @@ func runAddRemote(
 		return fmt.Errorf("URL inválida: %w", err)
 	}
 
-	installDir := name
+	installDir := pkg
 	if installDir == "" {
 		installDir = repoName
 	}
@@ -125,7 +125,7 @@ func runAddRemote(
 	if err := RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
-	_ = log.Info(ctx, "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
+	_ = log.Info(ctx, "pacote %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
@@ -134,7 +134,7 @@ func runAddLocal(
 	deps deps.Dependencies,
 	log *system.Logger,
 	pathArg string,
-	name string,
+	pkg string,
 ) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
@@ -166,9 +166,9 @@ func runAddLocal(
 
 	rootManifest := filepath.Join(absPath, "manifest.yaml")
 	if _, err := os.Stat(rootManifest); os.IsNotExist(err) {
-		return runAddLocalCollection(cmd, deps, log, absPath, name)
+		return runAddLocalCollection(cmd, deps, log, absPath, pkg)
 	}
-	return runAddLocalSingle(cmd, deps, log, absPath, name)
+	return runAddLocalSingle(cmd, deps, log, absPath, pkg)
 }
 
 func runAddLocalCollection(
@@ -176,7 +176,7 @@ func runAddLocalCollection(
 	deps deps.Dependencies,
 	log *system.Logger,
 	absPath string,
-	name string,
+	pkg string,
 ) error {
 	ctx := cmd.Context()
 	entries, err := os.ReadDir(absPath)
@@ -211,9 +211,9 @@ func runAddLocalCollection(
 			"nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido",
 		)
 	}
-	if name != "" && len(candidates) > 1 {
+	if pkg != "" && len(candidates) > 1 {
 		return fmt.Errorf(
-			"--name não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)",
+			"--package não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)",
 			len(candidates),
 		)
 	}
@@ -221,12 +221,12 @@ func runAddLocalCollection(
 	added := 0
 	for _, c := range candidates {
 		installDir := c.installDir
-		if len(candidates) == 1 && name != "" {
-			installDir = name
+		if len(candidates) == 1 && pkg != "" {
+			installDir = pkg
 		}
 		existing, _ := deps.Store.GetPluginSource(installDir)
 		if existing != nil {
-			_ = log.Warn(ctx, "plugin %q já registrado, ignorando", installDir)
+			_ = log.Warn(ctx, "pacote %q já registrado, ignorando", installDir)
 			continue
 		}
 		if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
@@ -238,7 +238,7 @@ func runAddLocalCollection(
 			return err
 		}
 		added++
-		_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, c.path)
+		_ = log.Info(ctx, "pacote %q registrado localmente em %s", installDir, c.path)
 	}
 	if added == 0 {
 		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
@@ -254,16 +254,16 @@ func runAddLocalSingle(
 	deps deps.Dependencies,
 	log *system.Logger,
 	absPath string,
-	name string,
+	pkg string,
 ) error {
 	ctx := cmd.Context()
-	installDir := name
+	installDir := pkg
 	if installDir == "" {
 		installDir = filepath.Base(absPath)
 	}
 	existing, _ := deps.Store.GetPluginSource(installDir)
 	if existing != nil {
-		return fmt.Errorf("já existe um plugin com o nome %q", installDir)
+		return fmt.Errorf("já existe um pacote com o identificador %q", installDir)
 	}
 	if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
 		_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
@@ -276,7 +276,7 @@ func runAddLocalSingle(
 	if err := RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
-	_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, absPath)
+	_ = log.Info(ctx, "pacote %q registrado localmente em %s", installDir, absPath)
 	return nil
 }
 

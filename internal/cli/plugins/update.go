@@ -34,7 +34,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
-		Use:     "update <name>",
+		Use:     "update <package>",
 		Aliases: []string{"up", "u"},
 		Short:   "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -46,10 +46,10 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 			}
 
 			if len(args) == 0 {
-				return fmt.Errorf("informe o nome do plugin ou use --all")
+				return fmt.Errorf("informe o pacote ou use --all")
 			}
-			name := strings.TrimSpace(args[0])
-			if err := updateOnePlugin(ctx, deps, log, name, cmd); err != nil {
+			pkg := strings.TrimSpace(args[0])
+			if err := updateOnePlugin(ctx, deps, log, pkg, cmd); err != nil {
 				return err
 			}
 			return RunSync(ctx, deps, log, true)
@@ -64,27 +64,27 @@ func updateOnePlugin(
 	ctx context.Context,
 	deps deps.Dependencies,
 	log *system.Logger,
-	name string,
+	pkg string,
 	cmd *cobra.Command,
 ) error {
-	src, err := deps.Store.GetPluginSource(name)
+	src, err := deps.Store.GetPluginSource(pkg)
 	if err != nil {
 		return err
 	}
 	if src == nil {
-		return fmt.Errorf("plugin %q não encontrado no registry", name)
+		return fmt.Errorf("pacote %q não encontrado no registry", pkg)
 	}
 	if src.LocalPath != "" {
-		return fmt.Errorf("plugin %q é local; não é possível atualizar", name)
+		return fmt.Errorf("pacote %q é local; não é possível atualizar", pkg)
 	}
 	if src.GitURL == "" {
 		return fmt.Errorf(
-			"plugin %q foi instalado manualmente (sem URL Git); não é possível atualizar",
-			name,
+			"pacote %q foi instalado manualmente (sem URL Git); não é possível atualizar",
+			pkg,
 		)
 	}
 
-	dir := filepath.Join(deps.Runtime.PluginsDir, name)
+	dir := filepath.Join(deps.Runtime.PluginsDir, pkg)
 	if !mbplugins.IsGitRepo(dir) {
 		return fmt.Errorf("%s não é um repositório git", dir)
 	}
@@ -106,7 +106,7 @@ func updateOnePlugin(
 		}
 		if newerTag == "" {
 			if cmd != nil && log != nil {
-				_ = log.Info(ctx, "%s: já está na versão mais recente (%s)", name, src.Ref)
+				_ = log.Info(ctx, "%s: já está na versão mais recente (%s)", pkg, src.Ref)
 			}
 			return nil
 		}
@@ -120,7 +120,7 @@ func updateOnePlugin(
 			return err
 		}
 		if cmd != nil && log != nil {
-			_ = log.Info(ctx, "%s atualizado para %s", name, version)
+			_ = log.Info(ctx, "%s atualizado para %s", pkg, version)
 		}
 		return nil
 	}
@@ -137,7 +137,7 @@ func updateOnePlugin(
 		return err
 	}
 	if cmd != nil && log != nil {
-		_ = log.Info(ctx, "%s atualizado para %s", name, version)
+		_ = log.Info(ctx, "%s atualizado para %s", pkg, version)
 	}
 	return nil
 }

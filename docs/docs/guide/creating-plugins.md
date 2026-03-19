@@ -14,7 +14,7 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 
 1. Árvore de pastas com `manifest.yaml` em cada nível necessário (categorias + folhas).
 2. Folha executável: `command` + `entrypoint` (ou só `flags` para modo flags-only).
-3. Registar: `mb plugins add …` (local ou Git) **ou** copiar para `~/.config/mb/plugins/<nome>/`.
+3. Registar: `mb plugins add …` (local ou Git) **ou** copiar para `~/.config/mb/plugins/<pacote>/`.
 4. **`mb plugins sync`** (automático após `plugins add`; obrigatório se alterou ficheiros à mão).
 5. Testar: `mb plugins list` e o comando na CLI.
 
@@ -23,8 +23,8 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 | Forma | O que acontece |
 |-------|----------------|
 | **Local** — `mb plugins add <path>` ou `mb plugins add .` | O path fica em `plugin_sources.local_path`. **Nada é copiado** para a pasta de plugins. O sync lê esse diretório. |
-| **Remoto** — `mb plugins add <url-git>` | Clone para `PluginsDir/<nome>` (`--name` define o nome da instalação; `--tag` fixa uma tag). |
-| **Manual** — criar/copiar pastas em `~/.config/mb/plugins/<nome>/` (Linux) | Depois **`mb plugins sync`** para atualizar o cache. |
+| **Remoto** — `mb plugins add <url-git>` | Clone para `PluginsDir/<pacote>` (`--package` define o identificador do pacote; `--tag` fixa uma tag). |
+| **Manual** — criar/copiar pastas em `~/.config/mb/plugins/<pacote>/` (Linux) | Depois **`mb plugins sync`** para atualizar o cache. |
 
 ## Árvore de pastas e caminho no CLI
 
@@ -154,7 +154,7 @@ Torne executável: `chmod +x run.sh`.
 ### Um pacote com `manifest.yaml` na raiz
 
 ```bash
-mb plugins add /caminho/para/meu-pacote --name meu-plugin
+mb plugins add /caminho/para/meu-pacote --package meu-plugin
 # ou, a partir da raiz do pacote:
 mb plugins add .
 ```
@@ -163,13 +163,13 @@ O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb
 
 ### Vários plugins numa pasta (modo coleção)
 
-A pasta **não** tem `manifest.yaml` na raiz. Cada **subdiretório direto** que tenha `manifest.yaml` é candidato; o MB valida cada um no add (entrada inválida → aviso e ignora). **Não** use **`--name`** se forem encontrados **vários** candidatos.
+A pasta **não** tem `manifest.yaml` na raiz. Cada **subdiretório direto** que tenha `manifest.yaml` é candidato; o MB valida cada um no add (entrada inválida → aviso e ignora). **Não** use **`--package`** se forem encontrados **vários** candidatos.
 
 ### Remoto
 
 ```bash
 mb plugins add https://github.com/org/repo
-mb plugins add https://github.com/org/repo --tag v1.0.0 --name meu-nome
+mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-pacote
 ```
 
 ### Manual em `PluginsDir`
@@ -181,7 +181,7 @@ mb plugins list
 
 ## Repositório com vários comandos
 
-Um único `plugins add` cobre **toda a árvore**; o path no CLI **não** inclui o nome da instalação. Mais detalhes: [Repositório com vários plugins](./plugin-commands.md#repositório-com-vários-plugins).
+Um único `plugins add` cobre **toda a árvore**; o path no CLI **não** inclui o identificador do pacote. Mais detalhes: [Repositório com vários plugins](./plugin-commands.md#repositório-com-vários-plugins).
 
 ## README opcional
 

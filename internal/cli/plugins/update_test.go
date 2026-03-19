@@ -9,7 +9,7 @@ import (
 	"mb/internal/infra/sqlite"
 )
 
-func TestUpdateRequiresNameOrAll(t *testing.T) {
+func TestUpdateRequiresPackageOrAll(t *testing.T) {
 	d := testPluginsDeps(t)
 	cmd := newPluginsUpdateCmd(d)
 	cmd.SetOut(&bytes.Buffer{})
