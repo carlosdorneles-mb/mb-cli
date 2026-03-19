@@ -8,7 +8,7 @@ import (
 	"charm.land/fang/v2"
 
 	"mb/internal/app"
-	"mb/internal/ui"
+	"mb/internal/shared/ui"
 	"mb/internal/version"
 )
 

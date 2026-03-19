@@ -16,7 +16,7 @@ import (
 	"mb/internal/deps"
 	"mb/internal/env"
 	"mb/internal/plugincmd"
-	"mb/internal/ui"
+	"mb/internal/shared/ui"
 	"mb/internal/version"
 )
 

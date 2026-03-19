@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"mb/internal/ui"
+	"mb/internal/shared/ui"
 )
 
 // Confirm asks yes/no via gum confirm when gum is on PATH; otherwise prompt on out and read a line from in (y/yes = true).

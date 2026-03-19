@@ -17,8 +17,8 @@ import (
 	"mb/internal/env"
 	"mb/internal/plugins"
 	"mb/internal/safepath"
+	"mb/internal/shared/ui"
 	"mb/internal/system"
-	"mb/internal/ui"
 )
 
 // Attach registers plugin commands from the cache under root.

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"mb/internal/ui"
+	"mb/internal/shared/ui"
 )
 
 // Logger writes leveled messages via gum log (or a text fallback). Mirrors log.sh quiet/verbose rules.
