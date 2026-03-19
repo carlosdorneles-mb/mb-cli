@@ -125,6 +125,12 @@ Ordem **efetiva** no código:
 
 A árvore de comandos no CLI reflete `PluginsDir` **mais** os paths locais registados.
 
+### `config_hash` (digest da folha)
+
+Para cada manifest de **folha** (com `entrypoint` ou só `flags`), o `config_hash` é um SHA-256 hexadecimal de um bloco canónico: inclui o hash do `manifest.yaml` bruto e, por ficheiro referenciado e ordenado por path relativo, `path<TAB>SHA256(conteúdo)`. Ficheiros considerados: `entrypoint`, cada `entrypoint` em `flags`, cada `file` em `env_files`, e `readme` se definido. Não há walk recursivo do diretório.
+
+No **diff** do sync (com logger), só são emitidas linhas para comandos **adicionados**, com digest **alterado** em relação ao cache, ou **removidos** da árvore; comandos inalterados não geram linha. Com **`EmitSuccess`** (ex.: `mb plugins sync`), se não houver nenhuma alteração nesses termos, é mostrada uma única mensagem de resumo em vez do antigo contador genérico de plugins. A lógica de contagem é a mesma usada pelo CLI em **`mb plugins add`** para decidir se mostra a mensagem genérica de “pacote já alinhado” (nenhum comando novo, atualizado ou removido).
+
 ## Execução: binário ou script
 
 - **Com entrypoint:** o cache guarda `ExecPath` absoluto. Se o ficheiro termina em `.sh`, o executor usa **bash** com esse script; senão executa o ficheiro diretamente.

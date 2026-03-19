@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	appplugins "mb/internal/app/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
 )
@@ -18,13 +19,14 @@ func TestRunSyncEmptyPluginsDir(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	var buf bytes.Buffer
 	log := system.NewLogger(false, false, &buf)
-	err := RunSync(context.Background(), d, log, true)
+	_, err := RunSync(context.Background(), d, log, appplugins.SyncOptions{EmitSuccess: true})
 	if err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
-	if !strings.Contains(buf.String(), "0 plugin") &&
-		!strings.Contains(buf.String(), "sincronizados") {
-		t.Errorf("expected sync count message, got %q", buf.String())
+	out := buf.String()
+	if !strings.Contains(out, "Nenhum comando alterado") &&
+		!strings.Contains(out, "cache atualizado") {
+		t.Errorf("expected no-change sync message, got %q", out)
 	}
 }
 
@@ -41,7 +43,12 @@ func TestRunSyncPluginPathCollision(t *testing.T) {
 	writeMinimalRunnablePluginNamed(t, p1, "samecmd")
 	writeMinimalRunnablePluginNamed(t, p2, "samecmd")
 
-	err := RunSync(context.Background(), d, system.NewLogger(false, false, io.Discard), false)
+	_, err := RunSync(
+		context.Background(),
+		d,
+		system.NewLogger(false, false, io.Discard),
+		appplugins.SyncOptions{},
+	)
 	if err == nil {
 		t.Fatal("expected collision error")
 	}
@@ -60,7 +67,7 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := RunSync(context.Background(), d, nil, false); err != nil {
+	if _, err := RunSync(context.Background(), d, nil, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
 	pluginsList, err := d.Store.ListPlugins()
@@ -113,7 +120,7 @@ func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if err := RunSync(context.Background(), d, nil, false); err != nil {
+	if _, err := RunSync(context.Background(), d, nil, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
 	pluginsList, err := d.Store.ListPlugins()
@@ -124,5 +131,38 @@ func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
 		if p.CommandName == "leaf" && p.GroupID != "" {
 			t.Errorf("unknown group_id should be cleared in cache, got GroupID=%q", p.GroupID)
 		}
+	}
+}
+
+func TestRunSyncLogsUpdatedWhenOnlyReferencedScriptChanges(t *testing.T) {
+	d := testPluginsDeps(t)
+	t.Setenv("PATH", t.TempDir())
+	pkg := filepath.Join(d.Runtime.PluginsDir, "p1")
+	if err := os.MkdirAll(pkg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeMinimalRunnablePluginNamed(t, pkg, "scriptonly")
+
+	var buf1 bytes.Buffer
+	log1 := system.NewLogger(false, false, &buf1)
+	if _, err := RunSync(context.Background(), d, log1, appplugins.SyncOptions{}); err != nil {
+		t.Fatalf("RunSync 1: %v", err)
+	}
+	if !strings.Contains(buf1.String(), "adicionado") {
+		t.Fatalf("expected added command log, got %q", buf1.String())
+	}
+
+	runSh := filepath.Join(pkg, "run.sh")
+	if err := os.WriteFile(runSh, []byte("#!/bin/sh\necho changed\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var buf2 bytes.Buffer
+	log2 := system.NewLogger(false, false, &buf2)
+	if _, err := RunSync(context.Background(), d, log2, appplugins.SyncOptions{}); err != nil {
+		t.Fatalf("RunSync 2: %v", err)
+	}
+	out := buf2.String()
+	if !strings.Contains(out, "atualizado") || !strings.Contains(out, "conteúdo do plugin") {
+		t.Fatalf("expected update log when only run.sh changed, got %q", out)
 	}
 }

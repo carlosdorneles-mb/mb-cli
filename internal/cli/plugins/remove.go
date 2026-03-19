@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	appplugins "mb/internal/app/plugins"
 	"mb/internal/deps"
 	"mb/internal/shared/system"
 )
@@ -36,7 +37,7 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 				return err
 			}
 			if !confirmed {
-				_ = log.Info(ctx, "remoção cancelada")
+				_ = log.Info(ctx, "Remoção cancelada")
 				return nil
 			}
 
@@ -49,10 +50,15 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 			if err := deps.Store.DeletePluginSource(pkg); err != nil {
 				return err
 			}
-			if err := RunSync(ctx, deps, log, false); err != nil {
+			if _, err := RunSync(
+				ctx,
+				deps,
+				log,
+				appplugins.SyncOptions{EmitSuccess: false},
+			); err != nil {
 				return err
 			}
-			_ = log.Info(ctx, "pacote %q removido", pkg)
+			_ = log.Info(ctx, "Pacote %q removido", pkg)
 			return nil
 		},
 	}

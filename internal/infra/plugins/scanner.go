@@ -1,8 +1,6 @@
 package plugins
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -322,8 +320,10 @@ func (s *Scanner) scanTree(
 			dbCommandPath = commandName
 		}
 
-		hash := sha256.Sum256(raw)
-		configHash := hex.EncodeToString(hash[:])
+		configHash, err := PluginLeafConfigHash(raw, &manifest, baseDir)
+		if err != nil {
+			return fmt.Errorf("plugin leaf hash %s: %w", path, err)
+		}
 		readmePath := ""
 		if manifest.Readme != "" {
 			readmePath = filepath.Join(baseDir, manifest.Readme)

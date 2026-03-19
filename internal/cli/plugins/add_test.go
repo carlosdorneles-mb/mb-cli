@@ -201,7 +201,7 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 	}
 }
 
-func TestAddLocalDuplicatePackage(t *testing.T) {
+func TestAddLocalReplaceExistingPackage(t *testing.T) {
 	d := testPluginsDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "taken",
@@ -218,10 +218,14 @@ func TestAddLocalDuplicatePackage(t *testing.T) {
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs([]string{pluginDir, "--package", "taken"})
 	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("expected duplicate package error")
+	if err != nil {
+		t.Fatalf("add replace: %v", err)
 	}
-	if !strings.Contains(err.Error(), "já existe") {
-		t.Errorf("unexpected error: %v", err)
+	src, err := d.Store.GetPluginSource("taken")
+	if err != nil || src == nil {
+		t.Fatal("expected plugin source")
+	}
+	if src.LocalPath != pluginDir {
+		t.Errorf("LocalPath = %q, want %q", src.LocalPath, pluginDir)
 	}
 }

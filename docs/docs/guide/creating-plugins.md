@@ -18,6 +18,12 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 4. **`mb plugins sync`** (automático após `plugins add`; obrigatório se alterou ficheiros à mão).
 5. Testar: `mb plugins list` e o comando na CLI.
 
+## Digest no cache (`config_hash`)
+
+Para cada **folha** (manifest com `entrypoint` ou só `flags`), o MB grava um digest na coluna `config_hash` do SQLite. O valor é um **SHA-256 determinístico** que combina o conteúdo bruto do `manifest.yaml` com o hash do conteúdo de cada ficheiro referenciado no manifest: `entrypoint`, cada `entrypoint` nas entradas de `flags`, cada ficheiro em `env_files` e o ficheiro `readme` (se o campo existir). **Não** é feito um walk recursivo de toda a pasta da folha — só estes paths.
+
+Assim, alterar só um script referenciado (por exemplo `run.sh`) altera o digest e, no próximo sync, o comando pode ser reportado como atualizado. Após **atualizar o MB CLI** para uma versão que mudou a forma do digest, a **primeira** sincronização pode marcar todos os comandos como atualizados uma vez, até o cache refletir o novo algoritmo.
+
 ## Onde colocar o pacote
 
 | Forma | O que acontece |
@@ -160,6 +166,8 @@ mb plugins add .
 ```
 
 O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb plugins sync`** (disparado pelo add) pode mostrar **avisos** e **ignorar** manifests inválidos. Corrija avisos e volte a sincronizar.
+
+**Mesmo pacote outra vez:** `mb plugins add` com o mesmo identificador de pacote **substitui** a instalação anterior (clone remoto de novo por cima do diretório em `PluginsDir`, ou atualização do path local). O sync compara o hash do `manifest.yaml` por comando e regista na consola comandos **novos**, **atualizados** ou **removidos** do pacote. Com **`mb plugins sync --no-remove`** (ou **`mb plugins add ... --no-remove`**), comandos que deixaram de existir na árvore **mantêm-se** no cache (entrada órfã; o executável pode já não existir).
 
 ### Vários plugins numa pasta (modo coleção)
 

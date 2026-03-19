@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	appplugins "mb/internal/app/plugins"
 	"mb/internal/deps"
 	mbplugins "mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
@@ -18,6 +19,7 @@ import (
 func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 	var pkg string
 	var tag string
+	var noRemove bool
 
 	cmd := &cobra.Command{
 		Use:     "add <git-url|path|.>",
@@ -26,13 +28,14 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			arg := strings.TrimSpace(args[0])
+			syncOpts := appplugins.SyncOptions{EmitSuccess: false, NoRemove: noRemove}
 			// URL = remoto; path ou "." = local
 			_, _, err := mbplugins.ParseGitURL(arg)
 			if err == nil {
-				return runAddRemote(cmd, deps, arg, pkg, tag)
+				return runAddRemote(cmd, deps, arg, pkg, tag, syncOpts)
 			}
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			return runAddLocal(cmd, deps, log, arg, pkg)
+			return runAddLocal(cmd, deps, log, arg, pkg, syncOpts)
 		},
 	}
 
@@ -40,6 +43,9 @@ func newPluginsAddCmd(deps deps.Dependencies) *cobra.Command {
 		StringVar(&pkg, "package", "", "Identificador do pacote. Se não informado, usa o nome do repositório ou do diretório.")
 	cmd.Flags().
 		StringVar(&tag, "tag", "", "Instalar uma tag específica (apenas para plugin remoto).")
+	cmd.Flags().BoolVar(&noRemove, "no-remove", false,
+		"Mantém no cache comandos removidos do pacote",
+	)
 	return cmd
 }
 
@@ -49,6 +55,7 @@ func runAddRemote(
 	gitURL string,
 	pkg string,
 	tag string,
+	syncOpts appplugins.SyncOptions,
 ) error {
 	ctx := cmd.Context()
 
@@ -64,7 +71,9 @@ func runAddRemote(
 
 	destDir := filepath.Join(deps.Runtime.PluginsDir, installDir)
 	if dirExists(destDir) {
-		destDir, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
+		if err := os.RemoveAll(destDir); err != nil {
+			return fmt.Errorf("remover instalação anterior: %w", err)
+		}
 	}
 
 	if err := os.MkdirAll(deps.Runtime.PluginsDir, 0o755); err != nil {
@@ -122,10 +131,19 @@ func runAddRemote(
 	}
 
 	log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-	if err := RunSync(ctx, deps, log, false); err != nil {
+	report, err := RunSync(ctx, deps, log, syncOpts)
+	if err != nil {
 		return err
 	}
-	_ = log.Info(ctx, "pacote %q instalado em %s (versão %s)", installDir, destDir, version)
+	if !report.AnyChange {
+		_ = log.Info(
+			ctx,
+			"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+			installDir,
+		)
+		return nil
+	}
+	_ = log.Info(ctx, "Pacote %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
@@ -135,6 +153,7 @@ func runAddLocal(
 	log *system.Logger,
 	pathArg string,
 	pkg string,
+	syncOpts appplugins.SyncOptions,
 ) error {
 	if pathArg == "" {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
@@ -166,9 +185,9 @@ func runAddLocal(
 
 	rootManifest := filepath.Join(absPath, "manifest.yaml")
 	if _, err := os.Stat(rootManifest); os.IsNotExist(err) {
-		return runAddLocalCollection(cmd, deps, log, absPath, pkg)
+		return runAddLocalCollection(cmd, deps, log, absPath, pkg, syncOpts)
 	}
-	return runAddLocalSingle(cmd, deps, log, absPath, pkg)
+	return runAddLocalSingle(cmd, deps, log, absPath, pkg, syncOpts)
 }
 
 func runAddLocalCollection(
@@ -177,6 +196,7 @@ func runAddLocalCollection(
 	log *system.Logger,
 	absPath string,
 	pkg string,
+	syncOpts appplugins.SyncOptions,
 ) error {
 	ctx := cmd.Context()
 	entries, err := os.ReadDir(absPath)
@@ -218,7 +238,7 @@ func runAddLocalCollection(
 		)
 	}
 
-	added := 0
+	changed := 0
 	for _, c := range candidates {
 		installDir := c.installDir
 		if len(candidates) == 1 && pkg != "" {
@@ -226,25 +246,34 @@ func runAddLocalCollection(
 		}
 		existing, _ := deps.Store.GetPluginSource(installDir)
 		if existing != nil {
-			_ = log.Warn(ctx, "pacote %q já registrado, ignorando", installDir)
+			if err := deps.Store.UpsertPluginSource(
+				sqlite.PluginSource{InstallDir: installDir, LocalPath: c.path},
+			); err != nil {
+				return err
+			}
+			changed++
 			continue
 		}
 		if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
-			_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
+			installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 		}
 		if err := deps.Store.UpsertPluginSource(
 			sqlite.PluginSource{InstallDir: installDir, LocalPath: c.path},
 		); err != nil {
 			return err
 		}
-		added++
-		_ = log.Info(ctx, "pacote %q registrado localmente em %s", installDir, c.path)
+		changed++
+		_ = log.Info(ctx, "Pacote %q registrado localmente em %s", installDir, c.path)
 	}
-	if added == 0 {
-		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
+	if changed == 0 {
+		return fmt.Errorf("nenhum pacote registado ou atualizado")
 	}
-	if err := RunSync(ctx, deps, log, false); err != nil {
+	report, err := RunSync(ctx, deps, log, syncOpts)
+	if err != nil {
 		return err
+	}
+	if !report.AnyChange {
+		_ = log.Info(ctx, "Pacotes verificados; nenhum comando novo, atualizado ou removido.")
 	}
 	return nil
 }
@@ -255,6 +284,7 @@ func runAddLocalSingle(
 	log *system.Logger,
 	absPath string,
 	pkg string,
+	syncOpts appplugins.SyncOptions,
 ) error {
 	ctx := cmd.Context()
 	installDir := pkg
@@ -263,20 +293,47 @@ func runAddLocalSingle(
 	}
 	existing, _ := deps.Store.GetPluginSource(installDir)
 	if existing != nil {
-		return fmt.Errorf("já existe um pacote com o identificador %q", installDir)
+		if err := deps.Store.UpsertPluginSource(
+			sqlite.PluginSource{InstallDir: installDir, LocalPath: absPath},
+		); err != nil {
+			return err
+		}
+		report, err := RunSync(ctx, deps, log, syncOpts)
+		if err != nil {
+			return err
+		}
+		if !report.AnyChange {
+			_ = log.Info(
+				ctx,
+				"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+				installDir,
+			)
+			return nil
+		}
+		_ = log.Info(ctx, "Pacote %q atualizado (path local: %s)", installDir, absPath)
+		return nil
 	}
 	if dirExists(filepath.Join(deps.Runtime.PluginsDir, installDir)) {
-		_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
+		installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 	}
 	if err := deps.Store.UpsertPluginSource(
 		sqlite.PluginSource{InstallDir: installDir, LocalPath: absPath},
 	); err != nil {
 		return err
 	}
-	if err := RunSync(ctx, deps, log, false); err != nil {
+	report, err := RunSync(ctx, deps, log, syncOpts)
+	if err != nil {
 		return err
 	}
-	_ = log.Info(ctx, "pacote %q registrado localmente em %s", installDir, absPath)
+	if !report.AnyChange {
+		_ = log.Info(
+			ctx,
+			"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+			installDir,
+		)
+		return nil
+	}
+	_ = log.Info(ctx, "Pacote %q registrado localmente em %s", installDir, absPath)
 	return nil
 }
 
@@ -285,12 +342,12 @@ func dirExists(p string) bool {
 	return err == nil && info.IsDir()
 }
 
-func uniqueInstallDir(pluginsDir, base string) (destDir string, installDir string) {
+func uniqueInstallDir(pluginsDir, base string) (installDir string) {
 	for i := 2; ; i++ {
 		installDir = fmt.Sprintf("%s-%d", base, i)
-		destDir = filepath.Join(pluginsDir, installDir)
+		destDir := filepath.Join(pluginsDir, installDir)
 		if !dirExists(destDir) {
-			return destDir, installDir
+			return installDir
 		}
 	}
 }

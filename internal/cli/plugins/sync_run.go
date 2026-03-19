@@ -14,7 +14,7 @@ func RunSync(
 	ctx context.Context,
 	deps deps.Dependencies,
 	log *system.Logger,
-	emitSuccess bool,
-) error {
-	return appplugins.RunSync(ctx, deps, log, emitSuccess)
+	opts appplugins.SyncOptions,
+) (appplugins.SyncReport, error) {
+	return appplugins.RunSync(ctx, deps, log, opts)
 }
