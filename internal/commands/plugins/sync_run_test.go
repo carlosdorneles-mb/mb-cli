@@ -1,4 +1,4 @@
-package self
+package plugins
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestRunSyncEmptyPluginsDir(t *testing.T) {
-	d := testSelfDeps(t)
+	d := testPluginsDeps(t)
 	t.Setenv("PATH", t.TempDir())
 	var buf bytes.Buffer
 	log := system.NewLogger(false, false, &buf)
@@ -29,7 +29,7 @@ func TestRunSyncEmptyPluginsDir(t *testing.T) {
 }
 
 func TestRunSyncPluginPathCollision(t *testing.T) {
-	d := testSelfDeps(t)
+	d := testPluginsDeps(t)
 	p1 := filepath.Join(d.Runtime.PluginsDir, "pkg1")
 	p2 := filepath.Join(d.Runtime.PluginsDir, "pkg2")
 	if err := os.MkdirAll(p1, 0o755); err != nil {
@@ -38,8 +38,8 @@ func TestRunSyncPluginPathCollision(t *testing.T) {
 	if err := os.MkdirAll(p2, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePluginWithCommand(t, p1, "samecmd")
-	writePluginWithCommand(t, p2, "samecmd")
+	writeMinimalRunnablePluginNamed(t, p1, "samecmd")
+	writeMinimalRunnablePluginNamed(t, p2, "samecmd")
 
 	err := RunSync(context.Background(), d, system.NewLogger(false, false, io.Discard), false)
 	if err == nil {
@@ -51,9 +51,9 @@ func TestRunSyncPluginPathCollision(t *testing.T) {
 }
 
 func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
-	d := testSelfDeps(t)
+	d := testPluginsDeps(t)
 	pluginDir := t.TempDir()
-	writePluginWithCommand(t, pluginDir, "fromlocal")
+	writeMinimalRunnablePluginNamed(t, pluginDir, "fromlocal")
 	if err := d.Store.UpsertPluginSource(cache.PluginSource{
 		InstallDir: "myloc",
 		LocalPath:  pluginDir,
@@ -63,24 +63,24 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 	if err := RunSync(context.Background(), d, nil, false); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
-	plugins, err := d.Store.ListPlugins()
+	pluginsList, err := d.Store.ListPlugins()
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := false
-	for _, p := range plugins {
+	for _, p := range pluginsList {
 		if p.CommandName == "fromlocal" || strings.Contains(p.CommandPath, "fromlocal") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("expected plugin from local path, got %#v", plugins)
+		t.Errorf("expected plugin from local path, got %#v", pluginsList)
 	}
 }
 
 func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
-	d := testSelfDeps(t)
+	d := testPluginsDeps(t)
 	pkg := filepath.Join(d.Runtime.PluginsDir, "nest")
 	if err := os.MkdirAll(filepath.Join(pkg, "sub", "leaf"), 0o755); err != nil {
 		t.Fatal(err)
@@ -116,11 +116,11 @@ func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
 	if err := RunSync(context.Background(), d, nil, false); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
-	plugins, err := d.Store.ListPlugins()
+	pluginsList, err := d.Store.ListPlugins()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, p := range plugins {
+	for _, p := range pluginsList {
 		if p.CommandName == "leaf" && p.GroupID != "" {
 			t.Errorf("unknown group_id should be cleared in cache, got GroupID=%q", p.GroupID)
 		}

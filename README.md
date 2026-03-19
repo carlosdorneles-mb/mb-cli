@@ -40,8 +40,8 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 |--------|-----------|
 | `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o binário do MB; sem flags executa as duas fases |
 | `mb plugins sync` | Atualiza cache de plugins |
-| `mb self update` | Atualiza o binário `mb` (só binários da release oficial) |
-| `mb self update --check-only` | Verifica atualização (release); saída `2` se houver |
+| `mb update --only-cli` | Atualiza o binário `mb` (só binários da release oficial) |
+| `mb update --only-cli --check-only` | Verifica atualização (release); saída `2` se houver |
 | `mb plugins add <url \| path>` | Instala plugin |
 | `mb plugins list` | Lista plugins |
 | `mb <categoria> <comando>` | Executa plugin |

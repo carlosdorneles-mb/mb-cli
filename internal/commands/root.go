@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/browser"
+	"mb/internal/commands/envs"
 	"mb/internal/commands/plugins"
-	"mb/internal/commands/self"
 	"mb/internal/commands/update"
 	"mb/internal/config"
 	"mb/internal/deps"
@@ -64,8 +64,6 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 		},
 		SilenceUsage: true,
 	}
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
 	rootCmd.PersistentFlags().
 		BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
 	rootCmd.PersistentFlags().
@@ -83,10 +81,15 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 
 	rootCmd.SetHelpCommandGroupID("commands")
 
-	rootCmd.AddCommand(self.NewSelfCmd(d))
+	envsCmd := envs.NewCmd(d)
+	envsCmd.GroupID = "commands"
+	rootCmd.AddCommand(envsCmd)
 	rootCmd.AddCommand(plugins.NewPluginsCmd(d))
 	rootCmd.AddCommand(update.NewUpdateCmd(d))
 	plugincmd.Attach(rootCmd, d)
+
+	rootCmd.InitDefaultCompletionCmd()
+	customizeCompletionPT(rootCmd)
 
 	rootCmd.InitDefaultHelpCmd()
 	for _, c := range rootCmd.Commands() {
@@ -141,5 +144,41 @@ func setHelpFlagUsagePT(cmd *cobra.Command) {
 	}
 	for _, sub := range cmd.Commands() {
 		setHelpFlagUsagePT(sub)
+	}
+}
+
+func findCommand(cmds []*cobra.Command, name string) *cobra.Command {
+	for _, c := range cmds {
+		if c.Name() == name {
+			return c
+		}
+	}
+	return nil
+}
+
+func customizeCompletionPT(rootCmd *cobra.Command) {
+	completionCmd := findCommand(rootCmd.Commands(), "completion")
+	if completionCmd == nil {
+		return
+	}
+	completionCmd.Short = "Gera o script de autocompletar do shell"
+	completionCmd.GroupID = "commands"
+	completionCmd.Long = "Gera o script de autocompletar para o MB CLI para o shell especificado.\nConsulte a ajuda de cada subcomando para detalhes de como usar o script gerado."
+	const completionGroupID = "completion_shells"
+	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMMANDOS"})
+	shortPT := map[string]string{
+		"bash":       "Gera o script de autocompletar para bash",
+		"zsh":        "Gera o script de autocompletar para zsh",
+		"fish":       "Gera o script de autocompletar para fish",
+		"powershell": "Gera o script de autocompletar para powershell",
+	}
+	for _, sub := range completionCmd.Commands() {
+		sub.GroupID = completionGroupID
+		if short, ok := shortPT[sub.Name()]; ok {
+			sub.Short = short
+		}
+		if f := sub.Flags().Lookup("no-descriptions"); f != nil {
+			f.Usage = "Desativa as descrições no autocompletar"
+		}
 	}
 }

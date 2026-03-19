@@ -28,18 +28,18 @@ O CLI injeta variáveis de ambiente **GUM_\*** para que os scripts dos plugins q
 - **confirm** — `GUM_CONFIRM_PROMPT_FOREGROUND` (título), `GUM_CONFIRM_SELECTED_FOREGROUND` / `GUM_CONFIRM_SELECTED_BACKGROUND`
 - **spin** — `GUM_SPIN_TITLE_FOREGROUND`, `GUM_SPIN_SPINNER_FOREGROUND`
 
-Esses defaults só são aplicados quando a chave ainda não existe no ambiente mesclado. Para usar suas próprias cores, defina as mesmas chaves em **`~/.config/mb/env.defaults`** (por exemplo com `mb self env set GUM_CHOOSE_HEADER_FOREGROUND 99`) ou na linha de comando com **`--env`**.
+Esses defaults só são aplicados quando a chave ainda não existe no ambiente mesclado. Para usar suas próprias cores, defina as mesmas chaves em **`~/.config/mb/env.defaults`** (por exemplo com `mb envs set GUM_CHOOSE_HEADER_FOREGROUND 99`) ou na linha de comando com **`--env`**.
 
 ## Como usar
 
-### Defaults persistentes: `mb self env`
+### Defaults persistentes: `mb envs`
 
 Você pode definir variáveis que serão usadas em toda execução de plugins, sem precisar passar `--env` toda vez:
 
-- **`mb self env list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`).
-- **`mb self env list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
-- **`mb self env set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`.
-- **`mb self env unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo.
+- **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`).
+- **`mb envs list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
+- **`mb envs set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`.
+- **`mb envs unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo.
 
 ### Grupo na linha de comando: `--env-group`
 
@@ -78,6 +78,6 @@ No seu plugin, você pode acessar variáveis injetadas normalmente. Por exemplo,
 echo "API_KEY está definida? ${API_KEY:-não}"
 ```
 
-Se você definiu `API_KEY` com `mb self env set API_KEY seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
+Se você definiu `API_KEY` com `mb envs set API_KEY seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
 
 Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](../technical-reference/plugins.md).

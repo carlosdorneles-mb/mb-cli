@@ -35,7 +35,7 @@ Exemplo:
 ```bash
 mb -q plugins list
 mb --quiet plugins sync
-mb -q self update --check-only   # só código de saída (ex.: 2 = há atualização), sem texto em stdout
+mb -q update --only-cli --check-only   # só código de saída (ex.: 2 = há atualização), sem texto em stdout
 mb -q tools meu-comando
 ```
 
@@ -55,7 +55,7 @@ Para a função `log` e outros helpers, veja a [Referência: Helpers de shell](.
 - **`--env-file <path>`** — Define um arquivo de variáveis de ambiente (formato `.env`) que será carregado e mesclado ao ambiente antes de executar um plugin. Útil para manter configurações em um arquivo separado.
 - **`--env KEY=VALUE`** — Injeta uma variável no processo do plugin. Pode ser repetido várias vezes. Tem a maior precedência em relação aos outros meios de definir variáveis.
 
-Para a ordem completa de precedência e como usar defaults com `mb self env`, veja [Variáveis de ambiente](./environment-variables.md).
+Para a ordem completa de precedência e como usar defaults com `mb envs`, veja [Variáveis de ambiente](./environment-variables.md).
 
 ## --env-group
 
@@ -67,7 +67,7 @@ Para a ordem completa de precedência e como usar defaults com `mb self env`, ve
 mb --env-group staging tools deploy
 ```
 
-O nome do grupo segue as mesmas regras que em `mb self env set --group`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
+O nome do grupo segue as mesmas regras que em `mb envs set --group`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
 
 ## --doc
 

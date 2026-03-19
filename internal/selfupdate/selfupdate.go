@@ -349,7 +349,7 @@ func DestExecutablePath() (string, error) {
 	return filepath.EvalSymlinks(exe)
 }
 
-// ExitCodeUpdateAvailable is returned by RunCheckOnly (and mb self update --check-only) when a newer release exists.
+// ExitCodeUpdateAvailable is returned by RunCheckOnly (and mb update --only-cli --check-only) when a newer release exists.
 const ExitCodeUpdateAvailable = 2
 
 // MessageNoUpdateNeeded returns the user-facing message when ShouldFetchNewRelease is false.
@@ -383,7 +383,7 @@ func RunCheckOnly(
 	}
 	if ShouldFetchNewRelease(localVersion, tag) {
 		return fmt.Sprintf(
-			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb self update\n",
+			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb update --only-cli\n",
 			strings.TrimSpace(localVersion),
 			tag,
 		), ExitCodeUpdateAvailable, nil

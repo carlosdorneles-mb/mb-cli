@@ -1,4 +1,4 @@
-package env
+package envs
 
 import (
 	"github.com/spf13/cobra"

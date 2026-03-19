@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/self"
 	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
@@ -28,7 +27,7 @@ func RunUpdateAll(ctx context.Context, deps deps.Dependencies, log *system.Logge
 			_ = log.Error(ctx, "%s: %v", src.InstallDir, err)
 		}
 	}
-	return self.RunSync(ctx, deps, log, false)
+	return RunSync(ctx, deps, log, false)
 }
 
 func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
@@ -53,7 +52,7 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 			if err := updateOnePlugin(ctx, deps, log, name, cmd); err != nil {
 				return err
 			}
-			return self.RunSync(ctx, deps, log, true)
+			return RunSync(ctx, deps, log, true)
 		},
 	}
 

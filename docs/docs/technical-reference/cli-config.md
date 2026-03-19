@@ -13,7 +13,7 @@ Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que
 | Chave | Obrigatória | Descrição |
 |-------|-------------|-----------|
 | `docs_url` | Não | URL base da documentação aberta com **`mb --doc`** (deve ser `http://` ou `https://` com host). Se omitir do ficheiro, usa-se o site público do projeto. |
-| `update_repo` | Não | Repositório GitHub no formato **`owner/repo`** usado por **`mb self update`** (API de releases). Se omitir, usa-se o valor definido no build (`-X`) ou o repositório predefinido. |
+| `update_repo` | Não | Repositório GitHub no formato **`owner/repo`** usado por **`mb update --only-cli`** (API de releases). Se omitir, usa-se o valor definido no build (`-X`) ou o repositório predefinido. |
 
 ## Comportamento
 
@@ -26,7 +26,7 @@ Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que
 ```yaml
 # ~/.config/mb/config.yaml
 docs_url: https://carlosdorneles-mb.github.io/mb-cli/
-# Opcional: fork para self update
+# Opcional: fork para update do CLI
 # update_repo: minha-org/meu-fork-mb
 ```
 

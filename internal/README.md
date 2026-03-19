@@ -10,7 +10,7 @@ Mapa rápido para onde colocar código novo.
 | `app`                               | Bootstrap Uber Fx (`Bootstrap`), módulos Fx (`PathsModule`, `CacheModule`, …), `NewRuntimeConfig`.                                                  |
 | `deps`                              | Paths padrão (`NewPaths`), `RuntimeConfig` (paths + flags), `Dependencies` injetados nos comandos, `LoadDefaultEnvValues` / `SaveDefaultEnvValues`. |
 | `commands`                          | Raiz Cobra (`NewRootCmd`), completion tests.                                                                                                        |
-| `commands/plugins`, `commands/self` | Subcomandos `mb plugins` e `mb self`.                                                                                                               |
+| `commands/plugins`, `commands/envs`, `commands/update` | Subcomandos `mb plugins`, `mb envs`, `mb update` (e `mb completion` no root).                                                                       |
 | `plugincmd`                         | Comandos dinâmicos a partir do cache (`plugincmd.Attach`).                                                                                          |
 
 

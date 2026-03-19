@@ -1,4 +1,4 @@
-package self
+package plugins
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func RunSync(
 	deps.Scanner.DebugLog = func(msg string) { _ = pluginHelpLog.Debug(runCtx, "%s", msg) }
 	defer func() { deps.Scanner.DebugLog = nil }()
 
-	plugins, categories, warnings, hgBatches, err := deps.Scanner.Scan()
+	pluginsList, categories, warnings, hgBatches, err := deps.Scanner.Scan()
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func RunSync(
 		if err != nil {
 			return err
 		}
-		plugins = append(plugins, p...)
+		pluginsList = append(pluginsList, p...)
 		categories = append(categories, c...)
 		warnings = append(warnings, w...)
 		hgBatches = append(hgBatches, hg...)
@@ -71,7 +71,7 @@ func RunSync(
 		}
 	}
 
-	if err := checkPluginPathCollisions(plugins); err != nil {
+	if err := checkPluginPathCollisions(pluginsList); err != nil {
 		return err
 	}
 
@@ -79,7 +79,7 @@ func RunSync(
 	for _, g := range mergedHelp {
 		validGroupIDs[g.ID] = struct{}{}
 	}
-	normalizePluginGroupIDs(plugins, validGroupIDs, func(msg string) {
+	normalizePluginGroupIDs(pluginsList, validGroupIDs, func(msg string) {
 		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 	normalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
@@ -99,7 +99,7 @@ func RunSync(
 			return err
 		}
 	}
-	for _, plugin := range plugins {
+	for _, plugin := range pluginsList {
 		if err := deps.Store.UpsertPlugin(plugin); err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func RunSync(
 	}
 
 	if emitSuccess && log != nil {
-		_ = log.Info(runCtx, "%d plugin(s) foram sincronizados", len(plugins))
+		_ = log.Info(runCtx, "%d plugin(s) foram sincronizados", len(pluginsList))
 	}
 	return nil
 }
@@ -150,12 +150,12 @@ func normalizeCategoryGroupIDs(
 }
 
 func normalizePluginGroupIDs(
-	plugins []cache.Plugin,
+	pluginsList []cache.Plugin,
 	valid map[string]struct{},
 	debug func(string),
 ) {
-	for i := range plugins {
-		p := &plugins[i]
+	for i := range pluginsList {
+		p := &pluginsList[i]
 		if !strings.Contains(p.CommandPath, "/") {
 			p.GroupID = ""
 			continue
@@ -178,9 +178,9 @@ func normalizePluginGroupIDs(
 	}
 }
 
-func checkPluginPathCollisions(plugins []cache.Plugin) error {
+func checkPluginPathCollisions(pluginsList []cache.Plugin) error {
 	seen := make(map[string]string)
-	for _, p := range plugins {
+	for _, p := range pluginsList {
 		key := p.CommandPath
 		if key == "" {
 			key = p.CommandName

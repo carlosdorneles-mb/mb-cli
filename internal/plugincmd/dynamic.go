@@ -101,7 +101,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			pathSoFar := strings.Join(segments[:i+1], "/")
 			if byPath[pathSoFar] == nil {
 				cat := categoriesByPath[pathSoFar]
-				short := seg + " commandos"
+				short := seg + " COMMANDOS"
 				if cat.Description != "" {
 					short = cat.Description
 				}

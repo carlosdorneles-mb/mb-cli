@@ -3,18 +3,21 @@ package update
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"mb/internal/commands/plugins"
-	"mb/internal/commands/self"
 	"mb/internal/deps"
+	"mb/internal/selfupdate"
 	"mb/internal/system"
+	"mb/internal/version"
 )
 
 // NewUpdateCmd returns the root "mb update" command.
 func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
-	var onlyPlugins, onlyCLI bool
+	var onlyPlugins, onlyCLI, checkOnly bool
 
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -47,16 +50,33 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 				}
 			}
 			if runCLI {
+				if checkOnly {
+					suCfg := selfupdateFromAppConfig(d)
+					local := strings.TrimSpace(version.Version)
+					out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
+					if out != "" && d.Runtime != nil && !d.Runtime.Quiet {
+						logInfoLines(ctx, log, out)
+					}
+					if err != nil {
+						return err
+					}
+					if code == selfupdate.ExitCodeUpdateAvailable {
+						os.Exit(selfupdate.ExitCodeUpdateAvailable)
+					}
+					return nil
+				}
 				if d.Runtime != nil && !d.Runtime.Quiet {
 					_ = log.Info(ctx, "Atualizando MB CLI...")
 				}
-				return self.RunCLIUpdate(ctx, d, log)
+				return RunCLIUpdate(ctx, d, log)
 			}
 			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&onlyPlugins, "only-plugins", false, "Atualiza apenas os plugins")
 	cmd.Flags().BoolVar(&onlyCLI, "only-cli", false, "Atualiza apenas o MB CLI")
+	cmd.Flags().
+		BoolVar(&checkOnly, "check-only", false, "Com --only-cli: só verifica se há atualização (sem baixar); saída 2 se houver")
 	cmd.GroupID = "commands"
 	return cmd
 }

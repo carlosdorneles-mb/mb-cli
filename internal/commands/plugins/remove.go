@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/self"
 	"mb/internal/deps"
 	"mb/internal/system"
 )
@@ -50,7 +49,7 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 			if err := deps.Store.DeletePluginSource(name); err != nil {
 				return err
 			}
-			if err := self.RunSync(ctx, deps, log, false); err != nil {
+			if err := RunSync(ctx, deps, log, false); err != nil {
 				return err
 			}
 			_ = log.Info(ctx, "plugin %q removido", name)

@@ -1,6 +1,6 @@
-package env
+package envs
 
-// Fixtures compartilhados para testes do pacote env (deps temporários, dirs, cache).
+// Fixtures compartilhados para testes do pacote envs (deps temporários, dirs, cache).
 
 import (
 	"os"

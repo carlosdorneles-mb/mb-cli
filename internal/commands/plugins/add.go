@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/commands/self"
 	"mb/internal/deps"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/system"
@@ -123,7 +122,7 @@ func runAddRemote(
 	}
 
 	log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-	if err := self.RunSync(ctx, deps, log, false); err != nil {
+	if err := RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
 	_ = log.Info(ctx, "plugin %q instalado em %s (versão %s)", installDir, destDir, version)
@@ -244,7 +243,7 @@ func runAddLocalCollection(
 	if added == 0 {
 		return fmt.Errorf("nenhum plugin novo registrado (todos já existiam ou foram ignorados)")
 	}
-	if err := self.RunSync(ctx, deps, log, false); err != nil {
+	if err := RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
 	return nil
@@ -274,7 +273,7 @@ func runAddLocalSingle(
 	); err != nil {
 		return err
 	}
-	if err := self.RunSync(ctx, deps, log, false); err != nil {
+	if err := RunSync(ctx, deps, log, false); err != nil {
 		return err
 	}
 	_ = log.Info(ctx, "plugin %q registrado localmente em %s", installDir, absPath)

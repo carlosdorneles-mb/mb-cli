@@ -1,4 +1,4 @@
-package env
+package envs
 
 import (
 	"github.com/spf13/cobra"
@@ -6,7 +6,7 @@ import (
 	"mb/internal/deps"
 )
 
-// NewCmd returns `mb self env` with list, set and unset subcommands.
+// NewCmd returns the root "mb envs" command with list, set and unset subcommands.
 func NewCmd(d deps.Dependencies) *cobra.Command {
 	root := &cobra.Command{
 		Use:     "envs",

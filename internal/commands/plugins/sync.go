@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/commands/self"
 	"mb/internal/deps"
 	"mb/internal/system"
 )
@@ -21,7 +20,7 @@ func newPluginsSyncCmd(deps deps.Dependencies) *cobra.Command {
 				ctx = context.Background()
 			}
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			return self.RunSync(ctx, deps, log, true)
+			return RunSync(ctx, deps, log, true)
 		},
 	}
 }
