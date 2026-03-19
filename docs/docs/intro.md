@@ -9,7 +9,7 @@ O **MB CLI** é uma ferramenta de linha de comando para **estender o que você p
 ## O que o MB faz por você
 
 - **Um comando para muitas tarefas**: os plugins aparecem na árvore de comandos do `mb`; você descobre o que existe com `mb help` ou `mb plugins list`.
-- **Sincronização simples**: depois de instalar ou alterar plugins, `mb self sync` atualiza a lista de comandos disponíveis — sem precisar reinstalar o programa principal.
+- **Sincronização simples**: depois de instalar ou alterar plugins, `mb plugins sync` atualiza a lista de comandos disponíveis — sem precisar reinstalar o programa principal.
 - **Organização por pastas e manifesto**: cada plugin descreve-se num arquivo `manifest.yaml` (nome, descrição, como executar). A estrutura de pastas define categorias e subcomandos na linha de comando.
 - **Ambiente sob controle**: variáveis de ambiente podem vir do sistema, de arquivo e da linha de comando (`--env`), e são aplicadas de forma previsível ao rodar um plugin.
 

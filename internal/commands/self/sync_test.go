@@ -28,21 +28,6 @@ func TestRunSyncEmptyPluginsDir(t *testing.T) {
 	}
 }
 
-func TestSelfSyncCmd(t *testing.T) {
-	t.Setenv("PATH", t.TempDir())
-	d := testSelfDeps(t)
-	cmd := newSelfSyncCmd(d)
-	var stdout, stderr bytes.Buffer
-	cmd.SetOut(&stdout)
-	cmd.SetErr(&stderr)
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("sync: %v", err)
-	}
-	if !strings.Contains(stderr.String(), "sincronizados") {
-		t.Errorf("stderr: %s", stderr.String())
-	}
-}
-
 func TestRunSyncPluginPathCollision(t *testing.T) {
 	d := testSelfDeps(t)
 	p1 := filepath.Join(d.Runtime.PluginsDir, "pkg1")

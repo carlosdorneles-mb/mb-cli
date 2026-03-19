@@ -69,7 +69,7 @@ func TestNewSelfCmd(t *testing.T) {
 		t.Errorf("Aliases = %v", cmd.Aliases)
 	}
 
-	want := map[string]bool{"sync": true, "envs": true, "update": true, "completion": true}
+	want := map[string]bool{"envs": true, "update": true, "completion": true}
 	for _, c := range cmd.Commands() {
 		delete(want, c.Name())
 	}

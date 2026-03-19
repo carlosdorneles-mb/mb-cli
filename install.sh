@@ -335,7 +335,7 @@ do_install() {
       echo "${INSTALL_DIR} foi adicionado ao PATH em $rcfile. Abra um novo terminal ou rode: source $rcfile"
     fi
   fi
-  echo "Depois rode: mb self sync"
+  echo "Depois rode: mb plugins sync"
 }
 
 # Parse arguments

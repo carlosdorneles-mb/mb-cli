@@ -108,7 +108,7 @@ Ao registar comandos a partir do cache:
 - **plugin_help_groups** — `group_id` → `title` (resultado do merge dos `groups.yaml`).
 - **plugin_sources** — Por `install_dir`: remoto (`git_url`, ref, versão) ou **`local_path`** para plugins adicionados localmente.
 
-### Fluxo do sync (`mb self sync` e após add/remove/update de plugins)
+### Fluxo do sync (`mb plugins sync` e após add/remove/update de plugins)
 
 Ordem **efetiva** no código:
 

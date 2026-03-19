@@ -16,9 +16,6 @@ func NewSelfCmd(deps deps.Dependencies) *cobra.Command {
 	}
 	selfCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})
 
-	syncCmd := newSelfSyncCmd(deps)
-	syncCmd.GroupID = "commands"
-	selfCmd.AddCommand(syncCmd)
 	envCmd := selenv.NewCmd(deps)
 	envCmd.GroupID = "commands"
 	selfCmd.AddCommand(envCmd)

@@ -10,7 +10,7 @@ CLI para orquestrar plugins com descoberta dinâmica e injeção de variáveis d
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
 ```
 
-Requer `~/.local/bin` no PATH. Depois: `mb self sync`.
+Requer `~/.local/bin` no PATH. Depois: `mb plugins sync`.
 
 Versão específica: `bash -s -- --version 0.0.5`. Desinstalar: `curl -sSL .../uninstall.sh | bash`.
 
@@ -39,7 +39,7 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 | Comando | Descrição |
 |--------|-----------|
 | `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o binário do MB; sem flags executa as duas fases |
-| `mb self sync` | Atualiza cache de plugins |
+| `mb plugins sync` | Atualiza cache de plugins |
 | `mb self update` | Atualiza o binário `mb` (só binários da release oficial) |
 | `mb self update --check-only` | Verifica atualização (release); saída `2` se houver |
 | `mb plugins add <url \| path>` | Instala plugin |

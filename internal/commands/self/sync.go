@@ -6,8 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/helpers/shell"
@@ -16,7 +14,7 @@ import (
 )
 
 // RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
-// Used by both "mb self sync" and after plugins add/remove/update.
+// Used by mb plugins sync and after plugins add/remove/update.
 // log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
 func RunSync(
 	ctx context.Context,
@@ -201,17 +199,4 @@ func checkPluginPathCollisions(plugins []cache.Plugin) error {
 		seen[key] = p.PluginDir
 	}
 	return nil
-}
-
-func newSelfSyncCmd(deps deps.Dependencies) *cobra.Command {
-	return &cobra.Command{
-		Use:     "sync",
-		Aliases: []string{"s"},
-		Short:   "Rescaneia plugins e reconstrói o cache de plugins",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
-			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			return RunSync(ctx, deps, log, true)
-		},
-	}
 }

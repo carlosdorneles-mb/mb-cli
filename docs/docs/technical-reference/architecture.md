@@ -29,7 +29,7 @@ O cache fica em **`ConfigDir/cache.db`** (ex. `~/.config/mb/cache.db` no Linux; 
 - **plugin_help_groups** — `group_id` → `title` (registo global fundido a partir de todos os `groups.yaml` no sync).
 - **plugin_sources** — Por instalação: `install_dir`, `git_url`, ref, versão, **`local_path`**. Com `local_path` preenchido, o código é lido desse path; com `git_url`, clone em `PluginsDir`.
 
-O cache é **escrito** em `mb self sync` (e após `plugins add/remove/update`). O fluxo inclui scan de `PluginsDir` e de cada `local_path`, merge de grupos de help, normalização de `group_id`, verificação de colisão de `command_path`, e recriação de `plugins`, `plugin_help_groups` e `categories`. **`plugin_sources` não é alterado pelo sync** (só por `plugins add/remove/update`).
+O cache é **escrito** em `mb plugins sync` (e após `plugins add/remove/update`). O fluxo inclui scan de `PluginsDir` e de cada `local_path`, merge de grupos de help, normalização de `group_id`, verificação de colisão de `command_path`, e recriação de `plugins`, `plugin_help_groups` e `categories`. **`plugin_sources` não é alterado pelo sync** (só por `plugins add/remove/update`).
 
 O cache é **lido** na inicialização para montar a árvore; na execução usam-se `ExecPath` / `plugin_dir` absolutos.
 
@@ -51,7 +51,7 @@ flowchart TB
     C --> D[Árvore: built-in + plugin_commands e subcomandos aninhados]
   end
   subgraph sync [Sync]
-    E[mb self sync] --> F[Scan PluginsDir]
+    E[mb plugins sync] --> F[Scan PluginsDir]
     F --> G[Shell helpers]
     G --> H[ScanDir cada local_path]
     H --> I[Merge groups.yaml em plugin_help_groups]

@@ -29,7 +29,7 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
 
 ```bash
 make install-examples   # registra examples/plugins/* com "mb plugins add <path>"
-make run self sync      # ou: mb self sync (atualiza cache e helpers)
+make run plugins sync  # ou: mb plugins sync (atualiza cache e helpers)
 ```
 
 Os plugins continuam em `examples/plugins` e são acessados pelo path; não é necessário copiar.
@@ -48,7 +48,7 @@ Os plugins continuam em `examples/plugins` e são acessados pelo path; não é n
 Depois sincronize e liste:
 
    ```bash
-   mb self sync
+   mb plugins sync
    mb plugins list
    mb infra ci deploy
    mb infra k8s apply

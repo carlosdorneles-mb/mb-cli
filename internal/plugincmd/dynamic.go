@@ -28,14 +28,14 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 		fmt.Fprintln(root.ErrOrStderr(), ui.RenderError(err.Error()))
 		fmt.Fprintln(
 			root.ErrOrStderr(),
-			ui.RenderInfo("Execute `mb self sync` para reconstruir o cache de plugins."),
+			ui.RenderInfo("Execute `mb plugins sync` para reconstruir o cache de plugins."),
 		)
 		return
 	}
 	if len(pluginList) == 0 {
 		fmt.Fprintln(
 			root.ErrOrStderr(),
-			ui.RenderInfo("Não há plugins em cache. Execute `mb self sync` primeiro."),
+			ui.RenderInfo("Não há plugins em cache. Execute `mb plugins sync` primeiro."),
 		)
 		return
 	}
@@ -62,7 +62,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 		root.AddGroup(&cobra.Group{ID: hg.GroupID, Title: hg.Title})
 		registeredHelp[hg.GroupID] = struct{}{}
 	}
-	// Inconsistências de group_id no cache: debug via gum log (mesmo pipeline que mb self sync -v).
+	// Inconsistências de group_id no cache: debug via gum log (mesmo pipeline que mb plugins sync -v).
 	dbgLog := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, root.ErrOrStderr())
 
 	// Cobra requires every child GroupID to exist on the direct parent. Category commands

@@ -21,7 +21,7 @@ const FeatureList = [
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Cache SQLite guarda plugins e categorias; <code>mb self sync</code> atualiza
+        Cache SQLite guarda plugins e categorias; <code>mb plugins sync</code> atualiza
         a partir do diretório de plugins e dos paths locais registrados.
         <br />
         <Link to="/docs/technical-reference/architecture">Arquitetura</Link>

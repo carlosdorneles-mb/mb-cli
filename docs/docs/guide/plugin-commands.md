@@ -17,13 +17,13 @@ Exemplos:
 
 Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do campo **`command`** do `manifest.yaml` (o último segmento do caminho interno continua a ser o nome da pasta). Plugins **só com `flags`** (sem entrypoint raiz) precisam de uma **flag declarada** para correr um script — ex.: `mb tools do --deploy`.
 
-**Cache:** os comandos vêm do SQLite após **`mb self sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb self sync`** para atualizar listagem, help e completion.
+**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion.
 
 ## Como descobrir os comandos
 
 - **`mb plugins list`** — Lista todos os plugins instalados, com nome, caminho do comando, descrição, versão, origem (local ou remoto) e URL/path. Use essa saída para saber exatamente quais comandos estão disponíveis.
 - **`mb help`** — Mostra a árvore de comandos, incluindo as categorias e comandos de plugins. Comandos de plugins locais aparecem com a indicação "(local)" na descrição.
-- **Completion** — Depois de `mb self sync`, o completion (TAB) sugere categorias e comandos. Instale com `mb self completion <bash|zsh|fish|powershell>`.
+- **Completion** — Depois de `mb plugins sync`, o completion (TAB) sugere categorias e comandos. Instale com `mb self completion <bash|zsh|fish|powershell>`.
 
 No help (`mb help`), subcomandos aninhados podem aparecer em **COMANDOS** ou em secções definidas com `groups.yaml` / `group_id` — ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
 

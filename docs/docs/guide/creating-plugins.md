@@ -8,14 +8,14 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 
 - **Referência técnica** (scanner, cache, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
 - **Uso no dia a dia** (`mb plugins`, help, completion): [Comandos de plugins](./plugin-commands.md)
-- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-examples` e depois `mb self sync`
+- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-examples` e depois `mb plugins sync`
 
 ## Checklist rápido
 
 1. Árvore de pastas com `manifest.yaml` em cada nível necessário (categorias + folhas).
 2. Folha executável: `command` + `entrypoint` (ou só `flags` para modo flags-only).
 3. Registar: `mb plugins add …` (local ou Git) **ou** copiar para `~/.config/mb/plugins/<nome>/`.
-4. **`mb self sync`** (automático após `plugins add`; obrigatório se alterou ficheiros à mão).
+4. **`mb plugins sync`** (automático após `plugins add`; obrigatório se alterou ficheiros à mão).
 5. Testar: `mb plugins list` e o comando na CLI.
 
 ## Onde colocar o pacote
@@ -24,7 +24,7 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 |-------|----------------|
 | **Local** — `mb plugins add <path>` ou `mb plugins add .` | O path fica em `plugin_sources.local_path`. **Nada é copiado** para a pasta de plugins. O sync lê esse diretório. |
 | **Remoto** — `mb plugins add <url-git>` | Clone para `PluginsDir/<nome>` (`--name` define o nome da instalação; `--tag` fixa uma tag). |
-| **Manual** — criar/copiar pastas em `~/.config/mb/plugins/<nome>/` (Linux) | Depois **`mb self sync`** para atualizar o cache. |
+| **Manual** — criar/copiar pastas em `~/.config/mb/plugins/<nome>/` (Linux) | Depois **`mb plugins sync`** para atualizar o cache. |
 
 ## Árvore de pastas e caminho no CLI
 
@@ -38,7 +38,7 @@ Exemplos:
 - `tools/hello/manifest.yaml` com `command: hello` → **`mb tools hello`**
 - `infra/ci/deploy/` (folha) → **`mb infra ci deploy`**
 
-Se **duas fontes** distintas expuserem o mesmo **`command_path`**, o **`mb self sync`** **falha** até remover ou ajustar uma delas.
+Se **duas fontes** distintas expuserem o mesmo **`command_path`**, o **`mb plugins sync`** **falha** até remover ou ajustar uma delas.
 
 ## Tipos de `manifest.yaml`
 
@@ -147,7 +147,7 @@ echo "Plugin rodando!"
 
 Torne executável: `chmod +x run.sh`.
 
-**Helpers MB** (após `mb self sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](../technical-reference/helpers-shell.md). **gum** é opcional nos scripts.
+**Helpers MB** (após `mb plugins sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](../technical-reference/helpers-shell.md). **gum** é opcional nos scripts.
 
 ## Registar e sincronizar
 
@@ -159,7 +159,7 @@ mb plugins add /caminho/para/meu-pacote --name meu-plugin
 mb plugins add .
 ```
 
-O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb self sync`** (disparado pelo add) pode mostrar **avisos** e **ignorar** manifests inválidos. Corrija avisos e volte a sincronizar.
+O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb plugins sync`** (disparado pelo add) pode mostrar **avisos** e **ignorar** manifests inválidos. Corrija avisos e volte a sincronizar.
 
 ### Vários plugins numa pasta (modo coleção)
 
@@ -175,7 +175,7 @@ mb plugins add https://github.com/org/repo --tag v1.0.0 --name meu-nome
 ### Manual em `PluginsDir`
 
 ```bash
-mb self sync
+mb plugins sync
 mb plugins list
 ```
 

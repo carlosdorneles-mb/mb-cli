@@ -1,6 +1,6 @@
 # Helpers de shell
 
-Scripts de shell embutidos no MB CLI e copiados para `~/.config/mb/lib/shell` no `mb self sync`. Os plugins recebem a variável **`MB_HELPERS_PATH`** apontando para esse diretório e podem carregá-los (ex.: `. "$MB_HELPERS_PATH/all.sh"`) para usar funções como `log` que respeitam as flags do CLI.
+Scripts de shell embutidos no MB CLI e copiados para `~/.config/mb/lib/shell` no `mb plugins sync`. Os plugins recebem a variável **`MB_HELPERS_PATH`** apontando para esse diretório e podem carregá-los (ex.: `. "$MB_HELPERS_PATH/all.sh"`) para usar funções como `log` que respeitam as flags do CLI.
 
 **Documentação:** [Helpers de shell](../../../docs/docs/helpers-shell.md) — como carregar nos plugins e lista de helpers disponíveis.
 

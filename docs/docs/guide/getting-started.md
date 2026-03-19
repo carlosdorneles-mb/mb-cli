@@ -20,7 +20,7 @@ Para uma versão específica:
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash -s -- --version 0.0.5
 ```
 
-Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb self sync` para atualizar o cache de plugins e os helpers de shell.
+Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb plugins sync` para atualizar o cache de plugins e os helpers de shell.
 
 Para **atualizar plugins e o binário do MB** de uma vez, use **`mb update`** (sem flags executa as duas fases; use `--only-plugins` ou `--only-cli` para uma só). Para **atualizar só o binário do MB CLI** depois de ter instalado pela release oficial, use **`mb self update`**. Só aplica a binários com versão embutida (GitHub Release); se compilaste localmente ou usaste `go install`, o comando indica que uses `install.sh`. Linux/macOS, amd64/arm64.
 
@@ -55,10 +55,10 @@ Para rodar o CLI sem instalar (a partir do código-fonte):
 
 ```bash
 make run-local              # go run . (ajuda: make run-local --help)
-make run-local self sync    # argumentos podem ser passados direto: make run-local [args...]
-make run self sync          # build + ./bin/mb; idem: make run [args...] ou make run ARGS="..."
+make run-local plugins sync # argumentos podem ser passados direto: make run-local [args...]
+make run plugins sync       # build + ./bin/mb; idem: make run [args...] ou make run ARGS="..."
 ```
 
-Para usar os plugins de exemplo do repositório: **`make install-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run self sync`** (ou `mb self sync`).
+Para usar os plugins de exemplo do repositório: **`make install-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run plugins sync`** (ou `mb plugins sync`).
 
 Próximo passo: [Criar um plugin](./creating-plugins.md) para montar seu primeiro plugin e rodá-lo com o MB.

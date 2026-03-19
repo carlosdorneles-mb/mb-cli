@@ -167,6 +167,6 @@ format fmt:
 	@golangci-lint run --config .golangci.yml ./... --fix
 	@$(MAKE) lint --quiet
 
-# Catch-all: faz com que "make run self sync" repasse self sync ao binário (não como alvos)
+# Catch-all: faz com que "make run plugins sync" repasse plugins sync ao binário (não como alvos)
 %:
 	@:

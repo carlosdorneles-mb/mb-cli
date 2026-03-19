@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/cobra"
+
 	"mb/internal/cache"
 	"mb/internal/config"
 	"mb/internal/deps"
@@ -91,9 +93,30 @@ func TestNewPluginsCmd(t *testing.T) {
 	for _, c := range cmd.Commands() {
 		names[c.Name()] = true
 	}
-	for _, want := range []string{"add", "list", "remove", "update"} {
+	for _, want := range []string{"add", "list", "remove", "update", "sync"} {
 		if !names[want] {
 			t.Errorf("missing subcommand %q", want)
 		}
+	}
+}
+
+func TestPluginsSyncRuns(t *testing.T) {
+	d := testPluginsDeps(t)
+	cmd := NewPluginsCmd(d)
+	var syncCmd *cobra.Command
+	for _, c := range cmd.Commands() {
+		if c.Name() == "sync" {
+			syncCmd = c
+			break
+		}
+	}
+	if syncCmd == nil {
+		t.Fatal("sync subcommand not found")
+	}
+	syncCmd.SetArgs(nil)
+	syncCmd.SetOut(os.Stdout)
+	syncCmd.SetErr(os.Stderr)
+	if err := syncCmd.Execute(); err != nil {
+		t.Errorf("plugins sync Execute: %v", err)
 	}
 }
