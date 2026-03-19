@@ -1,7 +1,7 @@
 package deps
 
 import (
-	"mb/internal/envgroup"
+	"mb/internal/shared/envgroup"
 )
 
 // ValidateEnvGroup returns an error if name is not a safe group identifier.

@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"mb/internal/cache"
-	"mb/internal/envgroup"
+	"mb/internal/shared/envgroup"
 	"mb/internal/shared/safepath"
 )
 
