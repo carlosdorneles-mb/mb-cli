@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"mb/internal/deps"
-	"mb/internal/helpers/shell"
 	plugpkg "mb/internal/infra/plugins"
+	"mb/internal/infra/shellhelpers"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
 )
@@ -42,7 +42,7 @@ func RunSync(
 	if err != nil {
 		return err
 	}
-	if _, err := shell.EnsureShellHelpers(deps.Runtime.ConfigDir); err != nil {
+	if _, err := shellhelpers.EnsureShellHelpers(deps.Runtime.ConfigDir); err != nil {
 		return err
 	}
 	sources, err := deps.Store.ListPluginSources()

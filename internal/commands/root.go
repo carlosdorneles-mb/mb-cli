@@ -8,11 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/browser"
 	"mb/internal/commands/envs"
 	"mb/internal/commands/plugins"
 	"mb/internal/commands/update"
 	"mb/internal/deps"
+	"mb/internal/infra/browser"
 	"mb/internal/plugincmd"
 	"mb/internal/shared/config"
 	"mb/internal/shared/env"

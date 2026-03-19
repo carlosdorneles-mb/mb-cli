@@ -1,4 +1,4 @@
-package shell
+package shellhelpers
 
 import (
 	"os"
