@@ -19,6 +19,7 @@ sidebar_position: 3
 | `mb envs list [--group G] [--show-secrets]` | Lista variáveis em tabela (VAR, GRUPO); secrets mostram `***`; com `--show-secrets` mostra o valor do keyring |
 | `mb envs set <KEY> <VALUE> [--group G] [--secret]` | Define em `env.defaults` ou em `.env.G`; com `--secret` guarda no keyring do sistema |
 | `mb envs unset <KEY> [--group G]` | Remove de `env.defaults` ou de `.env.G` (e do keyring se for secret) |
+| `mb run <comando> [args...]` | Executa um programa no PATH (ou caminho) com o **mesmo ambiente mesclado** que os plugins: `env.defaults`, `--env-group`, `./.env` no cwd (se existir), `--env-file`, `--env`, tema gum, `MB_HELPERS_PATH`, etc. **Sem** `env_files` de manifest (não há plugin). Stdin/stdout/stderr do terminal; **código de saída do filho propagado**. Flags do `mb` vêm **antes** de `run` (ex.: `mb --env-file .env.local run uv sync`). Ajuda: `mb help run` (evite `mb run --help`, que pode ir para o programa filho). Detalhes em [Variáveis de ambiente](../guide/environment-variables.md). |
 | `mb <categoria> <comando> [args...]` | Executa o plugin correspondente (veja [Comandos de plugins](../guide/plugin-commands.md)) |
 
 ## Completion de shell
@@ -31,9 +32,9 @@ Para instalar o completion no seu shell, consulte `mb completion --help` e os su
 
 - **`--verbose` / `-v`** — Saída mais verbosa. Veja [Flags globais](../guide/global-flags.md).
 - **`--quiet` / `-q`** — Reduz mensagens. Veja [Flags globais](../guide/global-flags.md).
-- **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](../guide/environment-variables.md).
-- **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](../guide/environment-variables.md).
-- **`--env-group <nome>`** — Sobrepõe `env.defaults` com `~/.config/mb/.env.<nome>` ao executar plugins. Veja [Variáveis de ambiente](../guide/environment-variables.md).
+- **`--env-file <path>`** — Arquivo de variáveis de ambiente ao executar plugins ou **`mb run`**. Veja [Variáveis de ambiente](../guide/environment-variables.md).
+- **`--env KEY=VALUE`** — Injeta variável no processo do plugin ou do **`mb run`** (pode ser repetido). Veja [Variáveis de ambiente](../guide/environment-variables.md).
+- **`--env-group <nome>`** — Sobrepõe `env.defaults` com `~/.config/mb/.env.<nome>` ao executar plugins ou **`mb run`**. Veja [Variáveis de ambiente](../guide/environment-variables.md).
 - **`--doc`** — Abre a URL de documentação no navegador (por omissão o site do projeto; configurável em `~/.config/mb/config.yaml` como `docs_url`). Apenas com `mb --doc`, sem subcomando. Veja [Configuração do CLI](cli-config.md) e [Flags globais](../guide/global-flags.md).
 
 ## Testar o CLI

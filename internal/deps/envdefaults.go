@@ -48,8 +48,9 @@ func mergeSecretKeysInto(merged map[string]string, path, keyringGroup string) {
 }
 
 // BuildEnvFileValues loads env.defaults, overlays .env.<EnvGroup> when EnvGroup is set,
+// then overlays ./.env from the current working directory when that file exists,
 // then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring.
-// Used for plugin execution defaults.
+// Used for plugin execution and mb run.
 func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 	merged := map[string]string{}
 
@@ -80,6 +81,10 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 		mergeSecretKeysInto(merged, groupPath, rt.EnvGroup)
 	}
 
+	if err := mergeCwdDotEnvIfPresent(merged); err != nil {
+		return nil, fmt.Errorf(".env no diretório atual: %w", err)
+	}
+
 	if rt.EnvFilePath != "" {
 		fileValues, readErr := godotenv.Read(rt.EnvFilePath)
 		if readErr != nil {
@@ -91,4 +96,32 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 	}
 
 	return merged, nil
+}
+
+// mergeCwdDotEnvIfPresent overlays ./.env from the current working directory when the file exists.
+// It runs after env.defaults / --env-group and before --env-file.
+func mergeCwdDotEnvIfPresent(merged map[string]string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("não foi possível obter o diretório atual: %w", err)
+	}
+	p := filepath.Join(wd, ".env")
+	st, err := os.Stat(p)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if st.IsDir() {
+		return fmt.Errorf("%q é um diretório, esperava-se um ficheiro", p)
+	}
+	values, err := godotenv.Read(p)
+	if err != nil {
+		return err
+	}
+	for k, v := range values {
+		merged[k] = v
+	}
+	return nil
 }

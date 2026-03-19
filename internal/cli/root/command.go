@@ -11,6 +11,7 @@ import (
 	"mb/internal/cli/envs"
 	"mb/internal/cli/plugincmd"
 	"mb/internal/cli/plugins"
+	"mb/internal/cli/run"
 	"mb/internal/cli/update"
 	"mb/internal/deps"
 	"mb/internal/infra/browser"
@@ -84,8 +85,19 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	envsCmd := envs.NewCmd(d)
 	envsCmd.GroupID = "commands"
 	rootCmd.AddCommand(envsCmd)
-	rootCmd.AddCommand(plugins.NewPluginsCmd(d))
-	rootCmd.AddCommand(update.NewUpdateCmd(d))
+
+	runCmd := run.NewRunCmd(d)
+	runCmd.GroupID = "commands"
+	rootCmd.AddCommand(runCmd)
+
+	pluginsCmd := plugins.NewPluginsCmd(d)
+	pluginsCmd.GroupID = "commands"
+	rootCmd.AddCommand(pluginsCmd)
+
+	updateCmd := update.NewUpdateCmd(d)
+	updateCmd.GroupID = "commands"
+	rootCmd.AddCommand(updateCmd)
+
 	plugincmd.Attach(rootCmd, d)
 
 	rootCmd.InitDefaultCompletionCmd()

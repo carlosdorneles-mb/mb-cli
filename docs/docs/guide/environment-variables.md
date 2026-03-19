@@ -4,11 +4,11 @@ sidebar_position: 5
 
 # Variáveis de ambiente
 
-O MB CLI controla o ambiente em que os plugins são executados. As variáveis são mescladas em uma ordem bem definida e só o processo do plugin recebe esse ambiente final; o CLI em si não altera o ambiente do seu shell.
+O MB CLI controla o ambiente em que os **plugins** e o comando **`mb run`** são executados. As variáveis são mescladas em uma ordem bem definida e só o **processo filho** (plugin ou comando passado a `mb run`) recebe esse ambiente final; o CLI em si não altera o ambiente do seu shell.
 
 ## Secrets no keyring
 
-Variáveis definidas com **`mb envs set <KEY> <VALUE> --secret`** não são gravadas em ficheiro: o valor fica no **keyring do sistema** (macOS Keychain, Linux Secret Service, Windows Credential Manager). Ao listar com **`mb envs list`**, essas chaves aparecem com valor **`***`**; use **`mb envs list --show-secrets`** para ver o valor real. Ao executar plugins, o CLI resolve os secrets a partir do keyring e injecta o valor real no ambiente do processo. **`mb envs unset <KEY>`** remove a variável do ficheiro e, se for secret, também do keyring.
+Variáveis definidas com **`mb envs set <KEY> <VALUE> --secret`** não são gravadas em ficheiro: o valor fica no **keyring do sistema** (macOS Keychain, Linux Secret Service, Windows Credential Manager). Ao listar com **`mb envs list`**, essas chaves aparecem com valor **`***`**; use **`mb envs list --show-secrets`** para ver o valor real. Ao executar plugins ou **`mb run`**, o CLI resolve os secrets a partir do keyring e injecta o valor real no ambiente do processo. **`mb envs unset <KEY>`** remove a variável do ficheiro e, se for secret, também do keyring.
 
 ## Ordem de precedência
 
@@ -17,11 +17,12 @@ Da **menor** para a **maior** precedência:
 1. **Variáveis do sistema** — O que já está em `os.Environ()` (incluindo o que você exportou no shell).
 2. **`env.defaults`** — `~/.config/mb/env.defaults` (e secrets do grupo default resolvidos do keyring).
 3. **Grupo (`--env-group`)** — Se você passar **`--env-group <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (e os secrets desse grupo são resolvidos do keyring; mesmas chaves do grupo sobrescrevem as do default).
-4. **`env_files` do manifest** — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **grupo efetivo**: sem `--env-group`, entram só entradas com grupo `default` (ou com `group` omitido no YAML); com **`--env-group test`**, entram só entradas com `group: test`. Vários arquivos para o mesmo grupo são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela.
+4. **`.env` no diretório atual** — Se existir um ficheiro **`.env`** no **diretório de trabalho atual** (cwd) quando o comando corre, as variáveis dele são mescladas a seguir. Se o ficheiro não existir, esta etapa é ignorada. Erros de leitura (permissões, formato inválido) fazem o comando falhar com mensagem clara.
 5. **`--env-file <path>`** — Mesclado em seguida e sobrescreve chaves anteriores em caso de conflito.
-6. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
+6. **`env_files` do manifest** (só **plugins**) — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **grupo efetivo**: sem `--env-group`, entram só entradas com grupo `default` (ou com `group` omitido no YAML); com **`--env-group test`**, entram só entradas com `group: test`. Vários arquivos para o mesmo grupo são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela. O comando **`mb run`** não usa manifest de plugin, logo esta camada não se aplica.
+7. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
 
-Ou seja: sem `--env-group`, só entram as variáveis de `env.defaults` como base (além do sistema); com grupo, o arquivo do grupo na config complementa/sobrescreve o default; em seguida vêm os `.env` do manifest para aquele grupo. **`--env`** continua com a última palavra.
+Ou seja: sem `--env-group`, só entram as variáveis de `env.defaults` como base (além do sistema); com grupo, o arquivo do grupo na config complementa/sobrescreve o default; em seguida entra o `./.env` do cwd (se existir), depois **`--env-file`**, depois os `env_files` do manifest (em comandos de plugin), e por fim **`--env`** tem a última palavra.
 
 ## Tema padrão do gum
 
@@ -38,7 +39,7 @@ Esses defaults só são aplicados quando a chave ainda não existe no ambiente m
 
 ### Defaults persistentes: `mb envs`
 
-Você pode definir variáveis que serão usadas em toda execução de plugins, sem precisar passar `--env` toda vez:
+Você pode definir variáveis que serão usadas em toda execução de plugins e de **`mb run`**, sem precisar passar `--env` toda vez:
 
 - **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`). Variáveis guardadas como secret mostram o valor como **`***`**; use **`--show-secrets`** para ver o valor real (lido do keyring).
 - **`mb envs list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
@@ -63,7 +64,26 @@ Para usar um arquivo `.env` em um caminho específico (por exemplo, por projeto)
 mb --env-file .env tools meu-comando
 ```
 
-O conteúdo do arquivo é mesclado ao ambiente antes de rodar o plugin (depois dos `env_files` do manifest do comando).
+O conteúdo do arquivo é mesclado ao ambiente antes de rodar o plugin ou o **`mb run`** (por cima do `./.env` do cwd, se existir; em plugins, ainda por baixo dos `env_files` do manifest).
+
+### Comando arbitrário: `mb run`
+
+Resumo na [Referência de comandos](../technical-reference/reference.md) (tabela **Comandos principais**).
+
+Para executar qualquer programa com o mesmo ambiente mesclado (útil para scripts, `python`, `uv`, etc.):
+
+```bash
+mb run python script.py
+mb run uv sync
+```
+
+As flags globais do `mb` (`--env`, `--env-file`, `--env-group`, etc.) vêm **antes** de `run`. Exemplo:
+
+```bash
+mb --env-file .env.local run uv sync
+```
+
+O subprocesso herda stdin, stdout e stderr do terminal. O **código de saída** do programa filho é propagado (não fica sempre `1` em caso de falha). Para ajuda do subcomando use **`mb help run`** (com `mb run --help`, o `--help` pode ser repassado ao programa executado).
 
 ### Variáveis na linha de comando: `--env`
 

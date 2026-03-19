@@ -73,6 +73,5 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 	cmd.Flags().BoolVar(&onlyCLI, "only-cli", false, "Atualiza apenas o MB CLI")
 	cmd.Flags().
 		BoolVar(&checkOnly, "check-only", false, "Com --only-cli: só verifica se há atualização (sem baixar); saída 2 se houver")
-	cmd.GroupID = "commands"
 	return cmd
 }

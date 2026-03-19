@@ -11,7 +11,6 @@ func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
 		Use:     "plugins",
 		Aliases: []string{"plugin", "p", "extensions", "e"},
 		Short:   "Gerencia plugins no CLI, adicionar, listar, remover e atualizar",
-		GroupID: "commands",
 	}
 	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 

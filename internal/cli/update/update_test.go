@@ -50,9 +50,7 @@ func TestNewUpdateCmd(t *testing.T) {
 	if cmd.Use != "update" {
 		t.Errorf("Use = %q, want update", cmd.Use)
 	}
-	if cmd.GroupID != "commands" {
-		t.Errorf("GroupID = %q, want commands", cmd.GroupID)
-	}
+	// GroupID "commands" é atribuído em internal/cli/root/command.go ao registar no root.
 	if cmd.Short == "" {
 		t.Error("Short is empty")
 	}

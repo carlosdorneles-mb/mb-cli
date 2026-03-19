@@ -15,7 +15,6 @@ import (
 	"mb/internal/deps"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
-	"mb/internal/shared/env"
 	"mb/internal/shared/safepath"
 	"mb/internal/shared/system"
 	"mb/internal/shared/ui"
@@ -314,21 +313,12 @@ func runEntrypointCommand(
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
 		argsToPass := cmd.Flags().Args()
-		cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
+		merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
+			return mergeManifestEnvIntoFileValues(m, plugin, d.Runtime)
+		})
 		if err != nil {
 			return err
 		}
-		fileValues, err := buildEnvFileValues(d.Runtime)
-		if err != nil {
-			return err
-		}
-		if err := mergeManifestEnvIntoFileValues(fileValues, plugin, d.Runtime); err != nil {
-			return err
-		}
-		merged := env.Merge(os.Environ(), fileValues, cliValues)
-		merged = ui.PrependGumThemeDefaults(merged)
-		merged = appendVerbosityEnv(merged, d.Runtime)
-		merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 		ctx := cmd.Context()
 		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc
@@ -367,25 +357,12 @@ func runFlagsOnlyCommand(
 		if chosenFlag == "" || chosenEntrypoint == "" {
 			if plugin.ExecPath != "" {
 				argsToPass := cmd.Flags().Args()
-				cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
+				merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
+					return mergeManifestEnvIntoFileValues(m, plugin, d.Runtime)
+				})
 				if err != nil {
 					return err
 				}
-				fileValues, err := buildEnvFileValues(d.Runtime)
-				if err != nil {
-					return err
-				}
-				if err := mergeManifestEnvIntoFileValues(
-					fileValues,
-					plugin,
-					d.Runtime,
-				); err != nil {
-					return err
-				}
-				merged := env.Merge(os.Environ(), fileValues, cliValues)
-				merged = ui.PrependGumThemeDefaults(merged)
-				merged = appendVerbosityEnv(merged, d.Runtime)
-				merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 				ctx := cmd.Context()
 				if d.Runtime.PluginTimeout > 0 {
 					var cancel context.CancelFunc
@@ -422,25 +399,12 @@ func runFlagsOnlyCommand(
 			EnvFilesJSON: plugin.EnvFilesJSON,
 		}
 
-		cliValues, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues)
+		merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
+			return mergeManifestEnvIntoFileValues(m, syntheticPlugin, d.Runtime)
+		})
 		if err != nil {
 			return err
 		}
-		fileValues, err := buildEnvFileValues(d.Runtime)
-		if err != nil {
-			return err
-		}
-		if err := mergeManifestEnvIntoFileValues(
-			fileValues,
-			syntheticPlugin,
-			d.Runtime,
-		); err != nil {
-			return err
-		}
-		merged := env.Merge(os.Environ(), fileValues, cliValues)
-		merged = ui.PrependGumThemeDefaults(merged)
-		merged = appendVerbosityEnv(merged, d.Runtime)
-		merged = appendShellHelpersEnv(merged, d.Runtime.ConfigDir)
 		ctx := cmd.Context()
 		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc
@@ -449,24 +413,6 @@ func runFlagsOnlyCommand(
 		}
 		return d.Executor.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
 	}
-}
-
-func appendShellHelpersEnv(merged []string, configDir string) []string {
-	path := filepath.Join(configDir, "lib", "shell")
-	return append(merged, "MB_HELPERS_PATH="+path)
-}
-
-func appendVerbosityEnv(merged []string, rt *deps.RuntimeConfig) []string {
-	if rt == nil {
-		return merged
-	}
-	if rt.Quiet {
-		merged = append(merged, "MB_QUIET=1")
-	}
-	if rt.Verbose {
-		merged = append(merged, "MB_VERBOSE=1")
-	}
-	return merged
 }
 
 const readmeFlagDesc = "Visualizar documentação do commando"
@@ -490,10 +436,6 @@ func runReadmeWithGlow(path string) error {
 		return fmt.Errorf("não foi possível abrir a documentação: %w", err)
 	}
 	return system.RenderMarkdown(context.Background(), path)
-}
-
-func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
-	return deps.BuildEnvFileValues(rt)
 }
 
 func mergeManifestEnvIntoFileValues(
