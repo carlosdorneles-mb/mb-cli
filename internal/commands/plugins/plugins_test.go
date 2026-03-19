@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -37,7 +38,13 @@ func testPluginsDeps(t *testing.T) deps.Dependencies {
 			ConfigDir:  configDir,
 		},
 	}
-	return deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	return deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 }
 
 func writeMinimalRunnablePlugin(t *testing.T, dir string) {

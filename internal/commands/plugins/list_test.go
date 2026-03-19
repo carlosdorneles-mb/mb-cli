@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -47,6 +48,7 @@ func TestListShowsLocalAndPath(t *testing.T) {
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{PluginsDir: pluginsDir}}
 	d := deps.NewDependencies(
 		rt,
+		config.AppConfig{},
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),

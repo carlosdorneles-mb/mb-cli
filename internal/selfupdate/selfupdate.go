@@ -21,17 +21,13 @@ import (
 
 	"golang.org/x/mod/semver"
 
+	"mb/internal/config"
 	"mb/internal/version"
-)
-
-const (
-	// DefaultRepo is the default GitHub repository for releases (owner/repo).
-	DefaultRepo = "carlosdorneles-mb/mb-cli"
 )
 
 // Config controls where to fetch release metadata and artifacts (for tests, use custom URLs).
 type Config struct {
-	Repo string // owner/repo; if empty, version.UpdateRepo or DefaultRepo
+	Repo string // owner/repo; if empty, version.UpdateRepo or config.DefaultUpdateRepo
 
 	// LatestReleaseURL if non-empty overrides the GitHub API latest release URL.
 	LatestReleaseURL string
@@ -54,7 +50,7 @@ func (c *Config) repo() string {
 	if r != "" {
 		return r
 	}
-	return DefaultRepo
+	return config.DefaultUpdateRepo
 }
 
 func (c *Config) client() *http.Client {

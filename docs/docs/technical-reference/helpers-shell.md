@@ -2,7 +2,7 @@
 sidebar_position: 7
 ---
 
-# Helpers de shell
+# Helpers para plugins
 
 O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para o **diretório** dos helpers de shell (`~/.config/mb/lib/shell`).
 

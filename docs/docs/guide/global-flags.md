@@ -71,9 +71,11 @@ O nome do grupo segue as mesmas regras que em `mb self env set --group`. Detalhe
 
 ## --doc
 
-**O que faz:** Abre a [documentação publicada](https://carlosdorneles-mb.github.io/mb-cli/) no navegador padrão do sistema e encerra o CLI com código `0`.
+**O que faz:** Abre no navegador a URL de documentação configurada (por omissão o site público do projeto). O URL base define-se em **`~/.config/mb/config.yaml`** com a chave **`docs_url`**. Encerra o CLI com código `0`.
 
 **Uso:** Só no comando raiz, **antes** de qualquer subcomando — por exemplo `mb --doc`. Não é herdada por `mb plugins list` etc.
+
+Detalhes e exemplos: [Configuração do CLI (config.yaml)](../technical-reference/cli-config.md).
 
 ```bash
 mb --doc

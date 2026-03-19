@@ -12,6 +12,7 @@ import (
 var PathsModule = fx.Module("paths",
 	fx.Provide(deps.NewPaths),
 	fx.Provide(NewRuntimeConfig),
+	fx.Provide(NewAppConfig),
 )
 
 // DepsModule bundles injected services for commands.

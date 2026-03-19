@@ -33,7 +33,7 @@ Para instalar o completion no seu shell, consulte `mb self completion --help` e 
 - **`--env-file <path>`** — Arquivo de variáveis de ambiente. Veja [Variáveis de ambiente](../guide/environment-variables.md).
 - **`--env KEY=VALUE`** — Injeta variável no processo do plugin (pode ser repetido). Veja [Variáveis de ambiente](../guide/environment-variables.md).
 - **`--env-group <nome>`** — Sobrepõe `env.defaults` com `~/.config/mb/.env.<nome>` ao executar plugins. Veja [Variáveis de ambiente](../guide/environment-variables.md).
-- **`--doc`** — Abre a documentação em https://carlosdorneles-mb.github.io/mb-cli/ no navegador (apenas com `mb --doc`, sem subcomando). Veja [Flags globais](../guide/global-flags.md).
+- **`--doc`** — Abre a URL de documentação no navegador (por omissão o site do projeto; configurável em `~/.config/mb/config.yaml` como `docs_url`). Apenas com `mb --doc`, sem subcomando. Veja [Configuração do CLI](cli-config.md) e [Flags globais](../guide/global-flags.md).
 
 ## Testar o CLI
 

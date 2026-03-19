@@ -62,8 +62,9 @@ Com --check-only apenas verifica se há release mais nova (sem download). Códig
 				return nil
 			}
 			local := strings.TrimSpace(version.Version)
+			suCfg := selfupdateFromAppConfig(deps)
 			if checkOnly {
-				out, code, err := selfupdate.RunCheckOnly(ctx, &selfupdate.Config{}, local)
+				out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
 				if out != "" && !quiet {
 					logInfoLines(ctx, log, out)
 				}
@@ -75,7 +76,7 @@ Com --check-only apenas verifica se há release mais nova (sem download). Códig
 				}
 				return nil
 			}
-			out, err := selfupdate.Run(ctx, &selfupdate.Config{}, local)
+			out, err := selfupdate.Run(ctx, suCfg, local)
 			if out != "" && !quiet {
 				logInfoLines(ctx, log, out)
 			}
@@ -85,4 +86,12 @@ Com --check-only apenas verifica se há release mais nova (sem download). Códig
 	cmd.Flags().
 		BoolVar(&checkOnly, "check-only", false, "Só verifica se há atualização (sem baixar)")
 	return cmd
+}
+
+func selfupdateFromAppConfig(d deps.Dependencies) *selfupdate.Config {
+	cfg := &selfupdate.Config{}
+	if r := strings.TrimSpace(d.AppConfig.UpdateRepo); r != "" {
+		cfg.Repo = r
+	}
+	return cfg
 }

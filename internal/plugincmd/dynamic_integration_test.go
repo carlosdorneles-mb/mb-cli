@@ -12,6 +12,7 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -71,7 +72,13 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	cfgDir := filepath.Join(tmp, "mb")
 	pluginsDir := filepath.Join(tmp, "mb", "plugins")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
@@ -178,7 +185,13 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
@@ -255,7 +268,13 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 	cfgDir := filepath.Join(tmp, "mb")
 	pluginsDir := filepath.Join(tmp, "mb", "plugins")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 
 	var doCmd *cobra.Command
@@ -328,7 +347,13 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 
 	var helloCmd *cobra.Command
@@ -399,7 +424,13 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	}
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 	var out strings.Builder
 	root.SetOut(&out)
@@ -447,7 +478,13 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 	}
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", "-v", argsFile, "foo"})
 	if err := root.Execute(); err != nil {
@@ -498,7 +535,13 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 	}
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 	root.SetArgs([]string{"tools", "hello", argsFile, "foo", "bar"})
 	if err := root.Execute(); err != nil {
@@ -578,7 +621,13 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 
 	cfgDir := filepath.Join(tmp, "mb")
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
-	d := deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	d := deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 	root := commands.NewRootCmd(d)
 
 	defer func() {

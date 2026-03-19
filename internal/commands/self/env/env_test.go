@@ -13,8 +13,8 @@ func TestNewCmd(t *testing.T) {
 	d := testDeps(t)
 	cmd := NewCmd(d)
 
-	if cmd.Use != "env" {
-		t.Errorf("Use = %q, want env", cmd.Use)
+	if cmd.Use != "envs" {
+		t.Errorf("Use = %q, want envs", cmd.Use)
 	}
 	if cmd.Short == "" {
 		t.Error("expected non-empty Short")

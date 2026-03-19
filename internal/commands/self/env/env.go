@@ -9,8 +9,8 @@ import (
 // NewCmd returns `mb self env` with list, set and unset subcommands.
 func NewCmd(d deps.Dependencies) *cobra.Command {
 	root := &cobra.Command{
-		Use:     "env",
-		Aliases: []string{"e", "envs", "settings"},
+		Use:     "envs",
+		Aliases: []string{"e", "env"},
 		Short:   "Gerencia variáveis de ambiente padrão",
 	}
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMMANDOS"})

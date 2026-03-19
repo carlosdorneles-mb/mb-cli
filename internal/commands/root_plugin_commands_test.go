@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -47,6 +48,7 @@ func TestRootCmdAttachIncludesPluginTools(t *testing.T) {
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
 	d := deps.NewDependencies(
 		rt,
+		config.AppConfig{},
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
@@ -102,6 +104,7 @@ func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 	rt := &deps.RuntimeConfig{Paths: deps.Paths{ConfigDir: cfgDir, PluginsDir: pluginsDir}}
 	d := deps.NewDependencies(
 		rt,
+		config.AppConfig{},
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),

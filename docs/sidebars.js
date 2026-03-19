@@ -28,6 +28,7 @@ const sidebars = {
         'technical-reference/architecture',
         'technical-reference/plugins',
         'technical-reference/helpers-shell',
+        'technical-reference/cli-config',
         'technical-reference/reference',
         'technical-reference/versioning-and-release',
       ],

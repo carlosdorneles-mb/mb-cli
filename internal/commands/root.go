@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"mb/internal/browser"
 	"mb/internal/commands/plugins"
 	"mb/internal/commands/self"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/env"
 	"mb/internal/plugincmd"
@@ -17,9 +19,15 @@ import (
 	"mb/internal/version"
 )
 
-const docsBaseURL = "https://carlosdorneles-mb.github.io/mb-cli/"
-
 type RootCommand = *cobra.Command
+
+func docsURLForRuntime(d deps.Dependencies) string {
+	u := strings.TrimSpace(d.AppConfig.DocsBaseURL)
+	if u != "" {
+		return u
+	}
+	return config.DefaultDocsURL
+}
 
 func NewRootCmd(d deps.Dependencies) RootCommand {
 	var openDoc bool
@@ -30,11 +38,12 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 			if !openDoc {
 				return nil
 			}
-			if err := browser.OpenURL(docsBaseURL); err != nil {
+			docURL := docsURLForRuntime(d)
+			if err := browser.OpenURL(docURL); err != nil {
 				return err
 			}
 			if !d.Runtime.Quiet {
-				fmt.Fprintf(cmd.OutOrStdout(), "Documentação: %s\n", docsBaseURL)
+				fmt.Fprintf(cmd.OutOrStdout(), "Documentação: %s\n", docURL)
 			}
 			os.Exit(0)
 			return nil

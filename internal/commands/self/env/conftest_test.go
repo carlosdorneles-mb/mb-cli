@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -39,5 +40,11 @@ func testDeps(t *testing.T) deps.Dependencies {
 			DefaultEnvPath: defaultEnv,
 		},
 	}
-	return deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	return deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 }

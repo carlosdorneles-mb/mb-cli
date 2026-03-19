@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/executor"
 	"mb/internal/plugins"
 )
@@ -23,23 +24,26 @@ type RuntimeConfig struct {
 
 // Dependencies groups services injected into commands.
 type Dependencies struct {
-	Runtime  *RuntimeConfig
-	Store    *cache.Store
-	Scanner  *plugins.Scanner
-	Executor *executor.Executor
+	Runtime   *RuntimeConfig
+	AppConfig config.AppConfig
+	Store     *cache.Store
+	Scanner   *plugins.Scanner
+	Executor  *executor.Executor
 }
 
 // NewDependencies constructs the dependency bundle for Fx / tests.
 func NewDependencies(
 	runtime *RuntimeConfig,
+	appCfg config.AppConfig,
 	store *cache.Store,
 	scanner *plugins.Scanner,
 	exec *executor.Executor,
 ) Dependencies {
 	return Dependencies{
-		Runtime:  runtime,
-		Store:    store,
-		Scanner:  scanner,
-		Executor: exec,
+		Runtime:   runtime,
+		AppConfig: appCfg,
+		Store:     store,
+		Scanner:   scanner,
+		Executor:  exec,
 	}
 }

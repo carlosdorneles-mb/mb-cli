@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"mb/internal/cache"
+	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
@@ -37,7 +38,13 @@ func testSelfDeps(t *testing.T) deps.Dependencies {
 			DefaultEnvPath: defaultEnv,
 		},
 	}
-	return deps.NewDependencies(rt, store, plugins.NewScanner(pluginsDir), executor.New())
+	return deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+	)
 }
 
 func writePluginWithCommand(t *testing.T, dir, command string) {
@@ -62,7 +69,7 @@ func TestNewSelfCmd(t *testing.T) {
 		t.Errorf("Aliases = %v", cmd.Aliases)
 	}
 
-	want := map[string]bool{"sync": true, "env": true, "update": true, "completion": true}
+	want := map[string]bool{"sync": true, "envs": true, "update": true, "completion": true}
 	for _, c := range cmd.Commands() {
 		delete(want, c.Name())
 	}

@@ -45,4 +45,4 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 | `mb plugins list` | Lista plugins |
 | `mb <categoria> <comando>` | Executa plugin |
 
-Flags: `-v` / `--verbose`, `-q` / `--quiet`, `--env KEY=VALUE`, `--env-file <path>`.
+Flags: `-v` / `--verbose`, `-q` / `--quiet`, `--env KEY=VALUE`, `--env-file <path>`, `--doc` (abre a documentação; URL em `~/.config/mb/config.yaml`, ver [referência técnica](https://carlosdorneles-mb.github.io/mb-cli/docs/technical-reference/cli-config)).
