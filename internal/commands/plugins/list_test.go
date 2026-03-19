@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/executor"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -22,13 +22,13 @@ func TestListShowsLocalAndPath(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "mylocal/hello",
 		CommandName: "hello",
 		Description: "Local plugin",
@@ -38,7 +38,7 @@ func TestListShowsLocalAndPath(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	if err := store.UpsertPluginSource(cache.PluginSource{
+	if err := store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "mylocal",
 		LocalPath:  "/home/user/my-plugin",
 	}); err != nil {

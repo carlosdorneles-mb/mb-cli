@@ -5,9 +5,9 @@ import (
 
 	"go.uber.org/fx"
 
-	"mb/internal/cache"
 	"mb/internal/commands"
 	"mb/internal/deps"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -45,15 +45,15 @@ func NewAppConfig(p *deps.Paths) (config.AppConfig, error) {
 	return config.Load(p.ConfigDir)
 }
 
-func newStore(p *deps.Paths) (*cache.Store, error) {
-	return cache.NewStore(p.CacheDBPath)
+func newStore(p *deps.Paths) (*sqlite.Store, error) {
+	return sqlite.NewStore(p.CacheDBPath)
 }
 
 func newScanner(p *deps.Paths) *plugins.Scanner {
 	return plugins.NewScanner(p.PluginsDir)
 }
 
-func registerStoreLifecycle(lifecycle fx.Lifecycle, store *cache.Store) {
+func registerStoreLifecycle(lifecycle fx.Lifecycle, store *sqlite.Store) {
 	lifecycle.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
 			return store.Close()

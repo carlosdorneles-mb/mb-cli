@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 func TestAddRequiresExactlyOneArg(t *testing.T) {
@@ -203,7 +203,7 @@ func TestAddLocalRegistersPlugin(t *testing.T) {
 
 func TestAddLocalDuplicateName(t *testing.T) {
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "taken",
 		LocalPath:  "/tmp/x",
 	}); err != nil {

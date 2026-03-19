@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 func TestFirstPathSegment(t *testing.T) {
@@ -34,10 +34,10 @@ func TestPluginDirUnderRoot(t *testing.T) {
 }
 
 func TestSourceForPluginByInstallDir(t *testing.T) {
-	sources := []cache.PluginSource{
+	sources := []sqlite.PluginSource{
 		{InstallDir: "tools", GitURL: "https://x"},
 	}
-	p := cache.Plugin{CommandPath: "tools/do", PluginDir: ""}
+	p := sqlite.Plugin{CommandPath: "tools/do", PluginDir: ""}
 	got := SourceForPlugin(p, sources, "/plugins")
 	if got == nil || got.InstallDir != "tools" {
 		t.Fatalf("got %+v", got)
@@ -47,11 +47,11 @@ func TestSourceForPluginByInstallDir(t *testing.T) {
 func TestSourceForPluginLocalPathLongest(t *testing.T) {
 	localA := filepath.Join(string(filepath.Separator), "proj", "plugins")
 	localB := filepath.Join(localA, "nested")
-	sources := []cache.PluginSource{
+	sources := []sqlite.PluginSource{
 		{InstallDir: "short", LocalPath: localA},
 		{InstallDir: "long", LocalPath: localB},
 	}
-	p := cache.Plugin{PluginDir: filepath.Join(localB, "leaf")}
+	p := sqlite.Plugin{PluginDir: filepath.Join(localB, "leaf")}
 	got := SourceForPlugin(p, sources, "/x")
 	if got == nil || got.InstallDir != "long" {
 		t.Fatalf("want longest LocalPath match, got %+v", got)

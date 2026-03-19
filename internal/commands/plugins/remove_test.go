@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 func forceConfirmFallback(t *testing.T) {
@@ -32,7 +32,7 @@ func TestRemovePluginNotFound(t *testing.T) {
 func TestRemoveCancelled(t *testing.T) {
 	forceConfirmFallback(t)
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "keepme",
 		LocalPath:  "/some/path",
 	}); err != nil {
@@ -63,7 +63,7 @@ func TestRemoveCancelled(t *testing.T) {
 func TestRemoveLocalConfirmed(t *testing.T) {
 	forceConfirmFallback(t)
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "gone",
 		LocalPath:  "/tmp/plugin",
 	}); err != nil {

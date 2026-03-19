@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 	"mb/internal/shared/envgroup"
 	"mb/internal/shared/safepath"
 )
@@ -248,7 +248,7 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 	return errs
 }
 
-// cobraFieldsFromManifest returns UseTemplate, ArgsCount, AliasesJSON, Example, LongDescription, Deprecated for cache.Plugin.
+// cobraFieldsFromManifest returns UseTemplate, ArgsCount, AliasesJSON, Example, LongDescription, Deprecated for sqlite.Plugin.
 func cobraFieldsFromManifest(
 	manifest Manifest,
 ) (useTemplate string, argsCount int, aliasesJSON, example, longDescription, deprecated string, err error) {
@@ -279,9 +279,9 @@ func marshalEnvFilesJSON(m Manifest) (string, error) {
 
 func (s *Scanner) scanTree(
 	rootPath string,
-) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
-	plugins := []cache.Plugin{}
-	categories := []cache.Category{}
+) ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+	plugins := []sqlite.Plugin{}
+	categories := []sqlite.Category{}
 	warnings := []ValidationWarning{}
 	debug := s.DebugLog
 
@@ -354,7 +354,7 @@ func (s *Scanner) scanTree(
 				return fmt.Errorf("env_files %s: %w", path, err)
 			}
 			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
-			plugins = append(plugins, cache.Plugin{
+			plugins = append(plugins, sqlite.Plugin{
 				CommandPath:     dbCommandPath,
 				CommandName:     commandName,
 				Description:     manifest.Description,
@@ -394,7 +394,7 @@ func (s *Scanner) scanTree(
 				return fmt.Errorf("env_files %s: %w", path, err)
 			}
 			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
-			plugins = append(plugins, cache.Plugin{
+			plugins = append(plugins, sqlite.Plugin{
 				CommandPath:     dbCommandPath,
 				CommandName:     commandName,
 				Description:     manifest.Description,
@@ -425,7 +425,7 @@ func (s *Scanner) scanTree(
 			return nil
 		}
 		catGid := nestedPluginGroupIDRaw(catPath, manifest.GroupID, debug)
-		categories = append(categories, cache.Category{
+		categories = append(categories, sqlite.Category{
 			Path:        catPath,
 			Description: manifest.Description,
 			ReadmePath:  readmePath,
@@ -458,7 +458,7 @@ func (s *Scanner) scanTree(
 					}
 				}
 				if !dup {
-					categories = append(categories, cache.Category{
+					categories = append(categories, sqlite.Category{
 						Path:        seg,
 						Description: m.Description,
 						ReadmePath:  readmePath,
@@ -473,9 +473,9 @@ func (s *Scanner) scanTree(
 }
 
 // Scan percorre cada subpasta imediata de PluginsDir e agrega plugins, categorias e lotes de groups.yaml.
-func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
-	plugins := []cache.Plugin{}
-	categories := []cache.Category{}
+func (s *Scanner) Scan() ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+	plugins := []sqlite.Plugin{}
+	categories := []sqlite.Category{}
 	warnings := []ValidationWarning{}
 	var batches [][]HelpGroupDef
 	if _, err := os.Stat(s.pluginsDir); os.IsNotExist(err) {
@@ -508,13 +508,13 @@ func (s *Scanner) Scan() ([]cache.Plugin, []cache.Category, []ValidationWarning,
 func (s *Scanner) ScanDir(
 	rootPath string,
 	_ string,
-) ([]cache.Plugin, []cache.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+) ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
 	rootPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
-		return []cache.Plugin{}, []cache.Category{}, []ValidationWarning{}, nil, nil
+		return []sqlite.Plugin{}, []sqlite.Category{}, []ValidationWarning{}, nil, nil
 	}
 	return s.scanTree(rootPath)
 }

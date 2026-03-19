@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 	"mb/internal/shared/safepath"
 )
 
@@ -21,7 +21,7 @@ func New() *Executor {
 // ExecPath is validated to be under allowedRoot before execution.
 func (*Executor) Run(
 	ctx context.Context,
-	plugin cache.Plugin,
+	plugin sqlite.Plugin,
 	args []string,
 	mergedEnv []string,
 	allowedRoot string,

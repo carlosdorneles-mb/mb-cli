@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 // FirstPathSegment returns the first segment of path (before the first "/"), or path if no "/".
@@ -31,12 +31,12 @@ func PluginDirUnderRoot(root, dir string) bool {
 // SourceForPlugin finds the plugin_sources row whose install root contains the plugin directory.
 // Prefers the longest matching LocalPath or clone root when multiple match.
 func SourceForPlugin(
-	p cache.Plugin,
-	sources []cache.PluginSource,
+	p sqlite.Plugin,
+	sources []sqlite.PluginSource,
 	pluginsDir string,
-) *cache.PluginSource {
+) *sqlite.PluginSource {
 	if p.PluginDir != "" {
-		var best *cache.PluginSource
+		var best *sqlite.PluginSource
 		bestLen := -1
 		for i := range sources {
 			s := &sources[i]

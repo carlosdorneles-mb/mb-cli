@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 func TestUpdateRequiresNameOrAll(t *testing.T) {
@@ -41,7 +41,7 @@ func TestUpdatePluginNotFound(t *testing.T) {
 
 func TestUpdateLocalPlugin(t *testing.T) {
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "loc",
 		LocalPath:  "/tmp/x",
 	}); err != nil {
@@ -62,7 +62,7 @@ func TestUpdateLocalPlugin(t *testing.T) {
 
 func TestUpdateManualInstallNoGitURL(t *testing.T) {
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "manual",
 		GitURL:     "",
 		LocalPath:  "",
@@ -87,7 +87,7 @@ func TestUpdateManualInstallNoGitURL(t *testing.T) {
 
 func TestUpdateAllWithOnlyLocalPlugins(t *testing.T) {
 	d := testPluginsDeps(t)
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "loc",
 		LocalPath:  "/tmp/p",
 	}); err != nil {

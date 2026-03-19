@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 )
 
 func TestRunInjectsEnv(t *testing.T) {
@@ -19,7 +19,7 @@ func TestRunInjectsEnv(t *testing.T) {
 	}
 
 	ex := New()
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath: "test/env",
 		CommandName: "env",
 		ExecPath:    scriptPath,
@@ -58,7 +58,7 @@ func TestRunRejectsPathOutsideAllowedRoot(t *testing.T) {
 	}
 
 	ex := New()
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		ExecPath:   scriptOutside,
 		PluginType: "sh",
 	}

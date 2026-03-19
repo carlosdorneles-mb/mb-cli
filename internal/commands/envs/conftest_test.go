@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/executor"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -27,7 +27,7 @@ func testDeps(t *testing.T) deps.Dependencies {
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("mkdir config: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}

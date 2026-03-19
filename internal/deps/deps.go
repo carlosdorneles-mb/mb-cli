@@ -3,8 +3,8 @@ package deps
 import (
 	"time"
 
-	"mb/internal/cache"
 	"mb/internal/executor"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -26,7 +26,7 @@ type RuntimeConfig struct {
 type Dependencies struct {
 	Runtime   *RuntimeConfig
 	AppConfig config.AppConfig
-	Store     *cache.Store
+	Store     *sqlite.Store
 	Scanner   *plugins.Scanner
 	Executor  *executor.Executor
 }
@@ -35,7 +35,7 @@ type Dependencies struct {
 func NewDependencies(
 	runtime *RuntimeConfig,
 	appCfg config.AppConfig,
-	store *cache.Store,
+	store *sqlite.Store,
 	scanner *plugins.Scanner,
 	exec *executor.Executor,
 ) Dependencies {

@@ -12,8 +12,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/env"
 	"mb/internal/shared/safepath"
@@ -41,13 +41,13 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	}
 
 	categoryList, _ := d.Store.ListCategories()
-	categoriesByPath := make(map[string]cache.Category)
+	categoriesByPath := make(map[string]sqlite.Category)
 	for _, c := range categoryList {
 		categoriesByPath[c.Path] = c
 	}
 
 	sources, _ := d.Store.ListPluginSources()
-	sourceByDir := make(map[string]*cache.PluginSource)
+	sourceByDir := make(map[string]*sqlite.PluginSource)
 	for i := range sources {
 		sourceByDir[sources[i].InstallDir] = &sources[i]
 	}
@@ -85,7 +85,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 
 	type node struct {
 		cmd     *cobra.Command
-		plugins []cache.Plugin
+		plugins []sqlite.Plugin
 	}
 	byPath := map[string]*node{}
 
@@ -186,11 +186,11 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			ensureNestedPluginHelpGroups(parent)
 		}
 		parent.AddCommand(leafCmd)
-		byPath[pathSoFar] = &node{cmd: leafCmd, plugins: []cache.Plugin{plugin}}
+		byPath[pathSoFar] = &node{cmd: leafCmd, plugins: []sqlite.Plugin{plugin}}
 	}
 }
 
-func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse string) {
+func applyCobraPluginFields(cmd *cobra.Command, plugin sqlite.Plugin, defaultUse string) {
 	if plugin.UseTemplate != "" {
 		cmd.Use = defaultUse + " " + strings.TrimSpace(plugin.UseTemplate)
 	} else {
@@ -224,7 +224,7 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin cache.Plugin, defaultUse 
 
 func newLeafCommand(
 	use string,
-	plugin cache.Plugin,
+	plugin sqlite.Plugin,
 	d deps.Dependencies,
 	pluginRoot string,
 	isLocal bool,
@@ -305,7 +305,7 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 }
 
 func runEntrypointCommand(
-	plugin cache.Plugin,
+	plugin sqlite.Plugin,
 	d deps.Dependencies,
 	pluginRoot string,
 ) func(*cobra.Command, []string) error {
@@ -340,7 +340,7 @@ func runEntrypointCommand(
 }
 
 func runFlagsOnlyCommand(
-	plugin cache.Plugin,
+	plugin sqlite.Plugin,
 	flagsMap map[string]plugins.FlagDef,
 	d deps.Dependencies,
 	pluginRoot string,
@@ -412,7 +412,7 @@ func runFlagsOnlyCommand(
 			return fmt.Errorf("flag entrypoint fora do diretório do plugin: %w", err)
 		}
 		pluginType := plugins.PluginTypeFromEntrypoint(chosenEntrypoint)
-		syntheticPlugin := cache.Plugin{
+		syntheticPlugin := sqlite.Plugin{
 			CommandPath:  plugin.CommandPath,
 			CommandName:  plugin.CommandName,
 			ExecPath:     execPath,
@@ -498,7 +498,7 @@ func buildEnvFileValues(rt *deps.RuntimeConfig) (map[string]string, error) {
 
 func mergeManifestEnvIntoFileValues(
 	fileValues map[string]string,
-	plugin cache.Plugin,
+	plugin sqlite.Plugin,
 	rt *deps.RuntimeConfig,
 ) error {
 	group := plugins.ManifestEnvGroupDefault

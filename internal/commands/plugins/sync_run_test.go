@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"mb/internal/cache"
+	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
 )
 
@@ -54,7 +54,7 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 	d := testPluginsDeps(t)
 	pluginDir := t.TempDir()
 	writeMinimalRunnablePluginNamed(t, pluginDir, "fromlocal")
-	if err := d.Store.UpsertPluginSource(cache.PluginSource{
+	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "myloc",
 		LocalPath:  pluginDir,
 	}); err != nil {

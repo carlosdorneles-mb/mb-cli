@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/helpers/shell"
+	"mb/internal/infra/sqlite"
 	plugpkg "mb/internal/plugins"
 	"mb/internal/shared/system"
 )
@@ -94,7 +94,7 @@ func RunSync(
 	}
 	for _, g := range mergedHelp {
 		if err := deps.Store.UpsertPluginHelpGroup(
-			cache.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
+			sqlite.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
 		); err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func RunSync(
 }
 
 func normalizeCategoryGroupIDs(
-	categories []cache.Category,
+	categories []sqlite.Category,
 	valid map[string]struct{},
 	debug func(string),
 ) {
@@ -150,7 +150,7 @@ func normalizeCategoryGroupIDs(
 }
 
 func normalizePluginGroupIDs(
-	pluginsList []cache.Plugin,
+	pluginsList []sqlite.Plugin,
 	valid map[string]struct{},
 	debug func(string),
 ) {
@@ -178,7 +178,7 @@ func normalizePluginGroupIDs(
 	}
 }
 
-func checkPluginPathCollisions(pluginsList []cache.Plugin) error {
+func checkPluginPathCollisions(pluginsList []sqlite.Plugin) error {
 	seen := make(map[string]string)
 	for _, p := range pluginsList {
 		key := p.CommandPath

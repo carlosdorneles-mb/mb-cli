@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
+	"mb/internal/infra/sqlite"
 	mbplugins "mb/internal/plugins"
 	"mb/internal/shared/system"
 )
@@ -109,7 +109,7 @@ func runAddRemote(
 		ref = version
 	}
 
-	ps := cache.PluginSource{
+	ps := sqlite.PluginSource{
 		InstallDir: installDir,
 		GitURL:     gitURL,
 		RefType:    refType,
@@ -233,7 +233,7 @@ func runAddLocalCollection(
 			_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 		}
 		if err := deps.Store.UpsertPluginSource(
-			cache.PluginSource{InstallDir: installDir, LocalPath: c.path},
+			sqlite.PluginSource{InstallDir: installDir, LocalPath: c.path},
 		); err != nil {
 			return err
 		}
@@ -269,7 +269,7 @@ func runAddLocalSingle(
 		_, installDir = uniqueInstallDir(deps.Runtime.PluginsDir, installDir)
 	}
 	if err := deps.Store.UpsertPluginSource(
-		cache.PluginSource{InstallDir: installDir, LocalPath: absPath},
+		sqlite.PluginSource{InstallDir: installDir, LocalPath: absPath},
 	); err != nil {
 		return err
 	}

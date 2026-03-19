@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
 	"mb/internal/commands"
 	"mb/internal/deps"
 	"mb/internal/executor"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -43,13 +43,13 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath: "tools/do",
 		CommandName: "do",
 		Description: "Flags-only with short",
@@ -59,7 +59,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 	if err := store.UpsertPlugin(plugin); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    "/bin/true",
@@ -155,13 +155,13 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath: "tools/do",
 		CommandName: "do",
 		Description: "Default + flags",
@@ -173,7 +173,7 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 	if err := store.UpsertPlugin(plugin); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    "/bin/true",
@@ -239,13 +239,13 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath: "tools/do",
 		CommandName: "do",
 		Description: "Flags-only long only",
@@ -255,7 +255,7 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 	if err := store.UpsertPlugin(plugin); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    "/bin/true",
@@ -321,13 +321,13 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath:     "tools/hello",
 		CommandName:     "hello",
 		Description:     "Short",
@@ -407,12 +407,12 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		Description: "Short",
@@ -462,12 +462,12 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    filepath.Join(pluginDir, "run.sh"),
@@ -519,12 +519,12 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    filepath.Join(pluginDir, "run.sh"),
@@ -585,19 +585,19 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir cache dir: %v", err)
 	}
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	if err := store.UpsertPluginHelpGroup(cache.PluginHelpGroup{
+	if err := store.UpsertPluginHelpGroup(sqlite.PluginHelpGroup{
 		GroupID: "development",
 		Title:   "Desenvolvimento",
 	}); err != nil {
 		t.Fatalf("upsert help group: %v", err)
 	}
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools",
 		CommandName: "tools",
 		Description: "Tools umbrella",
@@ -606,7 +606,7 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert tools leaf: %v", err)
 	}
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/bruno",
 		CommandName: "bruno",
 		Description: "Bruno",

@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cache"
 	"mb/internal/deps"
 	"mb/internal/executor"
+	"mb/internal/infra/sqlite"
 	"mb/internal/plugins"
 	"mb/internal/shared/config"
 )
@@ -26,13 +26,13 @@ func TestRootCmdAttachIncludesPluginTools(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	plugin := cache.Plugin{
+	plugin := sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		ExecPath:    "/bin/true",
@@ -76,13 +76,13 @@ func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	store, err := cache.NewStore(cachePath)
+	store, err := sqlite.NewStore(cachePath)
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
 
-	if err := store.UpsertPlugin(cache.Plugin{
+	if err := store.UpsertPlugin(sqlite.Plugin{
 		CommandPath: "tools/hello",
 		CommandName: "hello",
 		Description: "Hello from tools",
@@ -92,7 +92,7 @@ func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("upsert plugin: %v", err)
 	}
-	if err := store.UpsertPluginSource(cache.PluginSource{
+	if err := store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "tools",
 		LocalPath:  "/path/to/local",
 	}); err != nil {
