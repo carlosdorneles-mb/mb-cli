@@ -20,9 +20,23 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 
 ## Digest no cache (`config_hash`)
 
-Para cada **folha** (manifest com `entrypoint` ou só `flags`), o MB grava um digest na coluna `config_hash` do SQLite. O valor é um **SHA-256 determinístico** que combina o conteúdo bruto do `manifest.yaml` com o hash do conteúdo de cada ficheiro referenciado no manifest: `entrypoint`, cada `entrypoint` nas entradas de `flags`, cada ficheiro em `env_files` e o ficheiro `readme` (se o campo existir). **Não** é feito um walk recursivo de toda a pasta da folha — só estes paths.
+O MB usa um **hash SHA-256** para saber se um comando mudou desde o último sync. Esse hash é gravado na coluna `config_hash` do SQLite e recalculado a cada `mb plugins sync`.
 
-Assim, alterar só um script referenciado (por exemplo `run.sh`) altera o digest e, no próximo sync, o comando pode ser reportado como atualizado. Após **atualizar o MB CLI** para uma versão que mudou a forma do digest, a **primeira** sincronização pode marcar todos os comandos como atualizados uma vez, até o cache refletir o novo algoritmo.
+**O que entra no hash** (apenas ficheiros explicitamente referenciados no manifest):
+
+- O conteúdo do próprio `manifest.yaml`
+- O ficheiro `entrypoint` (se definido)
+- Cada `entrypoint` listado em `flags`
+- Cada ficheiro em `env_files`
+- O ficheiro `readme` (se o campo existir)
+
+> O MB **não** varre toda a pasta — só os ficheiros acima são considerados.
+
+**O que isso significa na prática:**
+
+- Alterar um script referenciado (ex.: `run.sh`) faz o hash mudar → o comando aparece como *atualizado* no próximo sync.
+- Alterar um ficheiro na pasta que **não** esteja listado no manifest → o hash **não** muda.
+- Ao **atualizar o MB CLI** para uma versão que mudou o algoritmo do hash, o primeiro sync pode marcar todos os comandos como atualizados uma vez — comportamento esperado enquanto o cache se recalibra.
 
 ## Onde colocar o pacote
 

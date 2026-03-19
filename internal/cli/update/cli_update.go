@@ -6,6 +6,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/infra/selfupdate"
+	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
 	"mb/internal/shared/version"
 )
@@ -43,6 +44,14 @@ func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logge
 	if out != "" {
 		logInfoLines(ctx, log, out)
 	}
+
+	// Ensure shell helpers are updated after CLI update
+	if cfgDir := deps.Runtime.ConfigDir; cfgDir != "" {
+		if _, shErr := shellhelpers.EnsureShellHelpers(cfgDir); shErr != nil {
+			_ = log.Info(ctx, "Erro ao atualizar shell helpers: %v", shErr)
+		}
+	}
+
 	return err
 }
 

@@ -16,7 +16,7 @@ var shellFS embed.FS
 
 const checksumFile = ".checksum"
 
-// embeddedShellFiles retorna os nomes dos arquivos .sh embutidos, ordenados para checksum determinístico.
+// embeddedShellFiles returns the names of embedded .sh files, sorted for deterministic checksum.
 func embeddedShellFiles() ([]string, error) {
 	entries, err := fs.Glob(shellFS, "*.sh")
 	if err != nil {
@@ -26,7 +26,7 @@ func embeddedShellFiles() ([]string, error) {
 	return entries, nil
 }
 
-// helpersChecksum retorna SHA256 (hex) da concatenação do conteúdo dos arquivos .sh embutidos.
+// helpersChecksum returns SHA256 (hex) of the concatenation of the contents of embedded .sh files.
 func helpersChecksum() (string, error) {
 	files, err := embeddedShellFiles()
 	if err != nil {
@@ -43,11 +43,11 @@ func helpersChecksum() (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// EnsureShellHelpers cria o diretório lib/shell sob configDir (se não existir),
-// grava todos os .sh embutidos (descobertos automaticamente) e retorna o path
-// absoluto do diretório lib/shell. Esse path é passado ao plugin como MB_HELPERS_PATH.
-// Se o arquivo .checksum em lib/shell existir e for igual ao checksum atual do embed,
-// os arquivos não são reescritos (atualização automática quando o conteúdo muda).
+// EnsureShellHelpers creates the lib/shell directory under configDir (if it does not exist),
+// writes all embedded .sh files (automatically discovered), and returns the absolute path
+// of the lib/shell directory. This path is passed to the plugin as MB_HELPERS_PATH.
+// If the .checksum file in lib/shell exists and matches the current embed checksum,
+// the files are not rewritten (automatic update when content changes).
 func EnsureShellHelpers(configDir string) (string, error) {
 	shellDir := filepath.Join(configDir, "lib", "shell")
 	files, err := embeddedShellFiles()
