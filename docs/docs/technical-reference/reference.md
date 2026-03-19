@@ -8,7 +8,8 @@ sidebar_position: 3
 
 | Comando | Descrição |
 |--------|-----------|
-| `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o MB CLI. Sem flags: primeiro plugins (como `mb plugins update --all`), depois o binário (como `mb update --only-cli`). **`--only-plugins`** só atualiza plugins; **`--only-cli`** só o binário. Não use as duas flags em simultâneo. |
+| `mb update [--only-plugins \| --only-cli \| --only-system]` | Sem flags: **plugins** → **MB CLI** → **sistema** (macOS: `brew update`, `brew upgrade`, `mas upgrade` se `mas` existir; Linux: `sudo apt-get update/upgrade` se `apt-get`+`sudo` existirem, depois `flatpak update -y` e `sudo snap refresh` se `snap`+`sudo` existirem). Com **`--only-*`**, escolhe quais fases correr; pode **combinar** várias (ex.: `--only-plugins --only-cli`). **`--check-only`** só com **`--only-cli`**. |
+| `mb update --only-system` | Só a fase de pacotes do sistema (pode combinar com outros `--only-*`). Pode pedir password ao `sudo` no Linux (APT e Snap). |
 | `mb plugins sync` | Rescaneia o diretório de plugins e paths locais, atualiza o cache SQLite e garante os helpers de shell em `~/.config/mb/lib/shell` |
 | `mb update --only-cli` | **Só para binários da release oficial** (versão embutida via ldflags no GitHub Release). Builds locais ou `go install` mostram mensagem a usar `install.sh`. Se a release for mais nova, baixa o `mb`, valida SHA256 e substitui o executável (Linux/macOS, amd64/arm64). |
 | `mb update --only-cli --check-only` | Igual: só em binários de release. Compara com a última release (sem download). **Códigos de saída:** `0` = já atualizado ou versão local mais nova; `2` = há atualização; `1` = erro. Em build local: mensagem + saída `0`. |

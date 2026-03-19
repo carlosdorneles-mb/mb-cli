@@ -3,6 +3,7 @@ package update
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"mb/internal/deps"
@@ -60,19 +61,58 @@ func TestNewUpdateCmd(t *testing.T) {
 	if fc := cmd.Flags().Lookup("only-cli"); fc == nil {
 		t.Error("flag only-cli missing")
 	}
+	if fs := cmd.Flags().Lookup("only-system"); fs == nil {
+		t.Error("flag only-system missing")
+	}
 }
 
-func TestUpdateRunEBothFlagsErrors(t *testing.T) {
+func TestUpdatePluginsAndCLICombinedNoError(t *testing.T) {
 	d := testUpdateDeps(t)
 	cmd := NewUpdateCmd(d)
-	cmd.SetArgs([]string{"--only-plugins", "--only-cli"})
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(os.Stderr)
+	cmd.SetArgs([]string{"--only-plugins", "--only-cli"})
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("Execute with --only-plugins --only-cli: %v", err)
+	}
+}
+
+func TestCheckOnlyWithoutOnlyCLIErrors(t *testing.T) {
+	d := testUpdateDeps(t)
+	cmd := NewUpdateCmd(d)
+	cmd.SetOut(os.Stdout)
+	cmd.SetErr(os.Stderr)
+	cmd.SetArgs([]string{"--check-only"})
 	err := cmd.Execute()
 	if err == nil {
-		t.Fatal("Execute with both flags should return error")
+		t.Fatal("expected error")
 	}
-	if err.Error() != "não use --only-plugins e --only-cli em simultâneo" {
+	if !strings.Contains(err.Error(), "--check-only") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveUpdatePhases(t *testing.T) {
+	tests := []struct {
+		name                  string
+		op, oc, os            bool
+		wantP, wantC, wantSys bool
+	}{
+		{"none", false, false, false, true, true, true},
+		{"only plugins", true, false, false, true, false, false},
+		{"only cli", false, true, false, false, true, false},
+		{"only system", false, false, true, false, false, true},
+		{"plugins+cli", true, true, false, true, true, false},
+		{"all three", true, true, true, true, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, c, s := resolveUpdatePhases(tt.op, tt.oc, tt.os)
+			if p != tt.wantP || c != tt.wantC || s != tt.wantSys {
+				t.Fatalf("got plugins=%v cli=%v system=%v want plugins=%v cli=%v system=%v",
+					p, c, s, tt.wantP, tt.wantC, tt.wantSys)
+			}
+		})
 	}
 }

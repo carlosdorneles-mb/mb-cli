@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# Install MB CLI, gum, glow, jq and fzf from GitHub Releases (no sudo; installs to ~/.local/bin)
+# Install MB CLI, gum, glow, jq and fzf from GitHub Releases (no sudo; installs to ~/.local/bin).
+# No macOS, se o Homebrew estiver disponível, instala também o mas (CLI da Mac App Store).
 
 REPO="carlosdorneles-mb/mb-cli"
 RELEASE_BASE="https://github.com/${REPO}/releases/download"
@@ -29,6 +30,7 @@ usage() {
   echo "Uso: $0 [--version VERSION] [--pre-release]"
   echo ""
   echo "  Baixa e instala o MB CLI, gum, glow, jq e fzf (dependências) em ${INSTALL_DIR}."
+  echo "  No macOS com Homebrew: tenta instalar mas (Mac App Store CLI) com brew install mas."
   echo "  Sem opções     Usa a última versão estável (consulta a API do GitHub)."
   echo "  --version N    Usa a versão N (ex.: 0.0.5 ou v0.0.5)."
   echo "  --pre-release  Usa a última versão pre-release (requer jq)."
@@ -316,6 +318,12 @@ do_install() {
   cp -f "$fzf_binary" "${INSTALL_DIR}/fzf"
   chmod +x "${INSTALL_DIR}/fzf"
   echo "fzf ${fzf_tag} instalado em ${INSTALL_DIR}/fzf"
+
+  # macOS + Homebrew: mas (https://github.com/mas-cli/mas) — CLI da Mac App Store
+  if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+    echo "Instalando mas via Homebrew (Mac App Store CLI)..."
+    brew install mas || echo "Aviso: brew install mas falhou; continue manualmente se precisar do mas." >&2
+  fi
 
   echo ""
   echo "MB CLI, gum, glow, jq e fzf foram instalados em ${INSTALL_DIR}."

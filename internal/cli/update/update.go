@@ -17,18 +17,21 @@ import (
 
 // NewUpdateCmd returns the root "mb update" command.
 func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
-	var onlyPlugins, onlyCLI, checkOnly bool
+	var onlyPlugins, onlyCLI, onlySystem, checkOnly bool
 
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Atualiza o CLI, plugins e o sistema operacional (quando possível)",
-		Long: `Atualiza, em sequência, os plugins instalados e o binário do MB CLI (conforme config).
-Use --only-plugins para atualizar só os plugins; use --only-cli para atualizar só o binário.
-Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simultâneo.`,
+		Long: `Atualiza, em sequência, os plugins instalados, o binário do MB CLI (conforme config) e, sem nenhum --only-*, os pacotes do sistema (Homebrew/mas no macOS; apt/flatpak/snap no Linux quando disponíveis).
+
+Sem flags, executa as três fases (plugins, CLI, sistema). Use --only-plugins, --only-cli e/ou --only-system para escolher quais fases correr; pode combinar várias (ex.: --only-plugins --only-cli).
+
+--check-only só pode ser usado juntamente com --only-cli (verifica release do binário sem baixar).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if onlyPlugins && onlyCLI {
-				return errors.New("não use --only-plugins e --only-cli em simultâneo")
+			if checkOnly && !onlyCLI {
+				return errors.New("use --check-only apenas com --only-cli")
 			}
+
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
@@ -38,15 +41,15 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 				d.Runtime != nil && d.Runtime.Verbose,
 				cmd.ErrOrStderr(),
 			)
-			runPlugins := !onlyCLI
-			runCLI := !onlyPlugins
+
+			runPlugins, runCLI, runSystem := resolveUpdatePhases(onlyPlugins, onlyCLI, onlySystem)
 
 			if runPlugins {
-				_ = log.Info(ctx, "Atualizando plugins...")
 				if err := plugins.RunUpdateAll(ctx, d, log); err != nil {
 					return err
 				}
 			}
+
 			if runCLI {
 				if checkOnly {
 					suCfg := selfupdateFromAppConfig(d)
@@ -61,17 +64,34 @@ Sem flags, executa as duas fases. Não use --only-plugins e --only-cli em simult
 					if code == selfupdate.ExitCodeUpdateAvailable {
 						os.Exit(selfupdate.ExitCodeUpdateAvailable)
 					}
-					return nil
+				} else {
+					if err := RunCLIUpdate(ctx, d, log); err != nil {
+						return err
+					}
 				}
-				_ = log.Info(ctx, "Atualizando MB CLI...")
-				return RunCLIUpdate(ctx, d, log)
+			}
+
+			if runSystem {
+				return RunSystemUpdate(ctx, log)
 			}
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&onlyPlugins, "only-plugins", false, "Atualiza apenas os plugins")
-	cmd.Flags().BoolVar(&onlyCLI, "only-cli", false, "Atualiza apenas o MB CLI")
 	cmd.Flags().
-		BoolVar(&checkOnly, "check-only", false, "Com --only-cli: só verifica se há atualização (sem baixar); saída 2 se houver")
+		BoolVar(&onlyPlugins, "only-plugins", false, "Inclui a fase de plugins (combine com outros --only-*; sem nenhum, executa todas)")
+	cmd.Flags().
+		BoolVar(&onlyCLI, "only-cli", false, "Inclui a fase do binário mb (combine com outros --only-*; sem nenhum, executa todas)")
+	cmd.Flags().
+		BoolVar(&onlySystem, "only-system", false, "Inclui a fase de pacotes do sistema (combine com outros --only-*; sem nenhum, executa todas)")
+	cmd.Flags().
+		BoolVar(&checkOnly, "check-only", false, "Só com --only-cli: verifica atualização do binário sem baixar; saída 2 se houver")
 	return cmd
+}
+
+// resolveUpdatePhases returns which phases to run. If no --only-* flag is set, all three run.
+func resolveUpdatePhases(onlyPlugins, onlyCLI, onlySystem bool) (plugins, cli, system bool) {
+	if !onlyPlugins && !onlyCLI && !onlySystem {
+		return true, true, true
+	}
+	return onlyPlugins, onlyCLI, onlySystem
 }

@@ -15,6 +15,8 @@ import (
 
 // RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.
 func RunUpdateAll(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
+	_ = log.Info(ctx, "Atualizando plugins...")
+
 	sources, err := deps.Store.ListPluginSources()
 	if err != nil {
 		return err

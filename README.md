@@ -38,7 +38,7 @@ A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
 
 | Comando | Descrição |
 |--------|-----------|
-| `mb update [--only-plugins \| --only-cli]` | Atualiza plugins e o binário do MB; sem flags executa as duas fases |
+| `mb update [--only-plugins \| --only-cli \| --only-system]` | Atualiza plugins, binário do MB e sistema (brew/mas ou apt/flatpak/snap); sem flags executa as três fases; `--only-*` combináveis; `--check-only` só com `--only-cli` |
 | `mb plugins sync` | Atualiza cache de plugins |
 | `mb update --only-cli` | Atualiza o binário `mb` (só binários da release oficial) |
 | `mb update --only-cli --check-only` | Verifica atualização (release); saída `2` se houver |

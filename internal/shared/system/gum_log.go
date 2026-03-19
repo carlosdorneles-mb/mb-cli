@@ -82,3 +82,7 @@ func (l *Logger) Warn(ctx context.Context, format string, a ...interface{}) erro
 func (l *Logger) Error(ctx context.Context, format string, a ...interface{}) error {
 	return l.emit(ctx, "error", fmt.Sprintf(format, a...))
 }
+
+func (l *Logger) Print(ctx context.Context, format string, a ...interface{}) error {
+	return l.emit(ctx, "none", fmt.Sprintf(format, a...))
+}

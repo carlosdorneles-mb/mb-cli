@@ -22,7 +22,7 @@ curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/instal
 
 Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb plugins sync` para atualizar o cache de plugins e os helpers de shell.
 
-Para **atualizar plugins e o binário do MB** de uma vez, use **`mb update`** (sem flags executa as duas fases; use `--only-plugins` ou `--only-cli` para uma só). Para **atualizar só o binário do MB CLI** depois de ter instalado pela release oficial, use **`mb update --only-cli`**. Só aplica a binários com versão embutida (GitHub Release); se compilaste localmente ou usaste `go install`, o comando indica que uses `install.sh`. Linux/macOS, amd64/arm64.
+Para **atualizar plugins, o binário do MB e o sistema** (Homebrew/mas ou apt/flatpak/snap quando disponíveis), use **`mb update`** sem flags. Use **`--only-plugins`**, **`--only-cli`** e/ou **`--only-system`** para escolher fases (pode **combinar** várias). Para **só o binário do MB CLI** (release oficial), use **`mb update --only-cli`**. **`--check-only`** só junto de **`--only-cli`**. Só aplica a binários com versão embutida (GitHub Release); se compilaste localmente ou usaste `go install`, o comando indica que uses `install.sh`. Linux/macOS, amd64/arm64. No Linux, a fase APT pode pedir **`sudo`** interativo.
 
 **`mb update --only-cli --check-only`** — mesma condição; saída **`2`** se houver release mais nova (útil em scripts; usar throttle para a API do GitHub).
 
