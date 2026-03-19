@@ -12,10 +12,10 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands"
-	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
+	"mb/internal/shared/config"
 )
 
 func TestFlagsOnlyWithShort(t *testing.T) {

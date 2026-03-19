@@ -21,7 +21,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"mb/internal/config"
+	"mb/internal/shared/config"
 	"mb/internal/shared/version"
 )
 

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"mb/internal/cache"
-	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
+	"mb/internal/shared/config"
 )
 
 func testUpdateDeps(t *testing.T) deps.Dependencies {

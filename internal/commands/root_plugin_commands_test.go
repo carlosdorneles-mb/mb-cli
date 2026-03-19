@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/cache"
-	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/executor"
 	"mb/internal/plugins"
+	"mb/internal/shared/config"
 )
 
 // Root command tree with dynamically attached plugin commands (e.g. shell completion suggestions).

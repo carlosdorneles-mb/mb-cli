@@ -7,9 +7,9 @@ import (
 
 	"mb/internal/cache"
 	"mb/internal/commands"
-	"mb/internal/config"
 	"mb/internal/deps"
 	"mb/internal/plugins"
+	"mb/internal/shared/config"
 )
 
 func Bootstrap() (*fx.App, commands.RootCommand, error) {

@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"mb/internal/cache"
-	"mb/internal/config"
 	"mb/internal/executor"
 	"mb/internal/plugins"
+	"mb/internal/shared/config"
 )
 
 // RuntimeConfig combines resolved Paths with CLI/runtime flags.
