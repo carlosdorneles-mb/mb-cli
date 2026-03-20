@@ -11,3 +11,9 @@ Scripts de shell embutidos no MB CLI e copiados para `~/.config/mb/lib/shell` no
 1. **Criar o arquivo** em `internal/infra/shellhelpers/` (ex.: `meu.sh`). O embed usa `*.sh`, então o novo arquivo passa a ser incluído automaticamente.
 2. **Incluir no `all.sh`** — adicionar a linha que faz o source do novo helper, ex.: `. "${MB_HELPERS_PATH}/meu.sh"`.
 3. **Atualizar a documentação** em `docs/docs/technical-reference/helpers-shell.md`: descrever o novo helper na seção "Helpers disponíveis" e, se for carregável isoladamente, na seção "Como carregar".
+
+---
+
+## Atualizar o helpers no CLI
+
+Se você adicionou ou atualizou um helper e quer testá-lo, basta executar `make run-local plugins sync` ou `make run plugins sync`.

@@ -26,5 +26,5 @@ log() {
     return 0
   fi
 
-  gum log -l "$level" "$@"
+  gum log -sl "$level" "$@"
 }

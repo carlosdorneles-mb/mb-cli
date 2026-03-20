@@ -5,10 +5,12 @@ BINARY_NAME := mb
 GO_FILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
 DOCS_DIR := docs
 
-.PHONY: all build test clean run run-local install install-examples uninstall-examples tidy deps \
+.PHONY: all build test clean tidy deps \
+	install install-plugins-examples uninstall-plugins-examples \
 	docs-install docs-dev docs-build docs-preview \
+	run run-local \
 	check-svu release \
-	lint help
+	lint format help
 
 help:
 	@echo "MB CLI - targets:"
@@ -17,8 +19,8 @@ help:
 	@echo "  run            	build + ./bin/$(BINARY_NAME). Uso: make run [comandos...] ou ARGS=\"...\" ou ambos"
 	@echo "  run-local      	go run . (sem build). Uso: make run-local [comandos...] ou ARGS=\"...\" ou ambos"
 	@echo "                  	Ex.: make run-local tools do ARGS=\"--deploy\"  ou  make run-local ARGS=\"tools do --deploy\""
-	@echo "  install-examples    	registra cada plugin em examples/plugins com 'mb plugins add' (não copia arquivos)"
-	@echo "  uninstall-examples  	remove os plugins de exemplo (infra, tools, etc.) do config do usuário"
+	@echo "  install-plugins-examples    	registra cada plugin em examples/plugins com 'mb plugins add' (não copia arquivos)"
+	@echo "  uninstall-plugins-examples  	remove os plugins de exemplo (infra, tools, etc.) do config do usuário"
 	@echo ""
 	@echo "Build e testes:"
 	@echo "  all            tidy, test, build (default)"
@@ -104,11 +106,10 @@ install: build
 tidy:
 	go mod tidy
 
-# Download dependencies and install svu (for release targets)
+# Download dependencies
 deps:
 	go mod download
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install github.com/caarlos0/svu/v3@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	pip install pre-commit
 	pre-commit install

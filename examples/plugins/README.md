@@ -6,10 +6,10 @@ A hierarquia de pastas define categorias e subcategorias. Cada pasta pode ter um
 
 | Caminho              | Invocação              |
 |----------------------|------------------------|
-| infra/ci/deploy      | `mb infra ci deploy` |
-| infra/ci/lint        | `mb infra ci lint`   |
-| infra/k8s/apply      | `mb infra k8s apply` |
-| tools/do             | `mb tools do`        |
+| infra/ci/deploy      | `mb infra ci deploy`   |
+| infra/ci/lint        | `mb infra ci lint`     |
+| infra/k8s/apply      | `mb infra k8s apply`   |
+| tools/do             | `mb tools do`          |
 
 O path relativo à pasta de plugins vira o comando: `infra/ci/deploy` → `mb infra ci deploy`.
 
@@ -29,7 +29,7 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
 
 ```bash
 make install-examples   # registra examples/plugins/* com "mb plugins add <path>"
-make run plugins sync  # ou: mb plugins sync (atualiza cache e helpers)
+make run plugins sync   # ou: make run-local plugins sync
 ```
 
 Os plugins continuam em `examples/plugins` e são acessados pelo path; não é necessário copiar.

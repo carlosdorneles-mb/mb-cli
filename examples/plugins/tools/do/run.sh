@@ -5,9 +5,9 @@
 # --- 1. Log (usa gum log via helper; respeita MB_QUIET e MB_VERBOSE) ---
 log none "Olá, Mundo!"
 log debug "Mensagem de debug (visível só com mb -v tools hello)"
-log info "Mensagem de informação"
-log warn "Aviso de exemplo"
-log error "Exemplo de erro"
+log info "Mensagem de informação" --prefix "PREFIXO"
+log warn "Aviso de exemplo" -t kitchen
+log error "Exemplo de erro" file text.txt
 log fatal "Exemplo de fatal"
 
 echo ""

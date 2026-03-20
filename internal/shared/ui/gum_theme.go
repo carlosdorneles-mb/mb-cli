@@ -27,6 +27,13 @@ func GumThemeDefaults() map[string]string {
 		"GUM_CONFIRM_UNSELECTED_BACKGROUND": "235",
 		// spin (loading laranja)
 		"GUM_SPIN_SPINNER_FOREGROUND": orange,
+		// filter (título laranja, opções sem rosa)
+		"GUM_FILTER_HEADER_FOREGROUND":          orange,
+		"GUM_FILTER_INDICATOR_FOREGROUND":       green,
+		"GUM_FILTER_SELECTED_PREFIX_FOREGROUND": green,
+		"GUM_FILTER_MATCH_FOREGROUND":           green,
+		// Glamour (título laranja, sem rosa)
+		"GUM_GLAMOUR_HEADER_FOREGROUND": orange,
 	}
 }
 

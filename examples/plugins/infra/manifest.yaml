@@ -1,3 +1,2 @@
 command: infra
 description: Infraestrutura e pipelines (CI, k8s, etc.)
-readme: README.md

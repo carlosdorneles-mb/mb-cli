@@ -7,3 +7,5 @@ docs/dist/
 .DS_Store
 mb
 internal/cli/plugins/lib/
+.idea/
+.vscode/
