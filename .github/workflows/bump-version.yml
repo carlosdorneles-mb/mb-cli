@@ -8,9 +8,10 @@ on:
       bump:
         description: "Bump type"
         required: true
-        default: patch
+        default: next
         type: choice
         options:
+          - next
           - patch
           - minor
           - major
@@ -40,7 +41,7 @@ jobs:
       - name: Get next version
         id: next
         run: |
-          next=$(svu ${{ github.event.inputs.bump }})
+          next=$(svu ${{ github.event.inputs.bump }} --tag.prefix "")
           echo "version=$next" >> $GITHUB_OUTPUT
           echo "Next version: $next"
 
