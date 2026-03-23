@@ -361,10 +361,27 @@ Helper para validação e solicitação de privilégios de superusuário em scri
 
 **Funções disponíveis:**
 
-- `check_sudo` — verifica se o script está com privilégios de root (`EUID=0`). Retorna `0` se sim, `1` se não. Quando não estiver com privilégio, exibe um warning.
-- `required_sudo` — garante privilégios elevados. Se já for root, segue normalmente. Caso contrário, executa `sudo -v`; se falhar, loga erro e encerra o script com `exit 1`.
+- `is_root` — retorna `0` se o usuário efetivo for root (`EUID` 0, com fallback para `id -u`). Não exibe mensagens; útil para checagens silenciosas.
+- `check_sudo` — verifica se o script está com privilégios de root. Retorna `0` se sim, `1` se não. Quando não for root, exibe um warning orientando a autenticar ou usar `sudo`.
+  - **Sem argumentos:** usa a mensagem padrão de que o comando requer superusuário.
+  - **`check_sudo "texto"`:** usa o texto informado como mensagem do warning (útil para contextualizar a operação).
+- `required_sudo` — garante credencial sudo quando necessário. Se já for root, retorna imediatamente. Caso contrário:
+  - **Sem argumentos:** exibe o warning de `check_sudo`, executa `sudo -v` (pede a senha no terminal); se falhar, loga erro e encerra o script com `exit 1`.
+  - **`required_sudo --optional`:** tenta `sudo -v` sem exigir sucesso. Se a autenticação funcionar, segue com timestamp sudo atualizado; se o usuário cancelar, falhar a senha ou não puder usar `sudo`, exibe um warning de que o comando pode ter funcionalidades limitadas e **continua** o script (sem `exit 1`).
+  - **`required_sudo --optional "contexto"`:** igual ao anterior, mas o texto entre aspas entra na mensagem de aviso (por exemplo, nome da operação).
 
-Exemplo:
+**Uso:**
+
+```text
+check_sudo
+check_sudo "esta operação precisa de sudo para gravar em /etc"
+
+required_sudo
+required_sudo --optional
+required_sudo --optional "atualização de pacotes"
+```
+
+Exemplo (sudo obrigatório):
 
 ```sh
 . "$MB_HELPERS_PATH/sudo.sh"
@@ -374,5 +391,14 @@ required_sudo
 
 apt-get update
 apt-get install -y jq
+```
+
+Exemplo (sudo opcional):
+
+```sh
+. "$MB_HELPERS_PATH/sudo.sh"
+
+required_sudo --optional "instalação de dependências"
+# Segue com ou sem sudo; trate erros de permissão nas operações seguintes se necessário
 ```
 
