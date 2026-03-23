@@ -10,8 +10,8 @@ import (
 	"mb/internal/shared/system"
 )
 
-// RunSystemUpdate runs OS-level package updates: Homebrew and mas on darwin;
-// apt-get (via sudo), flatpak, and snap refresh (via sudo) on Linux when each tool is available.
+// RunSystemUpdate runs OS-level package updates: Homebrew and mas on darwin; apt-get (via sudo),
+// flatpak, and snap refresh (via sudo) on Linux when each tool is on PATH.
 func RunSystemUpdate(ctx context.Context, log *system.Logger) error {
 	_ = log.Info(ctx, "Atualizando pacotes do sistema...")
 
@@ -26,11 +26,12 @@ func RunSystemUpdate(ctx context.Context, log *system.Logger) error {
 	}
 }
 
-// linuxPackageEnv is os.Environ plus CI=1 and optional pairs for non-interactive, low-noise package tools.
+// linuxPackageEnv returns os.Environ with CI=1 and optional extra KEY=value pairs for non-interactive tools.
 func linuxPackageEnv(extra ...string) []string {
 	return append(append(os.Environ(), "CI=1"), extra...)
 }
 
+// runCmd runs an external command with stdin from /dev/null and stdout/stderr to os.Stderr.
 func runCmd(ctx context.Context, env []string, bin string, args ...string) error {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	if env == nil {
@@ -47,6 +48,8 @@ func runCmd(ctx context.Context, env []string, bin string, args ...string) error
 	cmd.Stdin = stdin
 	return cmd.Run()
 }
+
+// --- Darwin ---
 
 func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 	brewPath, err := exec.LookPath("brew")
@@ -77,6 +80,8 @@ func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 	}
 	return nil
 }
+
+// --- Linux ---
 
 func runLinuxSystemUpdate(ctx context.Context, log *system.Logger) error {
 	sudoPath, errSudo := exec.LookPath("sudo")

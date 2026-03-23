@@ -11,8 +11,9 @@ import (
 	"mb/internal/shared/version"
 )
 
+// User-facing copy for non-release builds (Portuguese CLI locale).
 const cliUpdateNonReleaseMsg = `Este binário não veio da release oficial do MB CLI (build local, go install, etc.).
-O commando mb update --only-cli só atualiza binários instalados a partir do GitHub Releases (versão embutida no executável).
+O comando mb update --only-cli só atualiza binários instalados a partir do GitHub Releases (versão embutida no executável).
 
 Para instalar ou atualizar a versão estável:
   curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
@@ -20,16 +21,8 @@ Para instalar ou atualizar a versão estável:
 Releases: https://github.com/carlosdorneles-mb/mb-cli/releases
 `
 
-func logInfoLines(ctx context.Context, log *system.Logger, text string) {
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			_ = log.Info(ctx, "%s", line)
-		}
-	}
-}
-
-// RunCLIUpdate updates the MB CLI binary to the latest release. Non-release builds get the usual message and nil.
+// RunCLIUpdate downloads and installs the latest MB CLI release when the binary is a release build
+// (embedded version via ldflags). Non-release builds log cliUpdateNonReleaseMsg and return nil.
 func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
 	_ = log.Info(ctx, "Atualizando MB CLI...")
 
@@ -45,7 +38,6 @@ func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logge
 		logInfoLines(ctx, log, out)
 	}
 
-	// Ensure shell helpers are updated after CLI update
 	if cfgDir := deps.Runtime.ConfigDir; cfgDir != "" {
 		if _, shErr := shellhelpers.EnsureShellHelpers(cfgDir); shErr != nil {
 			_ = log.Info(ctx, "Erro ao atualizar shell helpers: %v", shErr)
@@ -53,12 +45,4 @@ func RunCLIUpdate(ctx context.Context, deps deps.Dependencies, log *system.Logge
 	}
 
 	return err
-}
-
-func selfupdateFromAppConfig(d deps.Dependencies) *selfupdate.Config {
-	cfg := &selfupdate.Config{}
-	if r := strings.TrimSpace(d.AppConfig.UpdateRepo); r != "" {
-		cfg.Repo = r
-	}
-	return cfg
 }
