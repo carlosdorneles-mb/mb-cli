@@ -26,11 +26,25 @@ func RunSystemUpdate(ctx context.Context, log *system.Logger) error {
 	}
 }
 
-func runCmd(ctx context.Context, bin string, args ...string) error {
+// linuxPackageEnv is os.Environ plus CI=1 and optional pairs for non-interactive, low-noise package tools.
+func linuxPackageEnv(extra ...string) []string {
+	return append(append(os.Environ(), "CI=1"), extra...)
+}
+
+func runCmd(ctx context.Context, env []string, bin string, args ...string) error {
 	cmd := exec.CommandContext(ctx, bin, args...)
+	if env == nil {
+		env = os.Environ()
+	}
+	cmd.Env = env
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
+	stdin, err := os.Open(os.DevNull)
+	if err != nil {
+		return err
+	}
+	defer stdin.Close()
+	cmd.Stdin = stdin
 	return cmd.Run()
 }
 
@@ -43,10 +57,10 @@ func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 
 	_ = log.Print(ctx, "=> Atualizando Homebrew...")
 
-	if err := runCmd(ctx, brewPath, "update"); err != nil {
+	if err := runCmd(ctx, nil, brewPath, "update"); err != nil {
 		return fmt.Errorf("brew update: %w", err)
 	}
-	if err := runCmd(ctx, brewPath, "upgrade"); err != nil {
+	if err := runCmd(ctx, nil, brewPath, "upgrade"); err != nil {
 		return fmt.Errorf("brew upgrade: %w", err)
 	}
 
@@ -58,7 +72,7 @@ func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 
 	_ = log.Print(ctx, "=> Atualizando App Store...")
 
-	if err := runCmd(ctx, masPath, "upgrade"); err != nil {
+	if err := runCmd(ctx, nil, masPath, "upgrade"); err != nil {
 		return fmt.Errorf("mas upgrade: %w", err)
 	}
 	return nil
@@ -91,13 +105,19 @@ func runLinuxAPT(ctx context.Context, log *system.Logger, sudoPath string) error
 
 	_ = log.Print(ctx, "=> Atualizando APT...")
 
-	env := append(os.Environ(), "DEBIAN_FRONTEND=noninteractive")
+	env := linuxPackageEnv("DEBIAN_FRONTEND=noninteractive")
 	runApt := func(args ...string) error {
 		sudoArgs := append([]string{aptPath}, args...)
 		cmd := exec.CommandContext(ctx, sudoPath, sudoArgs...)
 		cmd.Stdout = os.Stderr
 		cmd.Stderr = os.Stderr
 		cmd.Env = env
+		stdin, err := os.Open(os.DevNull)
+		if err != nil {
+			return err
+		}
+		defer stdin.Close()
+		cmd.Stdin = stdin
 		return cmd.Run()
 	}
 
@@ -120,7 +140,7 @@ func runLinuxFlatpak(ctx context.Context, log *system.Logger) error {
 
 	_ = log.Print(ctx, "=> Atualizando Flatpak...")
 
-	if err := runCmd(ctx, fp, "update", "-y"); err != nil {
+	if err := runCmd(ctx, linuxPackageEnv(), fp, "update", "-y", "--noninteractive"); err != nil {
 		return fmt.Errorf("flatpak update: %w", err)
 	}
 	return nil
@@ -135,10 +155,23 @@ func runLinuxSnap(ctx context.Context, log *system.Logger, sudoPath string) erro
 
 	_ = log.Print(ctx, "=> Atualizando Snap...")
 
-	cmd := exec.CommandContext(ctx, sudoPath, snapPath, "refresh")
+	cmd := exec.CommandContext(
+		ctx,
+		sudoPath,
+		snapPath,
+		"refresh",
+		"--color=never",
+		"--unicode=never",
+	)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
+	cmd.Env = linuxPackageEnv()
+	stdin, err := os.Open(os.DevNull)
+	if err != nil {
+		return err
+	}
+	defer stdin.Close()
+	cmd.Stdin = stdin
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("snap refresh: %w", err)
