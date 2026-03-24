@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"mb/internal/deps"
 	"mb/internal/infra/plugins"
@@ -63,6 +64,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	}
 	// Inconsistências de group_id no cache: debug via gum log (mesmo pipeline que mb plugins sync -v).
 	dbgLog := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, root.ErrOrStderr())
+	globalShorts := persistentShorthandSet(root)
 
 	// Cobra requires every child GroupID to exist on the direct parent. Category commands
 	// get this via ensureNestedPluginHelpGroups; a manifest leaf (e.g. tools) later used
@@ -162,7 +164,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			}
 		}
 		isLocal := src != nil && src.LocalPath != ""
-		leafCmd := newLeafCommand(plugin.CommandName, plugin, d, pluginRoot, isLocal)
+		leafCmd := newLeafCommand(plugin.CommandName, plugin, d, pluginRoot, isLocal, dbgLog, globalShorts)
 		leafCmd.Hidden = plugin.Hidden
 		if parent == root {
 			leafCmd.GroupID = "plugin_commands"
@@ -221,12 +223,85 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin sqlite.Plugin, defaultUse
 	}
 }
 
+// persistentShorthandSet returns each single-letter shorthand declared on root persistent flags.
+// Call after root has registered PersistentFlags (see internal/cli/root NewRootCmd before Attach).
+func persistentShorthandSet(root *cobra.Command) map[string]struct{} {
+	out := make(map[string]struct{})
+	if root == nil {
+		return out
+	}
+	root.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		s := f.Shorthand
+		if s != "" && len([]rune(s)) == 1 {
+			out[s] = struct{}{}
+		}
+	})
+	return out
+}
+
+func globalShorthandReserved(m map[string]struct{}, sh string) bool {
+	if m == nil {
+		return false
+	}
+	_, ok := m[sh]
+	return ok
+}
+
+func pluginFlagShortDisabledDebug(
+	dbgLog *system.Logger,
+	commandPath, flagName, shorthand, reason string,
+) {
+	if dbgLog == nil {
+		return
+	}
+	_ = dbgLog.Debug(
+		context.Background(),
+		"plugin %s: shorthand %q do flag %q desativado (%s)",
+		commandPath,
+		shorthand,
+		flagName,
+		reason,
+	)
+}
+
+// registerReadmeFlag registers --readme, preferring -r unless r is reserved globally or already used in usedShorts.
+func registerReadmeFlag(
+	cmd *cobra.Command,
+	commandPath, readmePath string,
+	dbgLog *system.Logger,
+	usedShorts map[string]bool,
+	globalShorts map[string]struct{},
+) {
+	if readmePath == "" {
+		return
+	}
+	const readmeShort = "r"
+	resGlob := globalShorthandReserved(globalShorts, readmeShort)
+	used := usedShorts != nil && usedShorts[readmeShort]
+	if resGlob || used {
+		cmd.Flags().Bool("readme", false, readmeFlagDesc)
+		switch {
+		case used:
+			pluginFlagShortDisabledDebug(dbgLog, commandPath, "readme", readmeShort, "já usado neste comando")
+		default:
+			pluginFlagShortDisabledDebug(dbgLog, commandPath, "readme", readmeShort, "reservado pela CLI mb")
+		}
+		return
+	}
+	cmd.Flags().BoolP("readme", readmeShort, false, readmeFlagDesc)
+	if usedShorts != nil {
+		usedShorts[readmeShort] = true
+	}
+}
+
 func newLeafCommand(
 	use string,
 	plugin sqlite.Plugin,
 	d deps.Dependencies,
 	pluginRoot string,
 	isLocal bool,
+	dbgLog *system.Logger,
+	globalShorts map[string]struct{},
 ) *cobra.Command {
 	short := plugin.Description
 	if short == "" {
@@ -243,9 +318,7 @@ func newLeafCommand(
 			RunE:  runEntrypointCommand(plugin, d, pluginRoot),
 		}
 		applyCobraPluginFields(cmd, plugin, use)
-		if plugin.ReadmePath != "" {
-			cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
-		}
+		registerReadmeFlag(cmd, plugin.CommandPath, plugin.ReadmePath, dbgLog, nil, globalShorts)
 		cmd.Flags().ParseErrorsAllowlist.UnknownFlags = true
 		setHelpFang(cmd)
 		return cmd
@@ -269,25 +342,48 @@ func newLeafCommand(
 	applyCobraPluginFields(cmd, plugin, use)
 
 	usedShorts := make(map[string]bool)
+	for sh := range globalShorts {
+		usedShorts[sh] = true
+	}
+	registerReadmeFlag(cmd, plugin.CommandPath, plugin.ReadmePath, dbgLog, usedShorts, globalShorts)
+
 	for name, def := range flagsMap {
 		usage := def.Description
-		useShort := def.Short != "" && len([]rune(def.Short)) == 1 && !usedShorts[def.Short]
-		if useShort {
-			usedShorts[def.Short] = true
+		sh := ""
+		if def.Short != "" && len([]rune(def.Short)) == 1 {
+			sh = def.Short
+		}
+		useShort := false
+		if sh != "" {
+			if globalShorthandReserved(globalShorts, sh) {
+				pluginFlagShortDisabledDebug(dbgLog, plugin.CommandPath, name, sh, "reservado pela CLI mb")
+			} else if usedShorts[sh] {
+				pluginFlagShortDisabledDebug(dbgLog, plugin.CommandPath, name, sh, "já usado neste comando")
+			} else {
+				useShort = true
+				usedShorts[sh] = true
+			}
 		}
 		switch {
 		case useShort:
-			cmd.Flags().BoolP(name, def.Short, false, usage)
+			cmd.Flags().BoolP(name, sh, false, usage)
 		case def.Type == "long":
 			cmd.Flags().Bool(name, false, usage)
 		case def.Type == "short" && len(name) == 1:
-			cmd.Flags().BoolP(name, name, false, usage)
+			nameSh := name
+			if globalShorthandReserved(globalShorts, nameSh) {
+				pluginFlagShortDisabledDebug(dbgLog, plugin.CommandPath, name, nameSh, "reservado pela CLI mb")
+				cmd.Flags().Bool(name, false, usage)
+			} else if usedShorts[nameSh] {
+				pluginFlagShortDisabledDebug(dbgLog, plugin.CommandPath, name, nameSh, "já usado neste comando")
+				cmd.Flags().Bool(name, false, usage)
+			} else {
+				usedShorts[nameSh] = true
+				cmd.Flags().BoolP(name, nameSh, false, usage)
+			}
 		case def.Type == "short":
 			cmd.Flags().Bool(name, false, usage)
 		}
-	}
-	if plugin.ReadmePath != "" {
-		cmd.Flags().BoolP("readme", "r", false, readmeFlagDesc)
 	}
 	setHelpFang(cmd)
 	return cmd
