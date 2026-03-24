@@ -220,22 +220,22 @@ fi
 
 ### snap
 
-Helper para instalar, atualizar, remover e consultar aplicações via Snap Store. Compatível com sistemas Linux onde o `snapd` está disponível. Carrega `log.sh` automaticamente ao ser importado.
+Helper para instalar, atualizar, remover e consultar aplicações via Snap Store. Compatível com sistemas Linux onde o `snapd` está disponível e o comando `snap` está no `PATH`. Carrega `log.sh` automaticamente ao ser importado. As mensagens respeitam `MB_QUIET` e `MB_VERBOSE` (como no helper de log).
 
-> **Requisito:** `snap` precisa estar instalado no sistema. As funções verificam sua disponibilidade e logam um erro se não encontrado.
+> **Requisitos:** `snap` instalado para leituras e checagens. **Instalação** (`snap install`), **atualização** (`snap refresh`) e **remoção** (`snap remove --purge`) são executadas com **`sudo`** — o usuário precisa poder elevar privilégio quando o sistema pedir.
 
 **Funções disponíveis:**
 
-- `snap_is_available` — retorna `0` se o `snap` está instalado.
-- `snap_refresh_metadata` — atualiza os metadados do Snap Store (não crítico; retorna `0` sempre).
-- `snap_is_installed <app_name>` — retorna `0` se a aplicação está instalada.
-- `snap_get_installed_version <app_name>` — imprime a versão instalada ou `unknown`.
-- `snap_get_latest_version <app_name>` — imprime a versão mais recente disponível ou `unknown`.
-- `snap_install <app_name> [friendly_name] [channel] [classic]` — instala a aplicação; `classic` aceita `true`/`false` (padrão: `false`).
-- `snap_update <app_name> [friendly_name] [channel]` — atualiza a aplicação.
-- `snap_uninstall <app_name> [friendly_name]` — remove a aplicação.
-- `snap_info <app_name>` — imprime informações detalhadas do pacote.
-- `snap_list_installed` — lista todos os pacotes Snap instalados.
+- `snap_is_available` — retorna `0` se o executável `snap` existe no `PATH`.
+- `snap_refresh_metadata` — executa `snap refresh --list` para atualizar a lista de revisões disponíveis; falhas são ignoradas (log em `debug`). Retorna `0` sempre. Se o Snap não existir, não faz nada útil e ainda assim retorna `0`.
+- `snap_is_installed <app_name>` — retorna `0` se o pacote aparece em `snap list` (nome na primeira coluna).
+- `snap_get_installed_version <app_name>` — imprime a revisão/versão (segunda coluna de `snap list <app>`) ou `unknown`; não falha o script (stdout apenas).
+- `snap_get_latest_version <app_name>` — lê a versão publicada na linha `latest/stable:` da saída de `snap info`; imprime a versão ou `unknown`. Código de saída `1` se o nome for inválido, o Snap não existir ou a linha não for encontrada.
+- `snap_install <app_name> [friendly_name] [channel] [classic]` — instala com `sudo snap install`; se já estiver instalado, loga e retorna `0`. Argumento `classic`: use a string `true` para passar `--classic`; qualquer outro valor omite. Canal padrão: `stable`.
+- `snap_update <app_name> [friendly_name] [channel]` — compara versão instalada com a obtida por `snap_get_latest_version`; se já forem iguais, só informa; senão executa `sudo snap refresh` no canal indicado (padrão `stable`).
+- `snap_uninstall <app_name> [friendly_name]` — se não estiver instalado, retorna `0` (log `debug`); caso contrário executa `sudo snap remove --purge`.
+- `snap_info <app_name>` — repassa a saída bruta de `snap info` para a stdout.
+- `snap_list_installed` — executa `snap list` na stdout; retorna `1` se o comando `snap` não existir.
 
 Exemplo:
 
@@ -355,20 +355,23 @@ github_install_binary "$dir" "gh" "/usr/local/bin"
 
 ### sudo
 
-Helper para validação e solicitação de privilégios de superusuário em scripts shell. Útil para comandos que exigem permissões elevadas. Depende do helper de `log` para exibir mensagens.
+Helper para validação e solicitação de privilégios de superusuário em scripts shell. Carrega `log.sh` automaticamente ao ser importado (exige `MB_HELPERS_PATH` definido, como nos demais helpers).
 
-> **Requisito:** `sudo` precisa estar disponível no sistema para autenticação quando o script não estiver rodando como root.
+**Privilégio efetivo** (critério usado por `is_root` e `check_sudo`): o processo roda como **root** (`EUID` 0, com fallback para `id -u`) **ou** o `sudo` aceita um comando **sem prompt interativo** (`sudo -n true`), por exemplo com credencial ainda em cache ou entrada `NOPASSWD` no `sudoers`. Isso **não** pede senha no terminal.
+
+> **Requisito:** para `required_sudo` e para operações que dependem de elevação interativa, o `sudo` precisa estar disponível no sistema.
 
 **Funções disponíveis:**
 
-- `is_root` — retorna `0` se o usuário efetivo for root (`EUID` 0, com fallback para `id -u`). Não exibe mensagens; útil para checagens silenciosas.
-- `check_sudo` — verifica se o script está com privilégios de root. Retorna `0` se sim, `1` se não. Quando não for root, exibe um warning orientando a autenticar ou usar `sudo`.
-  - **Sem argumentos:** usa a mensagem padrão de que o comando requer superusuário.
-  - **`check_sudo "texto"`:** usa o texto informado como mensagem do warning (útil para contextualizar a operação).
-- `required_sudo` — garante credencial sudo quando necessário. Se já for root, retorna imediatamente. Caso contrário:
-  - **Sem argumentos:** exibe o warning de `check_sudo`, executa `sudo -v` (pede a senha no terminal); se falhar, loga erro e encerra o script com `exit 1`.
-  - **`required_sudo --optional`:** tenta `sudo -v` sem exigir sucesso. Se a autenticação funcionar, segue com timestamp sudo atualizado; se o usuário cancelar, falhar a senha ou não puder usar `sudo`, exibe um warning de que o comando pode ter funcionalidades limitadas e **continua** o script (sem `exit 1`).
-  - **`required_sudo --optional "contexto"`:** igual ao anterior, mas o texto entre aspas entra na mensagem de aviso (por exemplo, nome da operação).
+- `is_root` — retorna `0` se houver privilégio efetivo (root ou `sudo -n`). Não escreve logs e **não** solicita senha.
+- `check_sudo` — aplica o mesmo teste que `is_root`. Se falhar, registra `log warn` em stderr e retorna `1`.
+  - **Sem argumentos:** mensagem padrão orientando autenticar ou executar com `sudo`.
+  - **`check_sudo "texto"`:** usa o texto como mensagem do warning.
+- `required_sudo` — garante credencial para o restante do script:
+  1. Se `check_sudo` passar, retorna `0` imediatamente.
+  2. Com **`--optional`:** executa `sudo -v` (pode pedir senha). Se falhar, emite warning de que funcionalidades podem ficar limitadas e retorna `0` (**não** encerra o script).
+  3. **Sem `--optional`:** chama `check_sudo` (warning), depois `sudo -v`; se falhar, `log error` e **`exit 1`**.
+  - **`required_sudo --optional "contexto"`:** o texto entra na mensagem de aviso quando o script segue sem sudo.
 
 **Uso:**
 

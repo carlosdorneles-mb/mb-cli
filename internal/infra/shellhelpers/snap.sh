@@ -1,39 +1,43 @@
 #!/bin/bash
 
-# Snap Store helper: install, update, remove and query Snap applications.
-# Compatible with Linux systems where snapd is available.
+# Helper Snap Store: instalar, atualizar, remover e consultar pacotes snap.
+# Compatível com Linux onde o snapd está instalado e no PATH.
 #
-# Usage:
+# Carrega log.sh (MB_HELPERS_PATH). Mensagens respeitam MB_QUIET e MB_VERBOSE.
+#
+# Uso:
 #   . "$MB_HELPERS_PATH/snap.sh"
 #
-# Public functions:
-#   snap_is_available           - Check if Snap is installed
-#   snap_is_installed           - Check if an app is installed
-#   snap_get_installed_version  - Get installed version of an app
-#   snap_get_latest_version     - Get latest available version
-#   snap_install                - Install an application from Snap Store
-#   snap_update                 - Update an installed application
-#   snap_uninstall              - Remove an installed application
-#   snap_refresh_metadata       - Refresh Snap Store metadata
-#   snap_info                   - Get detailed information about a Snap package
-#   snap_list_installed         - List all installed Snap packages
+# Requisitos:
+#   - Comando `snap` disponível para leituras; instalação, refresh e remove usam `sudo`
+#     (o usuário precisa poder elevar privilégio quando solicitado).
+#
+# Funções públicas:
+#   snap_is_available           — snap no sistema (exit 0/1)
+#   snap_refresh_metadata       — atualiza lista de atualizações (snap refresh --list); não falha o script
+#   snap_is_installed <nome>    — pacote instalado (grep em snap list)
+#   snap_get_installed_version  — imprime versão instalada ou unknown
+#   snap_get_latest_version     — lê trilha latest/stable de `snap info`
+#   snap_install                — snap install (canal, classic opcional)
+#   snap_update                 — snap refresh no canal indicado
+#   snap_uninstall              — snap remove --purge
+#   snap_info                   — saída bruta de snap info
+#   snap_list_installed         — snap list
 
 . "$MB_HELPERS_PATH/log.sh"
 
-# Returns 0 if Snap is installed on the system, 1 otherwise.
+# Retorna 0 se o executável `snap` existe no PATH; caso contrário, 1.
+#
 # Usage:
 #   snap_is_available
-# Example:
-#   if snap_is_available; then echo "snap is available"; fi
 snap_is_available() {
     command -v snap &> /dev/null
 }
 
-# Refreshes Snap Store repository metadata to ensure latest version info is available.
-# Returns 0 always (metadata update is not critical).
+# Atualiza a lista de revisões disponíveis (`snap refresh --list`). Erros são ignorados
+# (log debug). Retorna sempre 0. Se snap não existir, não faz nada útil e retorna 0.
+#
 # Usage:
-#   snap_refresh_metadata
-# Example:
 #   snap_refresh_metadata
 snap_refresh_metadata() {
     if ! snap_is_available; then
@@ -46,11 +50,13 @@ snap_refresh_metadata() {
     return 0
 }
 
-# Returns 0 if the given Snap application is installed, 1 otherwise.
+# Retorna 0 se o snap <app_name> aparece em `snap list` (nome na primeira coluna).
+#
 # Usage:
 #   snap_is_installed <app_name>
-# Example:
-#   if snap_is_installed "podman-desktop"; then echo "installed"; fi
+#
+# Returns:
+#   1 — nome vazio, snap indisponível ou pacote ausente.
 snap_is_installed() {
     local app_name="${1:-}"
 
@@ -66,11 +72,11 @@ snap_is_installed() {
     snap list 2> /dev/null | grep -q "^${app_name}\s"
 }
 
-# Prints the installed version of a Snap application, or "unknown" if not found.
+# Imprime a revisão/versão na segunda coluna de `snap list <app>` ou "unknown".
+# Não falha o shell: nome vazio ou não instalado → stdout "unknown", exit 0.
+#
 # Usage:
-#   snap_get_installed_version <app_name>
-# Example:
-#   version=$(snap_get_installed_version "podman-desktop")
+#   version=$(snap_get_installed_version <app_name>)
 snap_get_installed_version() {
     local app_name="${1:-}"
 
@@ -88,12 +94,11 @@ snap_get_installed_version() {
     echo "$version"
 }
 
-# Prints the latest available version of an application from Snap Store, or "unknown" if not found.
-# Returns 0 if version was found, 1 on error.
+# Obtém a versão publicada em `snap info` na linha `latest/stable:` (segundo campo).
+# Em stdout: versão ou "unknown". Exit 1 se nome vazio, snap ausente ou linha não encontrada.
+#
 # Usage:
-#   snap_get_latest_version <app_name>
-# Example:
-#   latest=$(snap_get_latest_version "podman-desktop")
+#   latest=$(snap_get_latest_version <app_name>)
 snap_get_latest_version() {
     local app_name="${1:-}"
 
@@ -122,11 +127,20 @@ snap_get_latest_version() {
     return 0
 }
 
-# Installs an application from Snap Store. Returns 0 on success, 1 on error.
+# Instala um snap. Se já instalado, log info e retorna 0. Usa `sudo snap install`.
+#
 # Usage:
 #   snap_install <app_name> [friendly_name] [channel] [classic]
-# Example:
-#   snap_install "podman-desktop" "Podman Desktop" "stable" "false"
+#
+# Args:
+#   app_name      — nome do pacote no Snap Store (obrigatório).
+#   friendly_name — rótulo nos logs (padrão: app_name).
+#   channel       — padrão stable (passado a --channel=).
+#   classic       — string "true" adiciona --classic; qualquer outro valor omite.
+#
+# Returns:
+#   0 — já instalado ou instalação verificada com sucesso.
+#   1 — erro (snap ausente, falha do install ou pacote não aparece após install).
 snap_install() {
     local app_name="${1:-}"
     local friendly_name="${2:-$app_name}"
@@ -181,11 +195,18 @@ snap_install() {
     fi
 }
 
-# Updates an installed Snap application. Returns 0 if up to date or updated, 1 on error.
+# Atualiza um snap instalado com `sudo snap refresh`. Se versão instalada já coincide com
+# a latest/stable obtida por snap_get_latest_version, só loga e retorna 0.
+#
 # Usage:
 #   snap_update <app_name> [friendly_name] [channel]
-# Example:
-#   snap_update "podman-desktop" "Podman Desktop"
+#
+# Args:
+#   channel — repassado a snap refresh (padrão stable).
+#
+# Returns:
+#   0 — já estava na versão mais recente ou refresh concluído com sucesso.
+#   1 — não instalado ou falha no refresh.
 snap_update() {
     local app_name="${1:-}"
     local friendly_name="${2:-$app_name}"
@@ -203,34 +224,34 @@ snap_update() {
     fi
 
     local current_version=$(snap_get_installed_version "$app_name")
-    log debug "Versão atual: $current_version"
+    local latest_version=$(snap_get_latest_version "$app_name")
 
-    # Update the application
-    log info "Atualizando $friendly_name via Snap..."
+    log debug "Versão atual é $current_version, a mais recente é $latest_version"
 
-    local update_cmd="snap refresh $app_name --channel=$channel"
-    if ! eval "sudo $update_cmd"; then
-        log error "Falha ao atualizar $friendly_name via Snap"
-        return 1
-    fi
-
-    # Check new version
-    local new_version=$(snap_get_installed_version "$app_name")
-
-    if [ "$current_version" = "$new_version" ]; then
-        log info "$friendly_name já estava na versão mais recente ($new_version)"
+    if [ "$current_version" = "$latest_version" ]; then
+        log info "$friendly_name já estava na versão mais recente ($latest_version)"
     else
-        log info "$friendly_name atualizado com sucesso para versão $new_version!"
+        log info "Atualizando $friendly_name via Snap..."
+
+        if ! eval "sudo snap refresh $app_name --channel=$channel"; then
+            log error "Falha ao atualizar $friendly_name via Snap"
+            return 1
+        fi
+
+        log info "$friendly_name atualizado com sucesso para versão $latest_version!"
     fi
 
     return 0
 }
 
-# Removes an installed Snap application. Returns 0 on success or if not installed, 1 on error.
+# Remove um snap instalado com `sudo snap remove --purge`. Se não estiver instalado, retorna 0
+# (log debug).
+#
 # Usage:
 #   snap_uninstall <app_name> [friendly_name]
-# Example:
-#   snap_uninstall "podman-desktop" "Podman Desktop"
+#
+# Returns:
+#   1 — nome vazio ou falha do snap remove.
 snap_uninstall() {
     local app_name="${1:-}"
     local friendly_name="${2:-$app_name}"
@@ -240,36 +261,26 @@ snap_uninstall() {
         return 1
     fi
 
-    # Check if installed
     if ! snap_is_installed "$app_name"; then
         log debug "$friendly_name não está instalado"
         return 0
     fi
 
     log info "Removendo $friendly_name..."
-    log debug "Nome da aplicação: $app_name"
 
     if ! sudo snap remove --purge "$app_name" 2> /dev/null; then
         log error "Falha ao remover $friendly_name via Snap"
         return 1
     fi
 
-    # Verify removal
-    if ! snap_is_installed "$app_name"; then
-        log info "$friendly_name removido com sucesso!"
-        return 0
-    else
-        log error "Falha ao remover $friendly_name completamente"
-        return 1
-    fi
+    log info "$friendly_name removido com sucesso!"
+    return 0
 }
 
-# Prints detailed information about a Snap package from the store.
-# Returns 0 on success, 1 on error.
+# Executa `snap info <app_name>` na stdout (sem filtrar). Falha se snap indisponível ou nome vazio.
+#
 # Usage:
 #   snap_info <app_name>
-# Example:
-#   snap_info "podman-desktop"
 snap_info() {
     local app_name="${1:-}"
 
@@ -286,11 +297,9 @@ snap_info() {
     snap info "$app_name"
 }
 
-# Lists all installed Snap packages with their versions.
-# Returns 0 on success, 1 if Snap is not available.
+# Executa `snap list` na stdout. Retorna 1 se o comando snap não existir.
+#
 # Usage:
-#   snap_list_installed
-# Example:
 #   snap_list_installed
 snap_list_installed() {
     if ! snap_is_available; then
