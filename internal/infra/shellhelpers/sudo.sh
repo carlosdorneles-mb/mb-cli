@@ -52,9 +52,11 @@ check_sudo() {
 # segue (modo --optional).
 #
 # Fluxo:
-#   1) Se check_sudo passa (root ou sudo -n), retorna 0.
-#   2) Com --optional: executa `sudo -v` (pode pedir senha). Falhou → warn e retorna 0.
-#   3) Sem --optional: repete aviso via check_sudo, depois `sudo -v`; falhou → log error e exit 1.
+#   1) Se is_root passa (root ou sudo -n), retorna 0 sem logs.
+#   2) Caso contrário, executa `sudo -v` uma única vez (pode pedir senha).
+#   3) Se `sudo -v` falhar:
+#      - com --optional: registra warn (via check_sudo) e retorna 0.
+#      - sem --optional: registra warn (via check_sudo), depois error e encerra com exit 1.
 #
 # Usage:
 #   required_sudo
@@ -87,21 +89,21 @@ required_sudo() {
         return 0
     fi
 
-    if [ "$optional" = true ]; then
-        if sudo -v; then
-            return 0
-        fi
-        if [ -n "$cmd_context" ]; then
-            log warn "Executando sem privilégios de superusuário (sudo): algumas funcionalidades de \"$cmd_context\" podem não funcionar ou ficar indisponíveis." >&2
-        else
-            log warn "Executando sem privilégios de superusuário (sudo): algumas funcionalidades deste comando podem não funcionar ou ficar indisponíveis." >&2
-        fi
+    if sudo -v; then
         return 0
     fi
 
-    check_sudo || true
-    sudo -v || {
-        log error "Falha ao obter privilégios de sudo"
-        exit 1
-    }
+    if [ "$optional" = true ]; then
+        if [ -n "$cmd_context" ]; then
+            check_sudo "Executando sem privilégios de superusuário (sudo): algumas funcionalidades de \"$cmd_context\" podem não funcionar ou ficar indisponíveis."
+        else
+            check_sudo "Executando sem privilégios de superusuário (sudo): algumas funcionalidades deste comando podem não funcionar ou ficar indisponíveis."
+        fi
+
+        return 0
+    fi
+
+    check_sudo
+    log error "Falha ao obter privilégios de sudo"
+    exit 1
 }
