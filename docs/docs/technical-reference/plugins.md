@@ -27,6 +27,7 @@ O **scanner** percorre a árvore à procura de `manifest.yaml`. Para cada fichei
 - Com **entrypoint** ou **flags**: o campo **`command`** no manifest é **obrigatório**.
 - **Readme** e ficheiros em **env_files**: paths relativos ao plugin e validados sob o diretório do plugin.
 - **flags** (entrypoints por flag): cada entrypoint declarado tem de estar sob o diretório do plugin.
+- **flags.envs**: quando definido, deve ser lista de pares `KEY=VALUE` válidos.
 
 Manifestos inválidos geram **avisos** no sync; o manifest é ignorado.
 
@@ -148,12 +149,14 @@ O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas *
 |--------|--------|--------|
 | **Root** | `-v` / `--verbose`, `-q` / `--quiet`, `--env-file`, `-e` / `--env` | Consumidas pelo CLI; `-v`/`-q` viram variáveis de ambiente do plugin. |
 | **Plugin com README** | `-r` / `--readme` | Abre a documentação no terminal. |
-| **Plugin com `flags` no manifest** | Flags declaradas | Escolhem o entrypoint; não são repassadas como args ao script. |
+| **Plugin com `flags` no manifest** | Flags declaradas | Escolhem o entrypoint; não são repassadas como args ao script; `flags[].envs` só é injetado para flags efetivamente informadas. |
 
 ### O que o script recebe
 
 - **Posicionais** após o consumo das flags acima. Ex.: `mb tools hello foo bar` → `$1`, `$2`.
-- **Ambiente:** sistema + defaults + `--env-file` / `--env` + `MB_VERBOSE`/`MB_QUIET` se usados. Ver [Variáveis de ambiente](../guide/environment-variables.md) e [Flags globais](../guide/global-flags.md).
+- **Ambiente:** sistema + defaults + `env_files` do plugin + `flags[].envs` (apenas das flags usadas) + `--env` + `MB_VERBOSE`/`MB_QUIET`.
+  - Precedência prática em conflito de chave: `--env` > `flags[].envs` > `env_files`.
+  - Ver [Variáveis de ambiente](../guide/environment-variables.md) e [Flags globais](../guide/global-flags.md).
 
 ### `--help` / `-h`
 

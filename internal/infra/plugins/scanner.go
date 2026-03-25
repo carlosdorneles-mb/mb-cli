@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"mb/internal/infra/sqlite"
+	"mb/internal/shared/env"
 	"mb/internal/shared/envgroup"
 	"mb/internal/shared/safepath"
 )
@@ -218,6 +219,19 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 			flagPath := filepath.Join(baseDir, e.Entrypoint)
 			if err := safepath.ValidateUnderDir(flagPath, baseDir); err != nil {
 				errs = append(errs, "flag entrypoint fora do diretório do plugin: "+e.Entrypoint)
+				break
+			}
+		}
+		if len(e.Envs) > 0 {
+			if _, err := env.ParseInlinePairs(e.Envs); err != nil {
+				flagName := strings.TrimSpace(e.Commands.Long)
+				if flagName == "" {
+					flagName = strings.TrimSpace(e.Name)
+				}
+				if flagName == "" {
+					flagName = "(sem nome)"
+				}
+				errs = append(errs, "envs inválido na flag "+flagName+": "+err.Error())
 				break
 			}
 		}

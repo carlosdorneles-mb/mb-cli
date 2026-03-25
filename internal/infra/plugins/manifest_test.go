@@ -8,20 +8,21 @@ import (
 )
 
 func TestFlagsSpecListFormat(t *testing.T) {
-	yamlList := `
-- name: deploy
-  description: Deploy
-  entrypoint: deploy.sh
-  commands:
-    long: deploy
-    short: d
-- name: rollback
-  description: Revert
-  entrypoint: rollback.sh
-  commands:
-    long: rollback
-    short: r
-`
+	yamlList := "- name: deploy\n" +
+		"  description: Deploy\n" +
+		"  entrypoint: deploy.sh\n" +
+		"  envs:\n" +
+		"    - DEPLOY=true\n" +
+		"    - REGION=us-east-1\n" +
+		"  commands:\n" +
+		"    long: deploy\n" +
+		"    short: d\n" +
+		"- name: rollback\n" +
+		"  description: Revert\n" +
+		"  entrypoint: rollback.sh\n" +
+		"  commands:\n" +
+		"    long: rollback\n" +
+		"    short: r\n"
 	var f FlagsSpec
 	if err := yaml.Unmarshal([]byte(yamlList), &f); err != nil {
 		t.Fatalf("unmarshal list: %v", err)
@@ -36,6 +37,10 @@ func TestFlagsSpecListFormat(t *testing.T) {
 	if d, ok := m["deploy"]; !ok || d.Entrypoint != "deploy.sh" || d.Short != "d" ||
 		d.Description != "Deploy" {
 		t.Errorf("deploy entry: %+v", m["deploy"])
+	}
+	if got := m["deploy"].Envs; len(got) != 2 || got[0] != "DEPLOY=true" ||
+		got[1] != "REGION=us-east-1" {
+		t.Errorf("deploy envs: %#v", got)
 	}
 	if r, ok := m["rollback"]; !ok || r.Description != "Revert" {
 		t.Errorf("rollback entry: %+v", m["rollback"])

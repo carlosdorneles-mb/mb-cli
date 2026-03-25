@@ -11,17 +11,19 @@ import (
 // FlagDef defines a flag that can run an entrypoint (for manifests without default entrypoint).
 // Used internally and in FlagsJSON; produced from FlagEntry (list format in manifest).
 type FlagDef struct {
-	Type        string `yaml:"type"        json:"type"`        // "long" (e.g. --flag) or "short" (-s)
-	Short       string `yaml:"short"       json:"short"`       // optional; single letter for -x form
-	Entrypoint  string `yaml:"entrypoint"  json:"entrypoint"`  // script to run when this flag is set
-	Description string `yaml:"description" json:"description"` // shown in command help (Cobra usage)
+	Type        string   `yaml:"type"        json:"type"`        // "long" (e.g. --flag) or "short" (-s)
+	Short       string   `yaml:"short"       json:"short"`       // optional; single letter for -x form
+	Entrypoint  string   `yaml:"entrypoint"  json:"entrypoint"`  // script to run when this flag is set
+	Description string   `yaml:"description" json:"description"` // shown in command help (Cobra usage)
+	Envs        []string `yaml:"envs"        json:"envs"`        // optional; KEY=VALUE pairs injected only when flag is used
 }
 
 // FlagEntry is one item in the list format of flags in the manifest (name, description, entrypoint, commands).
 type FlagEntry struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-	Entrypoint  string `yaml:"entrypoint"`
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
+	Entrypoint  string   `yaml:"entrypoint"`
+	Envs        []string `yaml:"envs"`
 	Commands    struct {
 		Long  string `yaml:"long"`
 		Short string `yaml:"short"`
@@ -66,6 +68,7 @@ func (f *FlagsSpec) ToMap() map[string]FlagDef {
 			Short:       e.Commands.Short,
 			Entrypoint:  e.Entrypoint,
 			Description: e.Description,
+			Envs:        append([]string(nil), e.Envs...),
 		}
 	}
 	return m

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"mb/internal/deps"
 	"mb/internal/infra/plugins"
@@ -35,7 +36,12 @@ func runEntrypointCommand(
 		}
 		argsToPass := cmd.Flags().Args()
 		merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
-			return mergeManifestEnvIntoFileValues(m, plugin, d.Runtime)
+			return mergeManifestEnvIntoFileValues(
+				m,
+				plugin.PluginDir,
+				plugin.EnvFilesJSON,
+				d.Runtime,
+			)
 		})
 		if err != nil {
 			return err
@@ -61,26 +67,40 @@ func runFlagsOnlyCommand(
 			return runReadmeWithGlow(plugin.ReadmePath)
 		}
 		_ = parseRootVerbosityFlags(cmd, args)
+		var changedFlagNames []string
+		cmd.Flags().Visit(func(f *pflag.Flag) {
+			if _, ok := flagsMap[f.Name]; ok {
+				changedFlagNames = append(changedFlagNames, f.Name)
+			}
+		})
+
+		var chosenFlagEnv []string
+		for _, name := range changedFlagNames {
+			chosenFlagEnv = append(chosenFlagEnv, flagsMap[name].Envs...)
+		}
+
 		var chosenFlag string
 		var chosenEntrypoint string
-		for name, def := range flagsMap {
-			changed := false
-			if f := cmd.Flags().Lookup(name); f != nil {
-				changed = f.Changed
-			}
-			if changed {
-				chosenFlag = name
-				chosenEntrypoint = def.Entrypoint
-				break
-			}
+		if len(changedFlagNames) > 0 {
+			chosenFlag = changedFlagNames[0]
+			chosenEntrypoint = flagsMap[chosenFlag].Entrypoint
 		}
 
 		if chosenFlag == "" || chosenEntrypoint == "" {
 			if plugin.ExecPath != "" {
 				argsToPass := cmd.Flags().Args()
-				merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
-					return mergeManifestEnvIntoFileValues(m, plugin, d.Runtime)
-				})
+				merged, err := deps.BuildMergedOSEnvironWithExtraInline(
+					d,
+					func(m map[string]string) error {
+						return mergeManifestEnvIntoFileValues(
+							m,
+							plugin.PluginDir,
+							plugin.EnvFilesJSON,
+							d.Runtime,
+						)
+					},
+					chosenFlagEnv,
+				)
 				if err != nil {
 					return err
 				}
@@ -120,9 +140,18 @@ func runFlagsOnlyCommand(
 			EnvFilesJSON: plugin.EnvFilesJSON,
 		}
 
-		merged, err := deps.BuildMergedOSEnviron(d, func(m map[string]string) error {
-			return mergeManifestEnvIntoFileValues(m, syntheticPlugin, d.Runtime)
-		})
+		merged, err := deps.BuildMergedOSEnvironWithExtraInline(
+			d,
+			func(m map[string]string) error {
+				return mergeManifestEnvIntoFileValues(
+					m,
+					syntheticPlugin.PluginDir,
+					syntheticPlugin.EnvFilesJSON,
+					d.Runtime,
+				)
+			},
+			chosenFlagEnv,
+		)
 		if err != nil {
 			return err
 		}
@@ -138,14 +167,15 @@ func runFlagsOnlyCommand(
 
 func mergeManifestEnvIntoFileValues(
 	fileValues map[string]string,
-	plugin sqlite.Plugin,
+	pluginDir string,
+	envFilesJSON string,
 	rt *deps.RuntimeConfig,
 ) error {
 	group := plugins.ManifestEnvGroupDefault
 	if rt != nil && strings.TrimSpace(rt.EnvGroup) != "" {
 		group = strings.TrimSpace(rt.EnvGroup)
 	}
-	extra, err := plugins.MergeManifestEnvFiles(plugin.PluginDir, plugin.EnvFilesJSON, group)
+	extra, err := plugins.MergeManifestEnvFiles(pluginDir, envFilesJSON, group)
 	if err != nil {
 		return err
 	}

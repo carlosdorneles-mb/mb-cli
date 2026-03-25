@@ -277,3 +277,39 @@ func TestValidatePluginRoot(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestValidatePluginRootInvalidFlagEnvs(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte(`
+command: tools
+description: test
+flags:
+  - name: deploy
+    description: Deploy
+    entrypoint: run.sh
+    envs:
+      - INVALID_ENV
+    commands:
+      long: deploy
+`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(root, "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+	err := ValidatePluginRoot(root)
+	if err == nil {
+		t.Fatal("expected invalid flag env error")
+	}
+	if !strings.Contains(err.Error(), "envs inválido na flag deploy") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
