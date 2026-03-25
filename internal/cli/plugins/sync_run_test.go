@@ -162,7 +162,7 @@ func TestRunSyncLogsUpdatedWhenOnlyReferencedScriptChanges(t *testing.T) {
 		t.Fatalf("RunSync 2: %v", err)
 	}
 	out := buf2.String()
-	if !strings.Contains(out, "atualizado") || !strings.Contains(out, "conteúdo do plugin") {
+	if !strings.Contains(out, "atualizado") || !strings.Contains(out, "scriptonly") {
 		t.Fatalf("expected update log when only run.sh changed, got %q", out)
 	}
 }
