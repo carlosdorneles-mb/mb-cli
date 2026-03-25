@@ -83,7 +83,7 @@ required_sudo() {
         fi
     fi
 
-    if check_sudo; then
+    if is_root; then
         return 0
     fi
 
