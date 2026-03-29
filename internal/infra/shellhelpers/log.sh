@@ -2,9 +2,12 @@
 
 # Logs a message at the given level, respecting MB_QUIET and MB_VERBOSE.
 # Source via . "$MB_HELPERS_PATH/log.sh" or load everything via all.sh.
-# Levels: none, debug, info, warn, error, fatal.
+# Levels: none, debug, info, warn, error, fatal, output.
+#   - log output … — alias semântico: a mensagem vai ao gum com nível de apresentação none.
 # - MB_QUIET=1: shows only error and fatal.
 # - MB_VERBOSE=1: shows all levels (including debug); otherwise debug is omitted.
+# - MB_LOG_OUTPUT: quando definida (qualquer valor não vazio), o nível passado ao gum log
+#   é none (filtros MB_QUIET / MB_VERBOSE continuam a usar o nível declarado na chamada).
 # Usage:
 #   log <level> <message...>
 # Example:
@@ -26,5 +29,10 @@ log() {
     return 0
   fi
 
-  gum log -sl "$level" "$@"
+  gum_level=$level
+  if [ "$level" = "output" ] || [ -n "$MB_LOG_OUTPUT" ]; then
+    gum_level=none
+  fi
+
+  gum log -sl "$gum_level" "$@"
 }
