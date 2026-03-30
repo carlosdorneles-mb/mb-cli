@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	_ "modernc.org/sqlite"
+
+	"mb/internal/domain/plugin"
 )
 
 //go:embed schema_table.sql
@@ -26,52 +28,13 @@ var schemaPluginSourcesSQL string
 //go:embed schema_plugin_help_groups.sql
 var schemaPluginHelpGroupsSQL string
 
-type Category struct {
-	Path        string
-	Description string
-	ReadmePath  string
-	Hidden      bool
-	GroupID     string // help group for nested categories (e.g. infra/k8s → INFRAESTRUTURA)
-}
-
-type Plugin struct {
-	ID              int64
-	CommandPath     string // e.g. "infra/ci/deploy"
-	CommandName     string
-	Description     string
-	ExecPath        string // empty for flags-only
-	PluginType      string // "sh"|"bin" or "" for flags-only
-	ConfigHash      string
-	ReadmePath      string
-	FlagsJSON       string // for flags-only: JSON map of flag name -> {type, entrypoint}
-	UseTemplate     string // Cobra Use (optional)
-	ArgsCount       int    // Cobra ExactArgs (0 = no validation)
-	AliasesJSON     string // JSON array of strings for Cobra Aliases
-	Example         string // Cobra Example
-	LongDescription string // Cobra Long
-	Deprecated      string // Cobra Deprecated message
-	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
-	Hidden          bool   // Cobra Hidden: omit from help, still invokable
-	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
-	GroupID         string // help group for nested leaves; empty = default COMANDOS
-}
-
-// PluginHelpGroup is a Cobra help section for nested plugin commands (from groups.yaml).
-type PluginHelpGroup struct {
-	GroupID string
-	Title   string
-}
-
-// PluginSource represents one installation (top-level dir in PluginsDir or a local path) and its git origin/version or local path.
-type PluginSource struct {
-	InstallDir string
-	GitURL     string
-	RefType    string // "tag" | "branch"
-	Ref        string // e.g. "v1.2.3" or "main"
-	Version    string // current state: tag name or short SHA
-	LocalPath  string // when set, plugin is local at this path (not in PluginsDir)
-	UpdatedAt  string
-}
+// Row types alias domain models so callers can keep using sqlite.Plugin etc.
+type (
+	Plugin          = plugin.Plugin
+	Category        = plugin.Category
+	PluginHelpGroup = plugin.PluginHelpGroup
+	PluginSource    = plugin.PluginSource
+)
 
 type Store struct {
 	db *sql.DB

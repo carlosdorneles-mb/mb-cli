@@ -1,6 +1,6 @@
 # Pacotes `internal/`
 
-Mapa rápido para onde colocar código novo. Estrutura orientada a FX (bootstrap → module → cli; shared, domain, ports, infra, app).
+Mapa rápido para onde colocar código novo. Estrutura orientada a FX (bootstrap → module → cli; domain, ports, app, infra, shared).
 
 ## Mapa atual (pós-reorganização)
 
@@ -15,22 +15,28 @@ Mapa rápido para onde colocar código novo. Estrutura orientada a FX (bootstrap
 | CLI     | `cli/root`                             | Raiz Cobra (`NewRootCmd`), completion tests.                                     |
 |         | `cli/plugins`, `cli/envs`, `cli/update` | Subcomandos `mb plugins`, `mb envs`, `mb update` (e `mb completion` no root).  |
 |         | `cli/plugincmd`                        | Comandos dinâmicos a partir do cache (`Attach`).                                 |
-| App     | `app/plugins`                          | Use cases: RunSync (sync), add/remove/update (lógica aplicação).                  |
-| Infra   | `infra/sqlite`                         | Store SQLite (plugins, categorias, fontes).                                       |
-|         | `infra/plugins`                        | Manifest, scanner de disco, clone Git.                                           |
+| App     | `app/plugins`                          | Casos de uso (ex.: `RunSync`) via **`ports`** + **`domain/plugin`** (sem importar `infra`). |
+| Ports   | `ports`                                | Interfaces estáveis (ex.: `PluginSyncStore`, `PluginScanner`, `ShellHelperInstaller`). |
+| Domain  | `domain/plugin`                        | DTOs do cache (`Plugin`, `Category`, …), `ValidationWarning`, `HelpGroupDef`, merge/validação de groups. |
+| Infra   | `infra/sqlite`                         | Store SQLite; tipos expostos como alias dos do domínio (`type Plugin = plugin.Plugin`). |
+|         | `infra/plugins`                        | Manifest, scanner de disco, clone Git; implementa `ports.PluginScanner`.           |
 |         | `infra/executor`                       | Execução segura de scripts de plugin.                                            |
 |         | `infra/browser`, `infra/selfupdate`    | Abertura de URL, atualização binária.                                            |
-|         | `infra/shellhelpers`                   | Helpers para scripts shell (embed `.sh`, EnsureShellHelpers).                     |
+|         | `infra/shellhelpers`                   | Helpers shell embed + `Installer` que implementa `ports.ShellHelperInstaller`.   |
 | Shared  | `shared/ui`, `shared/system`           | Temas (Fang/Gum), banner, mensagens; Gum/Glamour, Markdown.                       |
 |         | `shared/safepath`, `shared/version`    | Validação de paths, versão de build.                                             |
 |         | `shared/env`, `shared/envgroup`       | Merge de variáveis de ambiente, grupos.                                          |
 |         | `shared/config`                        | AppConfig, Load, DefaultDocsURL.                                                  |
-| Domain  | `domain/plugin`                        | Tipos/regras de domínio (placeholder; opcional).                                 |
-| Deps    | `deps`                                 | Paths padrão, RuntimeConfig, Dependencies (injetados nos comandos até migração). |
+| Deps    | `deps`                                 | Paths padrão, RuntimeConfig, `Dependencies` (bundle FX para comandos).            |
 
 ## Ordem de dependência (evitar ciclos)
 
-`shared` → `domain`/`ports` → `infra` → `app` → `module` → `cli` → `bootstrap`.
+- **`domain/plugin`**: só stdlib + libs puras (ex.: YAML para parse de groups).
+- **`ports`**: depende de `domain/plugin` (tipos nos contratos).
+- **`app/*`**: depende de `domain`, `ports`, `shared` — **não** de `infra/*`.
+- **`infra/*`**: implementa `ports` e usa `domain` + `sqlite`/FS/rede.
+- **`cli/*`**: Cobra, chama `app` via adaptadores (ex.: `cli/plugins/sync_run.go` injeta `Store`, `Scanner`, `shellhelpers.Installer`).
+- **`module/*`**, **`bootstrap`**: composição FX.
 
 ## Terminal / TUI
 

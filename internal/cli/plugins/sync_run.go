@@ -5,6 +5,7 @@ import (
 
 	appplugins "mb/internal/app/plugins"
 	"mb/internal/deps"
+	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
 )
 
@@ -12,9 +13,21 @@ import (
 // Used by mb plugins sync and after plugins add/remove/update.
 func RunSync(
 	ctx context.Context,
-	deps deps.Dependencies,
+	d deps.Dependencies,
 	log *system.Logger,
 	opts appplugins.SyncOptions,
 ) (appplugins.SyncReport, error) {
-	return appplugins.RunSync(ctx, deps, log, opts)
+	return appplugins.RunSync(
+		ctx,
+		appplugins.SyncRuntime{
+			ConfigDir: d.Runtime.ConfigDir,
+			Quiet:     d.Runtime.Quiet,
+			Verbose:   d.Runtime.Verbose,
+		},
+		d.Store,
+		d.Scanner,
+		shellhelpers.Installer{},
+		log,
+		opts,
+	)
 }

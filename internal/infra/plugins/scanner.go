@@ -11,17 +11,12 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"mb/internal/domain/plugin"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/env"
 	"mb/internal/shared/envgroup"
 	"mb/internal/shared/safepath"
 )
-
-// ValidationWarning represents a plugin that was skipped during scan due to validation errors.
-type ValidationWarning struct {
-	Path    string // path to manifest.yaml
-	Message string // message in Portuguese
-}
 
 type Scanner struct {
 	pluginsDir string
@@ -54,8 +49,8 @@ func nestedPluginGroupIDRaw(dbCommandPath, manifestGroupID string, debug func(st
 // collectHelpGroupBatchesUnderRoot returns one batch per groups.yaml (paths sorted) for global merge at sync.
 func collectHelpGroupBatchesUnderRoot(
 	rootPath string,
-	warnings *[]ValidationWarning,
-) [][]HelpGroupDef {
+	warnings *[]plugin.ValidationWarning,
+) [][]plugin.HelpGroupDef {
 	var paths []string
 	_ = filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil || d.IsDir() || d.Name() != "groups.yaml" {
@@ -65,11 +60,11 @@ func collectHelpGroupBatchesUnderRoot(
 		return nil
 	})
 	sort.Strings(paths)
-	var batches [][]HelpGroupDef
+	var batches [][]plugin.HelpGroupDef
 	for _, path := range paths {
 		defs, err := LoadGroupsFile(path)
 		if err != nil {
-			*warnings = append(*warnings, ValidationWarning{
+			*warnings = append(*warnings, plugin.ValidationWarning{
 				Path:    path,
 				Message: "groups.yaml inválido: " + err.Error(),
 			})
@@ -291,10 +286,10 @@ func marshalEnvFilesJSON(m Manifest) (string, error) {
 
 func (s *Scanner) scanTree(
 	rootPath string,
-) ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+) ([]sqlite.Plugin, []sqlite.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
 	plugins := []sqlite.Plugin{}
 	categories := []sqlite.Category{}
-	warnings := []ValidationWarning{}
+	warnings := []plugin.ValidationWarning{}
 	debug := s.DebugLog
 
 	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
@@ -314,7 +309,7 @@ func (s *Scanner) scanTree(
 		if errs := validateManifest(manifest, baseDir); len(errs) > 0 {
 			warnings = append(
 				warnings,
-				ValidationWarning{Path: path, Message: strings.Join(errs, "; ")},
+				plugin.ValidationWarning{Path: path, Message: strings.Join(errs, "; ")},
 			)
 			return nil
 		}
@@ -487,11 +482,11 @@ func (s *Scanner) scanTree(
 }
 
 // Scan percorre cada subpasta imediata de PluginsDir e agrega plugins, categorias e lotes de groups.yaml.
-func (s *Scanner) Scan() ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+func (s *Scanner) Scan() ([]sqlite.Plugin, []sqlite.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
 	plugins := []sqlite.Plugin{}
 	categories := []sqlite.Category{}
-	warnings := []ValidationWarning{}
-	var batches [][]HelpGroupDef
+	warnings := []plugin.ValidationWarning{}
+	var batches [][]plugin.HelpGroupDef
 	if _, err := os.Stat(s.pluginsDir); os.IsNotExist(err) {
 		return plugins, categories, warnings, batches, nil
 	}
@@ -522,13 +517,18 @@ func (s *Scanner) Scan() ([]sqlite.Plugin, []sqlite.Category, []ValidationWarnin
 func (s *Scanner) ScanDir(
 	rootPath string,
 	_ string,
-) ([]sqlite.Plugin, []sqlite.Category, []ValidationWarning, [][]HelpGroupDef, error) {
+) ([]sqlite.Plugin, []sqlite.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
 	rootPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
-		return []sqlite.Plugin{}, []sqlite.Category{}, []ValidationWarning{}, nil, nil
+		return []sqlite.Plugin{}, []sqlite.Category{}, []plugin.ValidationWarning{}, nil, nil
 	}
 	return s.scanTree(rootPath)
+}
+
+// SetDebugLog wires debug output for scan (implements ports.PluginScanner).
+func (s *Scanner) SetDebugLog(fn func(string)) {
+	s.DebugLog = fn
 }

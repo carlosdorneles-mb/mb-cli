@@ -7,12 +7,17 @@ import (
 	"sort"
 	"strings"
 
-	"mb/internal/deps"
-	"mb/internal/infra/plugins"
-	"mb/internal/infra/shellhelpers"
-	"mb/internal/infra/sqlite"
+	"mb/internal/domain/plugin"
+	"mb/internal/ports"
 	"mb/internal/shared/system"
 )
+
+// SyncRuntime is the minimal runtime surface needed for plugin sync (no infra imports).
+type SyncRuntime struct {
+	ConfigDir string
+	Quiet     bool
+	Verbose   bool
+}
 
 // SyncOptions configures RunSync behaviour.
 type SyncOptions struct {
@@ -36,7 +41,10 @@ type SyncReport struct {
 // log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
 func RunSync(
 	ctx context.Context,
-	d deps.Dependencies,
+	rt SyncRuntime,
+	store ports.PluginSyncStore,
+	scanner ports.PluginScanner,
+	shell ports.ShellHelperInstaller,
 	log *system.Logger,
 	opts SyncOptions,
 ) (SyncReport, error) {
@@ -45,7 +53,7 @@ func RunSync(
 		runCtx = context.Background()
 	}
 
-	beforePlugins, err := d.Store.ListPlugins()
+	beforePlugins, err := store.ListPlugins()
 	if err != nil {
 		return SyncReport{}, err
 	}
@@ -53,23 +61,20 @@ func RunSync(
 
 	pluginHelpLog := log
 	if pluginHelpLog == nil {
-		quiet, verbose := false, false
-		if d.Runtime != nil {
-			quiet, verbose = d.Runtime.Quiet, d.Runtime.Verbose
-		}
+		quiet, verbose := rt.Quiet, rt.Verbose
 		pluginHelpLog = system.NewLogger(quiet, verbose, os.Stderr)
 	}
-	d.Scanner.DebugLog = func(msg string) { _ = pluginHelpLog.Debug(runCtx, "%s", msg) }
-	defer func() { d.Scanner.DebugLog = nil }()
+	scanner.SetDebugLog(func(msg string) { _ = pluginHelpLog.Debug(runCtx, "%s", msg) })
+	defer func() { scanner.SetDebugLog(nil) }()
 
-	pluginsList, categories, warnings, hgBatches, err := d.Scanner.Scan()
+	pluginsList, categories, warnings, hgBatches, err := scanner.Scan()
 	if err != nil {
 		return SyncReport{}, err
 	}
-	if _, err := shellhelpers.EnsureShellHelpers(d.Runtime.ConfigDir); err != nil {
+	if _, err := shell.EnsureShellHelpers(rt.ConfigDir); err != nil {
 		return SyncReport{}, err
 	}
-	sources, err := d.Store.ListPluginSources()
+	sources, err := store.ListPluginSources()
 	if err != nil {
 		return SyncReport{}, err
 	}
@@ -77,7 +82,7 @@ func RunSync(
 		if src.LocalPath == "" {
 			continue
 		}
-		p, c, w, hg, err := d.Scanner.ScanDir(src.LocalPath, src.InstallDir)
+		p, c, w, hg, err := scanner.ScanDir(src.LocalPath, src.InstallDir)
 		if err != nil {
 			return SyncReport{}, err
 		}
@@ -86,7 +91,7 @@ func RunSync(
 		warnings = append(warnings, w...)
 		hgBatches = append(hgBatches, hg...)
 	}
-	mergedHelp := plugins.MergeHelpGroupsGlobal(hgBatches, func(msg string) {
+	mergedHelp := plugin.MergeHelpGroupsGlobal(hgBatches, func(msg string) {
 		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 	if log != nil {
@@ -121,30 +126,30 @@ func RunSync(
 		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
 	})
 
-	if err := d.Store.DeleteAllPlugins(); err != nil {
+	if err := store.DeleteAllPlugins(); err != nil {
 		return SyncReport{}, err
 	}
-	if err := d.Store.DeleteAllPluginHelpGroups(); err != nil {
+	if err := store.DeleteAllPluginHelpGroups(); err != nil {
 		return SyncReport{}, err
 	}
 	for _, g := range mergedHelp {
-		if err := d.Store.UpsertPluginHelpGroup(
-			sqlite.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
+		if err := store.UpsertPluginHelpGroup(
+			plugin.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
 		); err != nil {
 			return SyncReport{}, err
 		}
 	}
-	for _, plugin := range pluginsList {
-		if err := d.Store.UpsertPlugin(plugin); err != nil {
+	for _, plg := range pluginsList {
+		if err := store.UpsertPlugin(plg); err != nil {
 			return SyncReport{}, err
 		}
 	}
 
-	if err := d.Store.DeleteAllCategories(); err != nil {
+	if err := store.DeleteAllCategories(); err != nil {
 		return SyncReport{}, err
 	}
 	for _, cat := range categories {
-		if err := d.Store.UpsertCategory(cat); err != nil {
+		if err := store.UpsertCategory(cat); err != nil {
 			return SyncReport{}, err
 		}
 	}
@@ -155,15 +160,15 @@ func RunSync(
 	return report, nil
 }
 
-func pluginCommandKey(p sqlite.Plugin) string {
+func pluginCommandKey(p plugin.Plugin) string {
 	if strings.TrimSpace(p.CommandPath) != "" {
 		return p.CommandPath
 	}
 	return strings.TrimSpace(p.CommandName)
 }
 
-func pluginsByCommandKey(list []sqlite.Plugin) map[string]sqlite.Plugin {
-	m := make(map[string]sqlite.Plugin, len(list))
+func pluginsByCommandKey(list []plugin.Plugin) map[string]plugin.Plugin {
+	m := make(map[string]plugin.Plugin, len(list))
 	for _, p := range list {
 		k := pluginCommandKey(p)
 		if k == "" {
@@ -174,7 +179,7 @@ func pluginsByCommandKey(list []sqlite.Plugin) map[string]sqlite.Plugin {
 	return m
 }
 
-func diffRemovedKeys(before, after map[string]sqlite.Plugin) []string {
+func diffRemovedKeys(before, after map[string]plugin.Plugin) []string {
 	var keys []string
 	for k := range before {
 		if _, ok := after[k]; !ok {
@@ -188,8 +193,8 @@ func diffRemovedKeys(before, after map[string]sqlite.Plugin) []string {
 func emitPluginSyncDiff(
 	ctx context.Context,
 	log *system.Logger,
-	before map[string]sqlite.Plugin,
-	afterList []sqlite.Plugin,
+	before map[string]plugin.Plugin,
+	afterList []plugin.Plugin,
 	removedKeys []string,
 	noRemove bool,
 ) SyncReport {
@@ -230,7 +235,7 @@ func emitPluginSyncDiff(
 }
 
 func normalizeCategoryGroupIDs(
-	categories []sqlite.Category,
+	categories []plugin.Category,
 	valid map[string]struct{},
 	debug func(string),
 ) {
@@ -259,7 +264,7 @@ func normalizeCategoryGroupIDs(
 }
 
 func normalizePluginGroupIDs(
-	pluginsList []sqlite.Plugin,
+	pluginsList []plugin.Plugin,
 	valid map[string]struct{},
 	debug func(string),
 ) {
@@ -287,7 +292,7 @@ func normalizePluginGroupIDs(
 	}
 }
 
-func checkPluginPathCollisions(pluginsList []sqlite.Plugin) error {
+func checkPluginPathCollisions(pluginsList []plugin.Plugin) error {
 	seen := make(map[string]string)
 	for _, p := range pluginsList {
 		key := p.CommandPath
