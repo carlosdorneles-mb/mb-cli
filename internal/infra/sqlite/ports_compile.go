@@ -2,4 +2,4 @@ package sqlite
 
 import "mb/internal/ports"
 
-var _ ports.PluginSyncStore = (*Store)(nil)
+var _ ports.PluginCacheStore = (*Store)(nil)

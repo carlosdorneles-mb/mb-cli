@@ -2,18 +2,18 @@ package plugins
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	appplugins "mb/internal/app/plugins"
 	"mb/internal/deps"
+	mbfs "mb/internal/infra/fs"
+	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
 )
 
-func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
+func newPluginsRemoveCmd(d deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove <package>",
 		Aliases: []string{"rm", "r", "delete", "d", "del"},
@@ -21,9 +21,10 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			pkg := strings.TrimSpace(args[0])
-			src, err := deps.Store.GetPluginSource(pkg)
+
+			src, err := d.Store.GetPluginSource(pkg)
 			if err != nil {
 				return err
 			}
@@ -41,25 +42,16 @@ func newPluginsRemoveCmd(deps deps.Dependencies) *cobra.Command {
 				return nil
 			}
 
-			if src.LocalPath == "" {
-				destDir := filepath.Join(deps.Runtime.PluginsDir, pkg)
-				if err := os.RemoveAll(destDir); err != nil {
-					return fmt.Errorf("remover diretório: %w", err)
-				}
-			}
-			if err := deps.Store.DeletePluginSource(pkg); err != nil {
-				return err
-			}
-			if _, err := RunSync(
+			return appplugins.RunRemovePackage(
 				ctx,
-				deps,
+				pluginRuntimeFromDeps(d),
+				d.Store,
+				d.Scanner,
+				shellhelpers.Installer{},
+				mbfs.OS{},
 				log,
-				appplugins.SyncOptions{EmitSuccess: false},
-			); err != nil {
-				return err
-			}
-			_ = log.Info(ctx, "Pacote %q removido", pkg)
-			return nil
+				pkg,
+			)
 		},
 	}
 }

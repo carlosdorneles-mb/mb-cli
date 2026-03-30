@@ -164,6 +164,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			plugin.CommandName,
 			plugin,
 			d,
+			d.Executor,
 			pluginRoot,
 			isLocal,
 			dbgLog,

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"mb/internal/deps"
+	"mb/internal/infra/executor"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
 )
@@ -17,7 +18,7 @@ func TestNewLeafCommand_FlagsWithReadmeNoPanicWhenPluginUsesR(t *testing.T) {
 		ReadmePath:  "/tmp/mb-readme-test.md",
 	}
 	d := deps.NewDependencies(&deps.RuntimeConfig{}, config.AppConfig{}, nil, nil, nil)
-	cmd := newLeafCommand("bump", plugin, d, "/tmp", false, nil, nil)
+	cmd := newLeafCommand("bump", plugin, d, executor.New(), "/tmp", false, nil, nil)
 	rf := cmd.Flags().Lookup("readme")
 	if rf == nil {
 		t.Fatal("readme flag missing")
@@ -43,7 +44,7 @@ func TestNewLeafCommand_ReservedRootShorthandDropped(t *testing.T) {
 	}
 	d := deps.NewDependencies(&deps.RuntimeConfig{}, config.AppConfig{}, nil, nil, nil)
 	global := map[string]struct{}{"v": {}}
-	cmd := newLeafCommand("x", plugin, d, "/tmp", false, nil, global)
+	cmd := newLeafCommand("x", plugin, d, executor.New(), "/tmp", false, nil, global)
 	f := cmd.Flags().Lookup("watch")
 	if f == nil {
 		t.Fatal("watch flag missing")

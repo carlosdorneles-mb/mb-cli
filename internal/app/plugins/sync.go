@@ -12,13 +12,6 @@ import (
 	"mb/internal/shared/system"
 )
 
-// SyncRuntime is the minimal runtime surface needed for plugin sync (no infra imports).
-type SyncRuntime struct {
-	ConfigDir string
-	Quiet     bool
-	Verbose   bool
-}
-
 // SyncOptions configures RunSync behaviour.
 type SyncOptions struct {
 	// EmitSuccess logs a short summary when true (e.g. plugins sync command): one line when
@@ -41,7 +34,7 @@ type SyncReport struct {
 // log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
 func RunSync(
 	ctx context.Context,
-	rt SyncRuntime,
+	rt PluginRuntime,
 	store ports.PluginSyncStore,
 	scanner ports.PluginScanner,
 	shell ports.ShellHelperInstaller,

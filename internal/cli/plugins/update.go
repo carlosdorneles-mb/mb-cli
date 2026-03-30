@@ -3,7 +3,6 @@ package plugins
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,30 +10,24 @@ import (
 	appplugins "mb/internal/app/plugins"
 	"mb/internal/deps"
 	mbplugins "mb/internal/infra/plugins"
+	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
 )
 
 // RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.
-func RunUpdateAll(ctx context.Context, deps deps.Dependencies, log *system.Logger) error {
-	_ = log.Info(ctx, "Atualizando plugins...")
-
-	sources, err := deps.Store.ListPluginSources()
-	if err != nil {
-		return err
-	}
-	for _, src := range sources {
-		if src.GitURL == "" || src.LocalPath != "" {
-			continue
-		}
-		if err := updateOnePlugin(ctx, deps, log, src.InstallDir, nil); err != nil {
-			_ = log.Error(ctx, "%s: %v", src.InstallDir, err)
-		}
-	}
-	_, err = RunSync(ctx, deps, log, appplugins.SyncOptions{EmitSuccess: false})
-	return err
+func RunUpdateAll(ctx context.Context, d deps.Dependencies, log *system.Logger) error {
+	return appplugins.RunUpdateAllGitPlugins(
+		ctx,
+		pluginRuntimeFromDeps(d),
+		d.Store,
+		d.Scanner,
+		shellhelpers.Installer{},
+		mbplugins.GitService{},
+		log,
+	)
 }
 
-func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
+func newPluginsUpdateCmd(d deps.Dependencies) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
@@ -43,106 +36,32 @@ func newPluginsUpdateCmd(deps deps.Dependencies) *cobra.Command {
 		Short:   "Atualiza um plugin ou todos (--all)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
+			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if all {
-				return RunUpdateAll(ctx, deps, log)
+				return RunUpdateAll(ctx, d, log)
 			}
 
 			if len(args) == 0 {
 				return fmt.Errorf("informe o pacote ou use --all")
 			}
 			pkg := strings.TrimSpace(args[0])
-			if err := updateOnePlugin(ctx, deps, log, pkg, cmd); err != nil {
+			if err := appplugins.UpdateOneRemotePackage(
+				ctx,
+				pluginRuntimeFromDeps(d),
+				d.Store,
+				mbplugins.GitService{},
+				log,
+				pkg,
+				true,
+			); err != nil {
 				return err
 			}
-			_, err := RunSync(ctx, deps, log, appplugins.SyncOptions{EmitSuccess: true})
+			_, err := RunSync(ctx, d, log, appplugins.SyncOptions{EmitSuccess: true})
 			return err
 		},
 	}
 
 	cmd.Flags().BoolVar(&all, "all", false, "Atualiza todos os plugins que tiverem nova versão")
 	return cmd
-}
-
-func updateOnePlugin(
-	ctx context.Context,
-	deps deps.Dependencies,
-	log *system.Logger,
-	pkg string,
-	cmd *cobra.Command,
-) error {
-	src, err := deps.Store.GetPluginSource(pkg)
-	if err != nil {
-		return err
-	}
-	if src == nil {
-		return fmt.Errorf("pacote %q não encontrado no registry", pkg)
-	}
-	if src.LocalPath != "" {
-		return fmt.Errorf("pacote %q é local; não é possível atualizar", pkg)
-	}
-	if src.GitURL == "" {
-		return fmt.Errorf(
-			"pacote %q foi instalado manualmente (sem URL Git); não é possível atualizar",
-			pkg,
-		)
-	}
-
-	dir := filepath.Join(deps.Runtime.PluginsDir, pkg)
-	if !mbplugins.IsGitRepo(dir) {
-		return fmt.Errorf("%s não é um repositório git", dir)
-	}
-
-	if src.RefType == "tag" {
-		if err := mbplugins.FetchTags(ctx, dir); err != nil {
-			return err
-		}
-		tags, err := mbplugins.ListLocalTags(dir)
-		if err != nil {
-			return err
-		}
-		var newerTag string
-		for _, t := range tags {
-			if _, isNewer := mbplugins.NewerTag(src.Ref, t); isNewer {
-				newerTag = t
-				break
-			}
-		}
-		if newerTag == "" {
-			if cmd != nil && log != nil {
-				_ = log.Info(ctx, "%s: já está na versão mais recente (%s)", pkg, src.Ref)
-			}
-			return nil
-		}
-		if err := mbplugins.CheckoutTag(ctx, dir, newerTag); err != nil {
-			return err
-		}
-		version, _ := mbplugins.GetVersion(dir)
-		src.Ref = newerTag
-		src.Version = version
-		if err := deps.Store.UpsertPluginSource(*src); err != nil {
-			return err
-		}
-		if cmd != nil && log != nil {
-			_ = log.Info(ctx, "%s atualizado para %s", pkg, version)
-		}
-		return nil
-	}
-
-	if err := mbplugins.FetchAndPull(ctx, dir, src.Ref); err != nil {
-		return err
-	}
-	version, err := mbplugins.GetVersion(dir)
-	if err != nil {
-		return err
-	}
-	src.Version = version
-	if err := deps.Store.UpsertPluginSource(*src); err != nil {
-		return err
-	}
-	if cmd != nil && log != nil {
-		_ = log.Info(ctx, "%s atualizado para %s", pkg, version)
-	}
-	return nil
 }

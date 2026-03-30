@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
@@ -49,6 +50,7 @@ func newLeafCommand(
 	use string,
 	plugin sqlite.Plugin,
 	d deps.Dependencies,
+	exec *executor.Executor,
 	pluginRoot string,
 	isLocal bool,
 	dbgLog *system.Logger,
@@ -66,7 +68,7 @@ func newLeafCommand(
 		cmd := &cobra.Command{
 			Use:   use,
 			Short: short,
-			RunE:  runEntrypointCommand(plugin, d, pluginRoot),
+			RunE:  runEntrypointCommand(plugin, d, exec, pluginRoot),
 		}
 		applyCobraPluginFields(cmd, plugin, use)
 		registerReadmeFlag(cmd, plugin.CommandPath, plugin.ReadmePath, dbgLog, nil, globalShorts)
@@ -88,7 +90,7 @@ func newLeafCommand(
 	cmd := &cobra.Command{
 		Use:   use,
 		Short: short,
-		RunE:  runFlagsOnlyCommand(plugin, flagsMap, d, pluginRoot),
+		RunE:  runFlagsOnlyCommand(plugin, flagsMap, d, exec, pluginRoot),
 	}
 	applyCobraPluginFields(cmd, plugin, use)
 

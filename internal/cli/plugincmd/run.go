@@ -12,6 +12,7 @@ import (
 	"mb/internal/deps"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
+	"mb/internal/ports"
 	"mb/internal/shared/safepath"
 )
 
@@ -28,6 +29,7 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 func runEntrypointCommand(
 	plugin sqlite.Plugin,
 	d deps.Dependencies,
+	exec ports.ScriptExecutor,
 	pluginRoot string,
 ) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
@@ -52,7 +54,7 @@ func runEntrypointCommand(
 			ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 			defer cancel()
 		}
-		return d.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
+		return exec.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 	}
 }
 
@@ -60,6 +62,7 @@ func runFlagsOnlyCommand(
 	plugin sqlite.Plugin,
 	flagsMap map[string]plugins.FlagDef,
 	d deps.Dependencies,
+	exec ports.ScriptExecutor,
 	pluginRoot string,
 ) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
@@ -110,7 +113,7 @@ func runFlagsOnlyCommand(
 					ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 					defer cancel()
 				}
-				return d.Executor.Run(ctx, plugin, argsToPass, merged, pluginRoot)
+				return exec.Run(ctx, plugin, argsToPass, merged, pluginRoot)
 			}
 			cmd.Help()
 			return nil
@@ -161,7 +164,7 @@ func runFlagsOnlyCommand(
 			ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 			defer cancel()
 		}
-		return d.Executor.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
+		return exec.Run(ctx, syntheticPlugin, cmd.Flags().Args(), merged, pluginRoot)
 	}
 }
 

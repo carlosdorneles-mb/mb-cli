@@ -19,10 +19,11 @@ func RunSync(
 ) (appplugins.SyncReport, error) {
 	return appplugins.RunSync(
 		ctx,
-		appplugins.SyncRuntime{
-			ConfigDir: d.Runtime.ConfigDir,
-			Quiet:     d.Runtime.Quiet,
-			Verbose:   d.Runtime.Verbose,
+		appplugins.PluginRuntime{
+			ConfigDir:  d.Runtime.ConfigDir,
+			PluginsDir: d.Runtime.PluginsDir,
+			Quiet:      d.Runtime.Quiet,
+			Verbose:    d.Runtime.Verbose,
 		},
 		d.Store,
 		d.Scanner,
