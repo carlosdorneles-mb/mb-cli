@@ -23,7 +23,7 @@ Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do cam
 
 - **`mb plugins list`** — Lista todos os plugins instalados, com pacote (identificador da instalação), caminho do comando, descrição, versão, origem (local ou remoto) e URL/path. Use essa saída para saber exatamente quais comandos estão disponíveis.
 - **`mb help`** — Mostra a árvore de comandos, incluindo as categorias e comandos de plugins. Comandos de plugins locais aparecem com a indicação "(local)" na descrição.
-- **Completion** — Depois de `mb plugins sync`, o completion (TAB) sugere categorias e comandos. Instale com `mb completion <bash|zsh|fish|powershell>`.
+- **Completion** — Depois de `mb plugins sync`, o completion (TAB) sugere categorias e comandos. Instale no perfil com `mb completion install`, remova com `mb completion uninstall`, ou gere o script com `mb completion <bash|zsh|fish|powershell>` (ver `mb completion install --help`).
 
 No help (`mb help`), subcomandos aninhados podem aparecer em **COMANDOS** ou em secções definidas com `groups.yaml` / `group_id` — ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
 

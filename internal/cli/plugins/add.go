@@ -28,12 +28,13 @@ func newPluginsAddCmd(d deps.Dependencies) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			arg := strings.TrimSpace(args[0])
+			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			syncOpts := appplugins.SyncOptions{EmitSuccess: false, NoRemove: noRemove}
+			syncOpts = withCompletionPostSync(cmd, d, log, syncOpts)
 			_, _, err := mbplugins.ParseGitURL(arg)
 			if err == nil {
 				return runAddRemoteCLI(cmd, d, arg, pkg, tag, syncOpts)
 			}
-			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			return runAddLocalCLI(cmd, d, log, arg, pkg, syncOpts)
 		},
 	}

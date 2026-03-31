@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/cli/completion"
 	"mb/internal/cli/envs"
 	"mb/internal/cli/plugincmd"
 	"mb/internal/cli/plugins"
@@ -178,16 +179,34 @@ func customizeCompletionPT(rootCmd *cobra.Command) {
 	completionCmd.Long = "Gera o script de autocompletar para o MB CLI para o shell especificado.\nConsulte a ajuda de cada subcomando para detalhes de como usar o script gerado."
 	const completionGroupID = "completion_shells"
 	completionCmd.AddGroup(&cobra.Group{ID: completionGroupID, Title: "COMANDOS"})
+	completionCmd.AddCommand(completion.NewInstallCmd(rootCmd))
+	completionCmd.AddCommand(completion.NewUninstallCmd())
 	shortPT := map[string]string{
 		"bash":       "Gera o script de autocompletar para bash",
 		"zsh":        "Gera o script de autocompletar para zsh",
 		"fish":       "Gera o script de autocompletar para fish",
 		"powershell": "Gera o script de autocompletar para powershell",
+		"install":    "Instala ou atualiza o autocompletar no ficheiro de perfil do shell",
+		"uninstall":  "Remove o bloco de autocompletar mb-cli do ficheiro de perfil",
 	}
 	for _, sub := range completionCmd.Commands() {
 		sub.GroupID = completionGroupID
 		if short, ok := shortPT[sub.Name()]; ok {
 			sub.Short = short
+		}
+		if sub.Name() == "install" {
+			sub.Long = `Detecta o shell (variável SHELL) ou usa --shell, gera o mesmo script que
+«mb completion <shell>» e grava um bloco idempotente no ficheiro de perfil
+(.bashrc, .zshrc, fish/config.fish ou perfil PowerShell) ou em --rc-file.
+
+Em ambientes não interativos é obrigatório --yes (ou use --dry-run para pré-visualizar).`
+		}
+		if sub.Name() == "uninstall" {
+			sub.Long = `Remove o bloco de autocompletar delimitado pelos marcadores mb-cli do ficheiro
+de perfil por omissão do shell (ou de --rc-file). Não altera nada se o ficheiro
+ou o bloco não existire.
+
+Em ambientes não interativos é obrigatório --yes (ou use --dry-run para pré-visualizar).`
 		}
 		if f := sub.Flags().Lookup("no-descriptions"); f != nil {
 			f.Usage = "Desativa as descrições no autocompletar"

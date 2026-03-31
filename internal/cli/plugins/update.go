@@ -15,7 +15,16 @@ import (
 )
 
 // RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.
-func RunUpdateAll(ctx context.Context, d deps.Dependencies, log *system.Logger) error {
+func RunUpdateAll(
+	ctx context.Context,
+	cmd *cobra.Command,
+	d deps.Dependencies,
+	log *system.Logger,
+) error {
+	opts := appplugins.SyncOptions{EmitSuccess: false}
+	if cmd != nil {
+		opts = withCompletionPostSync(cmd, d, log, opts)
+	}
 	return appplugins.RunUpdateAllGitPlugins(
 		ctx,
 		pluginRuntimeFromDeps(d),
@@ -24,6 +33,7 @@ func RunUpdateAll(ctx context.Context, d deps.Dependencies, log *system.Logger) 
 		shellhelpers.Installer{},
 		mbplugins.GitService{},
 		log,
+		opts,
 	)
 }
 
@@ -39,7 +49,7 @@ func newPluginsUpdateCmd(d deps.Dependencies) *cobra.Command {
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if all {
-				return RunUpdateAll(ctx, d, log)
+				return RunUpdateAll(ctx, cmd, d, log)
 			}
 
 			if len(args) == 0 {
@@ -57,7 +67,7 @@ func newPluginsUpdateCmd(d deps.Dependencies) *cobra.Command {
 			); err != nil {
 				return err
 			}
-			_, err := RunSync(ctx, d, log, appplugins.SyncOptions{EmitSuccess: true})
+			_, err := RunSync(ctx, cmd, d, log, appplugins.SyncOptions{EmitSuccess: true})
 			return err
 		},
 	}

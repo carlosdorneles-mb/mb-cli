@@ -42,6 +42,12 @@ func newPluginsRemoveCmd(d deps.Dependencies) *cobra.Command {
 				return nil
 			}
 
+			syncOpts := withCompletionPostSync(
+				cmd,
+				d,
+				log,
+				appplugins.SyncOptions{EmitSuccess: false},
+			)
 			return appplugins.RunRemovePackage(
 				ctx,
 				pluginRuntimeFromDeps(d),
@@ -51,6 +57,7 @@ func newPluginsRemoveCmd(d deps.Dependencies) *cobra.Command {
 				mbfs.OS{},
 				log,
 				pkg,
+				syncOpts,
 			)
 		},
 	}

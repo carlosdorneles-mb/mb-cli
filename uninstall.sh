@@ -8,6 +8,7 @@ BINARY_NAME="mb"
 
 bin="${INSTALL_DIR}/${BINARY_NAME}"
 if [ -f "$bin" ]; then
+  "$bin" completion uninstall --yes
   rm -f "$bin"
   echo "MB CLI removido (${bin})"
 else

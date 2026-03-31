@@ -19,6 +19,8 @@ type SyncOptions struct {
 	EmitSuccess bool
 	// NoRemove keeps SQLite rows for commands that disappeared from scanned packages (orphans).
 	NoRemove bool
+	// PostSync runs after a successful SQLite refresh. Errors are logged but do not fail RunSync.
+	PostSync func(context.Context) error
 }
 
 // SyncReport summarizes plugin command changes detected during sync (leaf commands only).
@@ -149,6 +151,12 @@ func RunSync(
 
 	if opts.EmitSuccess && log != nil && !report.AnyChange {
 		_ = log.Info(runCtx, "Nenhum comando alterado; cache atualizado.")
+	}
+
+	if opts.PostSync != nil {
+		if err := opts.PostSync(runCtx); err != nil && log != nil {
+			_ = log.Warn(runCtx, "autocompletar: %v", err)
+		}
 	}
 	return report, nil
 }

@@ -19,7 +19,7 @@ func TestRunSyncEmptyPluginsDir(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	var buf bytes.Buffer
 	log := system.NewLogger(false, false, &buf)
-	_, err := RunSync(context.Background(), d, log, appplugins.SyncOptions{EmitSuccess: true})
+	_, err := RunSync(context.Background(), nil, d, log, appplugins.SyncOptions{EmitSuccess: true})
 	if err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
@@ -45,6 +45,7 @@ func TestRunSyncPluginPathCollision(t *testing.T) {
 
 	_, err := RunSync(
 		context.Background(),
+		nil,
 		d,
 		system.NewLogger(false, false, io.Discard),
 		appplugins.SyncOptions{},
@@ -67,7 +68,7 @@ func TestRunSyncRegistersLocalPathPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := RunSync(context.Background(), d, nil, appplugins.SyncOptions{}); err != nil {
+	if _, err := RunSync(context.Background(), nil, d, nil, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
 	pluginsList, err := d.Store.ListPlugins()
@@ -120,7 +121,7 @@ func TestRunSyncClearsUnknownNestedGroupID(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := RunSync(context.Background(), d, nil, appplugins.SyncOptions{}); err != nil {
+	if _, err := RunSync(context.Background(), nil, d, nil, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync: %v", err)
 	}
 	pluginsList, err := d.Store.ListPlugins()
@@ -145,7 +146,7 @@ func TestRunSyncLogsUpdatedWhenOnlyReferencedScriptChanges(t *testing.T) {
 
 	var buf1 bytes.Buffer
 	log1 := system.NewLogger(false, false, &buf1)
-	if _, err := RunSync(context.Background(), d, log1, appplugins.SyncOptions{}); err != nil {
+	if _, err := RunSync(context.Background(), nil, d, log1, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync 1: %v", err)
 	}
 	if !strings.Contains(buf1.String(), "adicionado") {
@@ -158,7 +159,7 @@ func TestRunSyncLogsUpdatedWhenOnlyReferencedScriptChanges(t *testing.T) {
 	}
 	var buf2 bytes.Buffer
 	log2 := system.NewLogger(false, false, &buf2)
-	if _, err := RunSync(context.Background(), d, log2, appplugins.SyncOptions{}); err != nil {
+	if _, err := RunSync(context.Background(), nil, d, log2, appplugins.SyncOptions{}); err != nil {
 		t.Fatalf("RunSync 2: %v", err)
 	}
 	out := buf2.String()

@@ -20,6 +20,7 @@ func RunRemovePackage(
 	fsys ports.Filesystem,
 	log *system.Logger,
 	pkg string,
+	syncOpts SyncOptions,
 ) error {
 	src, err := store.GetPluginSource(pkg)
 	if err != nil {
@@ -45,7 +46,7 @@ func RunRemovePackage(
 		scanner,
 		shell,
 		log,
-		SyncOptions{EmitSuccess: false},
+		syncOpts,
 	); err != nil {
 		return err
 	}

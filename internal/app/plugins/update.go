@@ -18,6 +18,7 @@ func RunUpdateAllGitPlugins(
 	shell ports.ShellHelperInstaller,
 	git ports.GitOperations,
 	log *system.Logger,
+	syncOpts SyncOptions,
 ) error {
 	if log != nil {
 		_ = log.Info(ctx, "Atualizando plugins...")
@@ -45,7 +46,7 @@ func RunUpdateAllGitPlugins(
 			}
 		}
 	}
-	_, err = RunSync(ctx, rt, store, scanner, shell, log, SyncOptions{EmitSuccess: false})
+	_, err = RunSync(ctx, rt, store, scanner, shell, log, syncOpts)
 	return err
 }
 

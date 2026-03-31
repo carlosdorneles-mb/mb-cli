@@ -23,7 +23,7 @@ func newPluginsSyncCmd(deps deps.Dependencies) *cobra.Command {
 				ctx = context.Background()
 			}
 			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			_, err := RunSync(ctx, deps, log, appplugins.SyncOptions{
+			_, err := RunSync(ctx, cmd, deps, log, appplugins.SyncOptions{
 				EmitSuccess: true,
 				NoRemove:    noRemove,
 			})

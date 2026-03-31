@@ -7,7 +7,7 @@ sidebar_position: 3
 ## Comandos principais
 
 | Comando | Descrição |
-|--------|-----------|
+| -------- | ----------- |
 | `mb update [--only-plugins \| --only-tools \| --only-cli \| --only-system]` | Sem flags: **plugins** → **tools** (`mb tools --update-all`, se o plugin `tools` com essa flag existir no cache) → **MB CLI** → **sistema** (macOS: `brew`/`mas`; Linux: `apt-get`/`flatpak`/`snap` quando disponíveis). Com **`--only-*`**, escolhe quais fases correr; pode **combinar** várias (ex.: `--only-plugins --only-cli`). **`--check-only`** só com **`--only-cli`**. |
 | `mb update --only-tools` | Só a fase **tools**: corre `mb tools --update-all` quando o subcomando `tools` existe no cache e expõe **`--update-all`**. Se usar **só** `--only-tools` e essa combinação não existir, a fase é ignorada com aviso. |
 | `mb update --only-system` | Só a fase de pacotes do sistema (pode combinar com outros `--only-*`). Pode pedir password ao `sudo` no Linux (APT e Snap). |
@@ -28,7 +28,11 @@ sidebar_position: 3
 
 O CLI gera scripts de completion para bash, zsh, fish e powershell via `mb completion <shell>`. O completion inclui os comandos built-in e **todos os comandos e subcomandos de plugins** disponíveis no cache. Após `mb plugins sync` (ou após instalar um plugin), use TAB para sugerir categorias e comandos de plugins.
 
-Para instalar o completion no seu shell, consulte `mb completion --help` e os subcomandos `bash`, `zsh`, `fish`, `powershell`.
+**Instalação automática:** `mb completion install` deteta o shell pela variável `SHELL` (no Windows assume PowerShell se `SHELL` não estiver definida), gera o mesmo script que `mb completion <shell>` e acrescenta (ou substitui) um bloco idempotente no ficheiro de perfil — por omissão `~/.bashrc`, `~/.zshrc`, `~/.config/fish/config.fish` (ou `XDG_CONFIG_HOME/fish/config.fish`), ou o perfil PowerShell do utilizador. Flags úteis: `--shell` para forçar o shell, `--rc-file` para outro ficheiro, `--dry-run` para pré-visualizar sem gravar, `-y` / `--yes` para gravar sem confirmação (necessário fora de um terminal interativo), `--no-descriptions` alinhado aos outros subcomandos de completion. Se o login shell usar apenas `.zprofile` em vez de `.zshrc`, use `--rc-file`. **Remover:** `mb completion uninstall` (mesmas ideias de flags) apaga só o bloco mb-cli do perfil; não falha se já não existir.
+
+Depois de `mb completion install` no perfil **por omissão**, cada `mb plugins sync` (e operações que fazem sync, como `add` / `remove` / `update`) pode **atualizar o script embutido** automaticamente para refletir o cache atual — exceto se tiver instalado apenas com `--rc-file` para um caminho personalizado (nesse caso volte a correr `mb completion install`).
+
+Para gerar só o script em stdout (instalação manual), consulte `mb completion --help` e os subcomandos `bash`, `zsh`, `fish`, `powershell`.
 
 ## Flags globais
 

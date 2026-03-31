@@ -42,7 +42,7 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools,
 				OnlyTools:   onlyTools,
 				CheckOnly:   checkOnly,
 				RunAllGitPlugins: func(ctx context.Context) error {
-					return plugins.RunUpdateAll(ctx, d, log)
+					return plugins.RunUpdateAll(ctx, cmd, d, log)
 				},
 			})
 		},
