@@ -28,7 +28,7 @@ Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **des
 **Opção recomendada (não copia arquivos):** na raiz do repositório, registre cada plugin de exemplo com o MB e sincronize:
 
 ```bash
-make install-examples   # registra examples/plugins/* com "mb plugins add <path>"
+make install-plugins-examples   # registra examples/plugins/* com "mb plugins add <path>"
 make run plugins sync   # ou: make run-local plugins sync
 ```
 

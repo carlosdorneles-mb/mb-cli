@@ -8,6 +8,10 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+// GitHub Pages: `/mb-cli/`. Para pré-visualizar `dist` com `serve` na raiz (ex.: `make docs-preview`), use
+// `DOCUSAURUS_BASE_URL=/ npm run build` — ver Makefile.
+const baseUrl = process.env.DOCUSAURUS_BASE_URL ?? '/mb-cli/';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'MB CLI',
@@ -22,7 +26,7 @@ const config = {
   // Set the production url of your site here
   url: 'https://carlosdorneles-mb.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served (GitHub Pages: /<projectName>/)
-  baseUrl: '/mb-cli/',
+  baseUrl,
 
   // GitHub pages deployment config (ajuste para o seu org/repo).
   organizationName: 'mercadobitcoin',

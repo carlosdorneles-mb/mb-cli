@@ -59,6 +59,6 @@ make run-local plugins sync # argumentos podem ser passados direto: make run-loc
 make run plugins sync       # build + ./bin/mb; idem: make run [args...] ou make run ARGS="..."
 ```
 
-Para usar os plugins de exemplo do repositório: **`make install-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run plugins sync`** (ou `mb plugins sync`).
+Para usar os plugins de exemplo do repositório: **`make install-plugins-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run plugins sync`** (ou `mb plugins sync`).
 
 Próximo passo: [Criar um plugin](./creating-plugins.md) para montar seu primeiro plugin e rodá-lo com o MB.

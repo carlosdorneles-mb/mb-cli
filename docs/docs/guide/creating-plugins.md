@@ -8,7 +8,7 @@ Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, regist
 
 - **Referência técnica** (scanner, cache, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
 - **Uso no dia a dia** (`mb plugins`, help, completion): [Comandos de plugins](./plugin-commands.md)
-- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-examples` e depois `mb plugins sync`
+- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-plugins-examples` e depois `mb plugins sync`
 
 ## Checklist rápido
 

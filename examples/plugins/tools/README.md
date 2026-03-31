@@ -16,7 +16,7 @@ Comando que usa **entrypoint padrão** e **flags** no mesmo manifest:
 
 ## Uso
 
-Com os plugins de exemplo registrados (`make install-examples` na raiz do repositório):
+Com os plugins de exemplo registrados (`make install-plugins-examples` na raiz do repositório):
 
 ```bash
 mb tools do

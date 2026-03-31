@@ -1,49 +1,37 @@
 # MB CLI
 
-CLI para orquestrar plugins com descoberta dinâmica e injeção de variáveis de ambiente. **Implementação:** Go; árvore de comandos (Cobra), cache local (SQLite), UI no terminal (Charm / Fang). Documentação de uso: site abaixo; detalhes técnicos em [Arquitetura](https://carlosdorneles-mb.github.io/mb-cli/docs/architecture).
+Ferramenta de linha de comando para gerir plugins e comandos personalizados no seu ambiente.
 
-<img title="MB CLI" alt="Alt text" src="mb-cli.png">
-
-## Instalação
-
-```bash
-curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
-```
-
-Requer `~/.local/bin` no PATH. Depois: `mb plugins sync`.
-
-Versão específica: `bash -s -- --version 0.0.5`. Desinstalar: `curl -sSL .../uninstall.sh | bash`.
-
-## Build (desenvolvedores)
-
-```bash
-make build    # bin/mb
-make install  # $GOPATH/bin
-```
-
-## Release
-
-SemVer via tags Git. `make deps` e `make release` (menu 1–3) ou workflow **Bump version** no GitHub Actions. Detalhes: [documentação](https://carlosdorneles-mb.github.io/mb-cli/docs/versioning-and-release).
+<img title="MB CLI" alt="MB CLI" src="mb-cli.png">
 
 ## Documentação
 
-A documentação está em **https://carlosdorneles-mb.github.io/mb-cli/**.
+Tudo sobre instalação, uso diário, plugins e opções está no site:
 
-- [Começar](https://carlosdorneles-mb.github.io/mb-cli/docs/getting-started) — pré-requisitos, instalação
-- [Comandos e plugins](https://carlosdorneles-mb.github.io/mb-cli/docs/plugin-commands)
-- [Criar um plugin](https://carlosdorneles-mb.github.io/mb-cli/docs/creating-plugins)
-- [Referência](https://carlosdorneles-mb.github.io/mb-cli/docs/reference)
+**https://carlosdorneles-mb.github.io/mb-cli/**
 
-## Comandos
+Sugestão de entrada: [Começar](https://carlosdorneles-mb.github.io/mb-cli/docs/getting-started).
 
-| Comando | Descrição |
-|--------|-----------|
-| `mb update [--only-plugins \| --only-cli \| --only-system]` | Atualiza plugins, binário do MB e sistema (brew/mas ou apt/flatpak/snap); sem flags executa as três fases; `--only-*` combináveis; `--check-only` só com `--only-cli` |
-| `mb plugins sync [--no-remove]` | Atualiza cache; opcionalmente mantém comandos órfãos |
-| `mb update --only-cli` | Atualiza o binário `mb` (só binários da release oficial) |
-| `mb update --only-cli --check-only` | Verifica atualização (release); saída `2` se houver |
-| `mb plugins add <url \| path>` | Instala ou substitui pacote; `--no-remove` repassa ao sync |
-| `mb plugins list` | Lista plugins |
-| `mb <categoria> <comando>` | Executa plugin |
+## Desenvolvimento local
 
-Flags: `-v` / `--verbose`, `-q` / `--quiet`, `--env KEY=VALUE`, `--env-file <path>`, `--doc` (abre a documentação; URL em `~/.config/mb/config.yaml`, ver [referência técnica](https://carlosdorneles-mb.github.io/mb-cli/docs/technical-reference/cli-config)).
+É necessário [Go](https://go.dev/dl/) (versão em `go.mod`) e `make`.
+
+```bash
+git clone https://github.com/carlosdorneles-mb/mb-cli.git
+cd mb-cli
+make build          # gera bin/mb
+./bin/mb --help
+```
+
+Para executar sem gravar o binário: `make run-local -- --help` (ou `make run` depois de `make build`). Testes: `make test`.
+
+Opcional — registar os plugins de exemplo do repositório e atualizar o cache:
+
+```bash
+make install-plugins-examples
+./bin/mb plugins sync
+```
+
+## Contribuir
+
+Abre um *issue* para ideias ou bugs. Para código ou documentação: *fork*, ramo com alterações focadas e *pull request* contra `main`. O CI e a revisão seguem o fluxo habitual do repositório; pormenores de versões e release estão na documentação do projeto.

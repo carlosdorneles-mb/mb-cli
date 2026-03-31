@@ -3,10 +3,14 @@ package executor
 import (
 	"go.uber.org/fx"
 
-	"mb/internal/infra/executor"
+	infraexec "mb/internal/infra/executor"
+	"mb/internal/ports"
 )
 
 // ExecutorModule provides the plugin script runner.
 var ExecutorModule = fx.Module("executor",
-	fx.Provide(executor.New),
+	fx.Provide(
+		infraexec.New,
+		func(e *infraexec.Executor) ports.ScriptExecutor { return e },
+	),
 )

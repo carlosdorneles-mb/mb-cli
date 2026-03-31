@@ -29,7 +29,7 @@ type SyncReport struct {
 	AnyChange bool
 }
 
-// RunSync rescans the plugins dir and registered local paths, upserts plugins and categories, and updates the plugin_sources registry.
+// RunSync rescans PluginsDir and each plugin_sources.local_path tree, merges results, and replaces plugin, category, and help-group rows in SQLite. It does not mutate plugin_sources (add/remove/update handle that).
 // Used by mb plugins sync and after plugins add/remove/update.
 // log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
 func RunSync(

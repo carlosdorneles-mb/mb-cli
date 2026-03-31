@@ -81,7 +81,7 @@ type Manifest struct {
 	LongDescription string       `yaml:"long_description"` // optional; Long for Cobra (multi-line ok)
 	Entrypoint      string       `yaml:"entrypoint"`       // if set = executable leaf (type inferred by .sh suffix)
 	Readme          string       `yaml:"readme"`
-	Flags           FlagsSpec    `yaml:"flags"`      // list only; only used when Entrypoint is empty (flags-only leaf)
+	Flags           FlagsSpec    `yaml:"flags"`      // list only; flags-only leaf when Entrypoint is empty; optional extra scripts when Entrypoint is set
 	Use             string       `yaml:"use"`        // optional; Cobra Use template (e.g. "<name>" or "[env]")
 	Args            int          `yaml:"args"`       // optional; number of required positional args (0 = no validation)
 	Aliases         []string     `yaml:"aliases"`    // optional; Cobra Aliases

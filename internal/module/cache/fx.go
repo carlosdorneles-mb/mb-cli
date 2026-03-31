@@ -7,6 +7,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/infra/sqlite"
+	"mb/internal/ports"
 )
 
 func newStore(p *deps.Paths) (*sqlite.Store, error) {
@@ -23,6 +24,9 @@ func registerStoreLifecycle(lc fx.Lifecycle, store *sqlite.Store) {
 
 // CacheModule provides the SQLite plugin cache and closes it on shutdown.
 var CacheModule = fx.Module("cache",
-	fx.Provide(newStore),
+	fx.Provide(
+		newStore,
+		func(s *sqlite.Store) ports.PluginCLIStore { return s },
+	),
 	fx.Invoke(registerStoreLifecycle),
 )

@@ -41,7 +41,7 @@ help:
 	@echo "  docs-install   npm install em $(DOCS_DIR)"
 	@echo "  docs-dev       servidor de desenvolvimento (npm run start)"
 	@echo "  docs-build     gera $(DOCS_DIR)/dist"
-	@echo "  docs-preview   serve $(DOCS_DIR)/dist localmente"
+	@echo "  docs-preview   build com baseUrl=/ + serve $(DOCS_DIR)/dist em http://localhost:3000"
 	@echo ""
 	@echo "Release (versionamento com svu):"
 	@echo "  release       interativo: escolhe major/minor/patch (1-3) e faz push da tag"
@@ -89,7 +89,7 @@ install-plugins-examples:
 	  (cd "$$root" && go run . plugins add "$$abs"); \
 	done
 
-# Remove os plugins de exemplo do config (mb plugins remove <package>). Usa os mesmos identificadores que install-examples (infra, tools, etc.).
+# Remove os plugins de exemplo do config (mb plugins remove <package>). Usa os mesmos identificadores que install-plugins-examples (infra, tools, etc.).
 uninstall-plugins-examples:
 	@root=$$(pwd); \
 	for subdir in examples/plugins/*/; do \
@@ -131,24 +131,27 @@ docs-build:
 	cd $(DOCS_DIR) && npm install && npm run build
 
 docs-preview:
-	cd $(DOCS_DIR) && npx serve dist -p 3000
+	cd $(DOCS_DIR) && npm install && DOCUSAURUS_BASE_URL=/ npm run build && npx serve dist -p 3000
 
 # Release interativo: mostra opções (current -> next) e usuário escolhe 1, 2 ou 3.
 release: check-svu
 	@current=$$(svu current 2>/dev/null || echo "v0.0.0"); \
+	next_next=$$(svu next); \
 	next_major=$$(svu major); \
 	next_minor=$$(svu minor); \
 	next_patch=$$(svu patch); \
 	echo "Escolha o tipo de release:"; \
-	echo "  1. Major ($$current -> $$next_major)"; \
-	echo "  2. Minor ($$current -> $$next_minor)"; \
-	echo "  3. Patch ($$current -> $$next_patch)"; \
+	echo "  1. Next ($$current -> $$next_next)"; \
+	echo "  2. Major ($$current -> $$next_major)"; \
+	echo "  3. Minor ($$current -> $$next_minor)"; \
+	echo "  4. Patch ($$current -> $$next_patch)"; \
 	echo ""; \
-	printf "Opção (1-3): "; read opt; \
+	printf "Opção (1-4): "; read opt; \
 	case "$$opt" in \
-	  1) next="$$next_major";; \
-	  2) next="$$next_minor";; \
-	  3) next="$$next_patch";; \
+	  1) next="$$next_next";; \
+	  2) next="$$next_major";; \
+	  3) next="$$next_minor";; \
+	  4) next="$$next_patch";; \
 	  *) echo "Opção inválida."; exit 1;; \
 	esac; \
 	git tag "$$next" && git push origin "$$next"
