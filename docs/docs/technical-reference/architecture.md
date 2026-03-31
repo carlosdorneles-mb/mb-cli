@@ -11,14 +11,19 @@ Esta página descreve, em alto nível, como o MB CLI está organizado para quem 
 O código em `internal/` segue uma organização orientada a [Uber FX](https://uber-go.github.io/fx/):
 
 - **`bootstrap`** — Ponto de entrada da aplicação: `fx.New` com Options que agregam todos os módulos e `fx.Populate(&rootCmd)` para obter o comando Cobra raiz.
-- **`module/`** — Módulos FX por contexto: `runtime` (paths, config), `cache`, `plugins`, `executor`, `deps`, `cli`. Cada um expõe um `fx.Option` (ex.: `PathsModule`, `CacheModule`).
+- **`module/`** — Módulos FX por contexto: `runtime` (paths, config), `cache`, `plugins`, `executor`, `deps`, `cli`. Cada um expõe um `fx.Option` (ex.: `PathsModule`, `CacheModule`). O **`DepsModule`** agrega o bundle injetado nos comandos (store, scanner, executor, **`ports.SecretStore`** via implementação em `infra/keyring`).
 - **`cli/`** — Cobra: root, plugins, envs, update, plugincmd (comandos dinâmicos a partir do cache).
-- **`app/`** — Use cases (ex.: sync de plugins em `app/plugins`).
-- **`infra/`** — Implementações: sqlite (Store), plugins (scanner, Git, manifest), executor, browser, selfupdate, shellhelpers.
+- **`app/`** — Casos de uso: **`app/plugins`** (sync, add/remove/update de pacotes), **`app/envs`** (`mb envs` com `ports.SecretStore` e I/O de ficheiros via `deps`), **`app/update`** (orquestração das fases de `mb update`, incluindo chamadas a `infra/selfupdate` e `infra/shellhelpers` onde necessário).
+- **`deps/`** — Tipos de composição para comandos: `RuntimeConfig`, `Paths`, `Dependencies` (campos tipados como interfaces em **`ports`**, p.ex. `PluginCLIStore`, `PluginScanner`, `ScriptExecutor`, `SecretStore`), helpers de `env.defaults` / secret keys e merge de ambiente para plugins.
+- **`infra/`** — Implementações: sqlite (Store), plugins (scanner, Git, manifest), executor, browser, selfupdate, shellhelpers, **`keyring`** (keyring do SO → `ports.SecretStore`).
 - **`shared/`** — Código partilhado sem dependências de negócio: ui, system, safepath, version, env, envgroup, config.
-- **`domain/`** — Tipos de domínio (ex.: plugin); **`ports/`** — Interfaces opcionais para desacoplar infra.
+- **`domain/`** — Tipos de domínio (ex.: plugin); **`ports/`** — Contratos (`PluginCacheStore`, `PluginCLIStore`, `PluginScanner`, `SecretStore`, `ScriptExecutor`, etc.) para desacoplar `app` de `infra` onde aplicável.
 
-Ordem de dependência (evitar ciclos): `shared` → `domain`/`ports` → `infra` → `app` → `module` → `cli` → `bootstrap`. Ver mapa detalhado em `internal/README.md` no repositório.
+**Fonte de verdade** para nomes de pacotes e regras de import: ficheiro **`internal/README.md`** no repositório.
+
+As regras de dependência no código evitam ciclos (ex.: `app/plugins` não importa `infra`; `app/envs` e `app/update` têm exceções documentadas nesse README). O diagrama seguinte é uma **visão por camadas FX** (bootstrap → módulos → cli → app → infra → ports/domain), não o grafo completo de imports.
+
+Ordem de leitura típica para contribuidores: `domain` / `ports` → `infra` (adaptadores) → `app` → `deps` + `module` → `cli` → `bootstrap`.
 
 ```mermaid
 flowchart LR

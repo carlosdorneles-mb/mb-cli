@@ -42,6 +42,8 @@ Esses defaults só são aplicados quando a chave ainda não existe no ambiente m
 Você pode definir variáveis que serão usadas em toda execução de plugins e de **`mb run`**, sem precisar passar `--env` toda vez:
 
 - **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`) e **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`). Variáveis guardadas como secret mostram o valor como **`***`**; use **`--show-secrets`** para ver o valor real (lido do keyring).
+- **`mb envs list --json`** ou **`-J`** — Emite um único objeto JSON (`{"CHAVE":"valor", ...}`), útil para scripts. Não pode ser usado junto com **`--text` / `-T`**.
+- **`mb envs list --text`** ou **`-T`** — Emite só linhas **`CHAVE=valor`** (sem coluna de grupo). Não pode ser usado junto com **`--json` / `-J`**.
 - **`mb envs list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
 - **`mb envs set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`. Com **`--secret`**, o valor é guardado no **keyring do sistema** (não em ficheiro); ao executar plugins, o valor é injectado a partir do keyring.
 - **`mb envs unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo. Se a variável estava guardada como secret, é também removida do keyring.
