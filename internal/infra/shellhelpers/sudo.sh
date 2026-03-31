@@ -85,14 +85,14 @@ required_sudo() {
         fi
     fi
 
-    if is_root; then
+    if check_sudo; then
         return 0
     fi
 
     if sudo -v; then
         return 0
     fi
-
+    
     if [ "$optional" = true ]; then
         if [ -n "$cmd_context" ]; then
             check_sudo "Executando sem privilégios de superusuário (sudo): algumas funcionalidades de \"$cmd_context\" podem não funcionar ou ficar indisponíveis."
@@ -103,7 +103,6 @@ required_sudo() {
         return 0
     fi
 
-    check_sudo
     log error "Falha ao obter privilégios de sudo"
     exit 1
 }
