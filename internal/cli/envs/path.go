@@ -3,25 +3,19 @@ package envs
 import (
 	"sort"
 
+	appenvs "mb/internal/app/envs"
 	"mb/internal/deps"
 )
 
-func envTargetPath(d deps.Dependencies, group string) (string, error) {
-	if group == "" {
-		return d.Runtime.DefaultEnvPath, nil
+func envPaths(d deps.Dependencies) appenvs.Paths {
+	return appenvs.Paths{
+		DefaultEnvPath: d.Runtime.DefaultEnvPath,
+		ConfigDir:      d.Runtime.ConfigDir,
 	}
-	if err := deps.ValidateEnvGroup(group); err != nil {
-		return "", err
-	}
-	return deps.GroupEnvFilePath(d.Runtime.ConfigDir, group)
 }
 
-// envGroupForKeyring returns the keyring group id: "" -> "default", else unchanged.
-func envGroupForKeyring(group string) string {
-	if group == "" {
-		return "default"
-	}
-	return group
+func envTargetPath(d deps.Dependencies, group string) (string, error) {
+	return appenvs.TargetPath(envPaths(d), group)
 }
 
 func sortedKeys(m map[string]string) []string {

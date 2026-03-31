@@ -57,8 +57,6 @@ func RunToolsUpdateAllPhase(
 	return err
 }
 
-// saveRootArgs reads the cobra root invocation slice (unexported "args" field set by SetArgs).
-// When wasSet is false, the next Execute uses os.Args[1:]. Used only for nested root.Execute above.
 func saveRootArgs(root *cobra.Command) (args []string, wasSet bool) {
 	if root == nil {
 		return nil, false
@@ -79,7 +77,6 @@ func saveRootArgs(root *cobra.Command) (args []string, wasSet bool) {
 	return out, true
 }
 
-// restoreRootArgs resets root args after saveRootArgs. When wasSet is false, calls SetArgs(nil).
 func restoreRootArgs(root *cobra.Command, args []string, wasSet bool) {
 	if root == nil {
 		return

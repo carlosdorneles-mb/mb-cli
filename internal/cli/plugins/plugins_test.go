@@ -46,6 +46,7 @@ func testPluginsDeps(t *testing.T) deps.Dependencies {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 }
 

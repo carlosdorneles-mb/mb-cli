@@ -4,17 +4,13 @@ package update
 
 import (
 	"context"
-	"errors"
-	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
+	appupdate "mb/internal/app/update"
 	"mb/internal/cli/plugins"
 	"mb/internal/deps"
-	"mb/internal/infra/selfupdate"
 	"mb/internal/shared/system"
-	"mb/internal/shared/version"
 )
 
 // NewUpdateCmd builds the root "mb update" cobra command.
@@ -30,10 +26,6 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools,
 
 --check-only só pode ser usado juntamente com --only-cli (verifica release do binário sem baixar).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if checkOnly && !onlyCLI {
-				return errors.New("use --check-only apenas com --only-cli")
-			}
-
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
@@ -43,49 +35,16 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools,
 				d.Runtime != nil && d.Runtime.Verbose,
 				cmd.ErrOrStderr(),
 			)
-
-			runPlugins, runCLI, runSystem, runTools := resolveUpdatePhases(
-				onlyPlugins, onlyCLI, onlySystem, onlyTools,
-			)
-			toolsOnlyExclusive := onlyTools && !onlyPlugins && !onlyCLI && !onlySystem
-
-			if runPlugins {
-				if err := plugins.RunUpdateAll(ctx, d, log); err != nil {
-					return err
-				}
-			}
-
-			if runTools {
-				if err := RunToolsUpdateAllPhase(ctx, cmd, log, toolsOnlyExclusive); err != nil {
-					return err
-				}
-			}
-
-			if runCLI {
-				if checkOnly {
-					suCfg := selfupdateFromAppConfig(d)
-					local := strings.TrimSpace(version.Version)
-					out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
-					if out != "" {
-						logInfoLines(ctx, log, out)
-					}
-					if err != nil {
-						return err
-					}
-					if code == selfupdate.ExitCodeUpdateAvailable {
-						os.Exit(selfupdate.ExitCodeUpdateAvailable)
-					}
-				} else {
-					if err := RunCLIUpdate(ctx, d, log); err != nil {
-						return err
-					}
-				}
-			}
-
-			if runSystem {
-				return RunSystemUpdate(ctx, log)
-			}
-			return nil
+			return appupdate.Run(ctx, cmd, d, log, appupdate.Options{
+				OnlyPlugins: onlyPlugins,
+				OnlyCLI:     onlyCLI,
+				OnlySystem:  onlySystem,
+				OnlyTools:   onlyTools,
+				CheckOnly:   checkOnly,
+				RunAllGitPlugins: func(ctx context.Context) error {
+					return plugins.RunUpdateAll(ctx, d, log)
+				},
+			})
 		},
 	}
 	cmd.Flags().
@@ -99,14 +58,4 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools,
 	cmd.Flags().
 		BoolVar(&checkOnly, "check-only", false, "Só com --only-cli: verifica atualização do binário sem baixar; saída 2 se houver")
 	return cmd
-}
-
-// resolveUpdatePhases returns which phases to run. If no --only-* flag is set, all four run.
-func resolveUpdatePhases(
-	onlyPlugins, onlyCLI, onlySystem, onlyTools bool,
-) (plugins, cli, system, tools bool) {
-	if !onlyPlugins && !onlyCLI && !onlySystem && !onlyTools {
-		return true, true, true, true
-	}
-	return onlyPlugins, onlyCLI, onlySystem, onlyTools
 }

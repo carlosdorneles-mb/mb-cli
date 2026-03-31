@@ -3,8 +3,8 @@ package envs
 import (
 	"github.com/spf13/cobra"
 
+	appenvs "mb/internal/app/envs"
 	"mb/internal/deps"
-	"mb/internal/keyring"
 	"mb/internal/shared/system"
 )
 
@@ -18,31 +18,8 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
-			path, err := envTargetPath(d, unsetGroup)
-			if err != nil {
-				return err
-			}
-			group := envGroupForKeyring(unsetGroup)
-
-			values, err := deps.LoadDefaultEnvValues(path)
-			if err != nil {
-				return err
-			}
-
 			key := args[0]
-			secretKeys, err := deps.LoadSecretKeys(path)
-			if err != nil {
-				return err
-			}
-			for _, sk := range secretKeys {
-				if sk == key {
-					_ = keyring.Delete(group, key)
-					_ = deps.RemoveSecretKey(path, key)
-					break
-				}
-			}
-			delete(values, key)
-			if err := deps.SaveDefaultEnvValues(path, values); err != nil {
+			if err := appenvs.Unset(d.SecretStore, envPaths(d), unsetGroup, key); err != nil {
 				return err
 			}
 			if unsetGroup != "" {

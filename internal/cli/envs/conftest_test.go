@@ -9,6 +9,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/infra/executor"
+	infrakeyring "mb/internal/infra/keyring"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
@@ -46,5 +47,6 @@ func testDeps(t *testing.T) deps.Dependencies {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		infrakeyring.SystemKeyring{},
 	)
 }

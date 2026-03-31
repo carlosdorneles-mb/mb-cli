@@ -14,3 +14,10 @@ type PluginCacheStore interface {
 	PluginSyncStore
 	PluginSourceStore
 }
+
+// PluginCLIStore is PluginCacheStore plus read methods required by CLI (attach, list).
+type PluginCLIStore interface {
+	PluginCacheStore
+	ListCategories() ([]plugin.Category, error)
+	ListPluginHelpGroups() ([]plugin.PluginHelpGroup, error)
+}

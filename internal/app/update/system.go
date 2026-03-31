@@ -49,8 +49,6 @@ func runCmd(ctx context.Context, env []string, bin string, args ...string) error
 	return cmd.Run()
 }
 
-// --- Darwin ---
-
 func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 	brewPath, err := exec.LookPath("brew")
 	if err != nil {
@@ -80,8 +78,6 @@ func runDarwinSystemUpdate(ctx context.Context, log *system.Logger) error {
 	}
 	return nil
 }
-
-// --- Linux ---
 
 func runLinuxSystemUpdate(ctx context.Context, log *system.Logger) error {
 	sudoPath, errSudo := exec.LookPath("sudo")

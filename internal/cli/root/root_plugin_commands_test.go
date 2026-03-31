@@ -52,6 +52,7 @@ func TestRootCmdAttachIncludesPluginTools(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	root := NewRootCmd(d)
 
@@ -108,6 +109,7 @@ func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	root := NewRootCmd(d)
 

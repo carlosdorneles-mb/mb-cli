@@ -32,7 +32,7 @@ func BuildMergedOSEnvironWithExtraInline(
 	if err != nil {
 		return nil, err
 	}
-	fileValues, err := BuildEnvFileValues(d.Runtime)
+	fileValues, err := BuildEnvFileValues(d.Runtime, d.SecretStore)
 	if err != nil {
 		return nil, err
 	}

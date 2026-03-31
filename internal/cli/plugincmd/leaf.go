@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
+	"mb/internal/ports"
 	"mb/internal/shared/system"
 )
 
@@ -50,7 +50,7 @@ func newLeafCommand(
 	use string,
 	plugin sqlite.Plugin,
 	d deps.Dependencies,
-	exec *executor.Executor,
+	exec ports.ScriptExecutor,
 	pluginRoot string,
 	isLocal bool,
 	dbgLog *system.Logger,

@@ -52,6 +52,7 @@ func TestListShowsLocalAndPath(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	listCmd := newPluginsListCmd(d)
 	var out bytes.Buffer

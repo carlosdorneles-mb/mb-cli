@@ -3,8 +3,8 @@ package envs
 import (
 	"github.com/spf13/cobra"
 
+	appenvs "mb/internal/app/envs"
 	"mb/internal/deps"
-	"mb/internal/keyring"
 	"mb/internal/shared/system"
 )
 
@@ -20,44 +20,15 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			key, value := args[0], args[1]
-			path, err := envTargetPath(d, setGroup)
-			if err != nil {
+			if err := appenvs.Set(
+				d.SecretStore,
+				envPaths(d),
+				setGroup,
+				key,
+				value,
+				secret,
+			); err != nil {
 				return err
-			}
-			group := envGroupForKeyring(setGroup)
-
-			values, err := deps.LoadDefaultEnvValues(path)
-			if err != nil {
-				return err
-			}
-
-			if secret {
-				if err := keyring.Set(group, key, value); err != nil {
-					return err
-				}
-				if err := deps.AddSecretKey(path, key); err != nil {
-					return err
-				}
-				delete(values, key)
-				if err := deps.SaveDefaultEnvValues(path, values); err != nil {
-					return err
-				}
-			} else {
-				secretKeys, err := deps.LoadSecretKeys(path)
-				if err != nil {
-					return err
-				}
-				for _, sk := range secretKeys {
-					if sk == key {
-						_ = keyring.Delete(group, key)
-						_ = deps.RemoveSecretKey(path, key)
-						break
-					}
-				}
-				values[key] = value
-				if err := deps.SaveDefaultEnvValues(path, values); err != nil {
-					return err
-				}
 			}
 
 			if setGroup != "" {

@@ -18,7 +18,7 @@ func TestBuildEnvFileValues_DefaultOnly(t *testing.T) {
 			DefaultEnvPath: p,
 		},
 	}
-	m, err := BuildEnvFileValues(rt)
+	m, err := BuildEnvFileValues(rt, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestBuildEnvFileValues_GroupOverlay(t *testing.T) {
 		},
 		EnvGroup: "staging",
 	}
-	m, err := BuildEnvFileValues(rt)
+	m, err := BuildEnvFileValues(rt, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestBuildEnvFileValues_CwdDotEnvBeforeEnvFile(t *testing.T) {
 		},
 		EnvFilePath: extra,
 	}
-	m, err := BuildEnvFileValues(rt)
+	m, err := BuildEnvFileValues(rt, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestBuildEnvFileValues_InvalidEnvGroup(t *testing.T) {
 		},
 		EnvGroup: "../x",
 	}
-	_, err := BuildEnvFileValues(rt)
+	_, err := BuildEnvFileValues(rt, nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zalando/go-keyring"
+	zkeyring "github.com/zalando/go-keyring"
 )
 
 const keyringService = "mb-cli"
@@ -23,15 +23,15 @@ func Set(group, envKey, value string) error {
 	if strings.Contains(envKey, ":") {
 		return fmt.Errorf("key não pode conter ':'")
 	}
-	return keyring.Set(keyringService, itemID(group, envKey), value)
+	return zkeyring.Set(keyringService, itemID(group, envKey), value)
 }
 
 // Get retrieves a secret for the given group and key.
 func Get(group, envKey string) (string, error) {
-	return keyring.Get(keyringService, itemID(group, envKey))
+	return zkeyring.Get(keyringService, itemID(group, envKey))
 }
 
 // Delete removes a secret for the given group and key.
 func Delete(group, envKey string) error {
-	return keyring.Delete(keyringService, itemID(group, envKey))
+	return zkeyring.Delete(keyringService, itemID(group, envKey))
 }

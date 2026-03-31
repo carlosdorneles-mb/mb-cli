@@ -2,19 +2,57 @@ package update
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"mb/internal/deps"
+	"mb/internal/infra/executor"
+	"mb/internal/infra/plugins"
+	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
 	"mb/internal/shared/system"
 	"mb/internal/shared/version"
 )
 
-func TestSelfupdateFromAppConfig(t *testing.T) {
+func testDepsForUpdateCLI(t *testing.T) deps.Dependencies {
+	t.Helper()
+	tmp := t.TempDir()
+	cachePath := filepath.Join(tmp, "cache.db")
+	pluginsDir := filepath.Join(tmp, "plugins")
+	configDir := filepath.Join(tmp, "config")
+	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
+		t.Fatalf("mkdir plugins: %v", err)
+	}
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("mkdir config: %v", err)
+	}
+	store, err := sqlite.NewStore(cachePath)
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	rt := &deps.RuntimeConfig{
+		Paths: deps.Paths{
+			PluginsDir: pluginsDir,
+			ConfigDir:  configDir,
+		},
+	}
+	return deps.NewDependencies(
+		rt,
+		config.AppConfig{},
+		store,
+		plugins.NewScanner(pluginsDir),
+		executor.New(),
+		nil,
+	)
+}
+
+func TestSelfUpdateConfigFromDeps(t *testing.T) {
 	t.Parallel()
 	d := deps.Dependencies{AppConfig: config.AppConfig{UpdateRepo: "  my/repo  "}}
-	cfg := selfupdateFromAppConfig(d)
+	cfg := SelfUpdateConfigFromDeps(d)
 	if cfg == nil {
 		t.Fatal("nil config")
 	}
@@ -22,7 +60,7 @@ func TestSelfupdateFromAppConfig(t *testing.T) {
 		t.Errorf("Repo = %q, want my/repo", cfg.Repo)
 	}
 
-	empty := selfupdateFromAppConfig(deps.Dependencies{AppConfig: config.AppConfig{}})
+	empty := SelfUpdateConfigFromDeps(deps.Dependencies{AppConfig: config.AppConfig{}})
 	if empty.Repo != "" {
 		t.Errorf("empty UpdateRepo: Repo = %q, want \"\"", empty.Repo)
 	}
@@ -33,7 +71,7 @@ func TestLogInfoLinesSkipsBlankLines(t *testing.T) {
 	ctx := context.Background()
 	var buf strings.Builder
 	log := system.NewLogger(false, false, &buf)
-	logInfoLines(ctx, log, "  a  \n\n  b  \n")
+	LogInfoLines(ctx, log, "  a  \n\n  b  \n")
 	out := buf.String()
 	if !strings.Contains(out, "a") || !strings.Contains(out, "b") {
 		t.Fatalf("expected both lines logged, got: %q", out)
@@ -45,7 +83,7 @@ func TestRunCLIUpdateNonReleaseBuildReturnsNil(t *testing.T) {
 		t.Skip("test binary has embedded Version; skip release path that calls network")
 	}
 	ctx := context.Background()
-	d := testUpdateDeps(t)
+	d := testDepsForUpdateCLI(t)
 	var buf strings.Builder
 	log := system.NewLogger(false, false, &buf)
 	if err := RunCLIUpdate(ctx, d, log); err != nil {

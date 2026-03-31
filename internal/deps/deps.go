@@ -3,9 +3,7 @@ package deps
 import (
 	"time"
 
-	"mb/internal/infra/executor"
-	"mb/internal/infra/plugins"
-	"mb/internal/infra/sqlite"
+	"mb/internal/ports"
 	"mb/internal/shared/config"
 )
 
@@ -24,26 +22,29 @@ type RuntimeConfig struct {
 
 // Dependencies groups services injected into commands.
 type Dependencies struct {
-	Runtime   *RuntimeConfig
-	AppConfig config.AppConfig
-	Store     *sqlite.Store
-	Scanner   *plugins.Scanner
-	Executor  *executor.Executor
+	Runtime     *RuntimeConfig
+	AppConfig   config.AppConfig
+	Store       ports.PluginCLIStore
+	Scanner     ports.PluginScanner
+	Executor    ports.ScriptExecutor
+	SecretStore ports.SecretStore
 }
 
 // NewDependencies constructs the dependency bundle for Fx / tests.
 func NewDependencies(
 	runtime *RuntimeConfig,
 	appCfg config.AppConfig,
-	store *sqlite.Store,
-	scanner *plugins.Scanner,
-	exec *executor.Executor,
+	store ports.PluginCLIStore,
+	scanner ports.PluginScanner,
+	exec ports.ScriptExecutor,
+	secrets ports.SecretStore,
 ) Dependencies {
 	return Dependencies{
-		Runtime:   runtime,
-		AppConfig: appCfg,
-		Store:     store,
-		Scanner:   scanner,
-		Executor:  exec,
+		Runtime:     runtime,
+		AppConfig:   appCfg,
+		Store:       store,
+		Scanner:     scanner,
+		Executor:    exec,
+		SecretStore: secrets,
 	}
 }

@@ -85,6 +85,7 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	r := root.NewRootCmd(d)
 

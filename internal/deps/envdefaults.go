@@ -8,7 +8,8 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"mb/internal/keyring"
+	"mb/internal/infra/keyring"
+	"mb/internal/ports"
 )
 
 // LoadDefaultEnvValues reads KEY=VALUE pairs from the given path (e.g. env.defaults).
@@ -33,13 +34,20 @@ func SaveDefaultEnvValues(path string, values map[string]string) error {
 }
 
 // mergeSecretKeysInto resolves keys listed in path.secrets from the keyring and adds them to merged.
-func mergeSecretKeysInto(merged map[string]string, path, keyringGroup string) {
+func mergeSecretKeysInto(
+	merged map[string]string,
+	path, keyringGroup string,
+	secrets ports.SecretStore,
+) {
+	if secrets == nil {
+		secrets = keyring.SystemKeyring{}
+	}
 	keys, err := LoadSecretKeys(path)
 	if err != nil {
 		return
 	}
 	for _, key := range keys {
-		val, err := keyring.Get(keyringGroup, key)
+		val, err := secrets.Get(keyringGroup, key)
 		if err != nil {
 			continue
 		}
@@ -51,7 +59,11 @@ func mergeSecretKeysInto(merged map[string]string, path, keyringGroup string) {
 // then overlays ./.env from the current working directory when that file exists,
 // then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring.
 // Used for plugin execution and mb run.
-func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
+// If secrets is nil, the OS keyring implementation is used.
+func BuildEnvFileValues(rt *RuntimeConfig, secrets ports.SecretStore) (map[string]string, error) {
+	if secrets == nil {
+		secrets = keyring.SystemKeyring{}
+	}
 	merged := map[string]string{}
 
 	defaultValues, err := LoadDefaultEnvValues(rt.DefaultEnvPath)
@@ -61,7 +73,7 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 	for key, value := range defaultValues {
 		merged[key] = value
 	}
-	mergeSecretKeysInto(merged, rt.DefaultEnvPath, "default")
+	mergeSecretKeysInto(merged, rt.DefaultEnvPath, "default", secrets)
 
 	if rt.EnvGroup != "" {
 		if err := ValidateEnvGroup(rt.EnvGroup); err != nil {
@@ -78,7 +90,7 @@ func BuildEnvFileValues(rt *RuntimeConfig) (map[string]string, error) {
 		for key, value := range groupValues {
 			merged[key] = value
 		}
-		mergeSecretKeysInto(merged, groupPath, rt.EnvGroup)
+		mergeSecretKeysInto(merged, groupPath, rt.EnvGroup, secrets)
 	}
 
 	if err := mergeCwdDotEnvIfPresent(merged); err != nil {

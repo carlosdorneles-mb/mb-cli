@@ -76,6 +76,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	rootCmd := root.NewRootCmd(d)
 
@@ -175,6 +176,7 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	rootCmd := root.NewRootCmd(d)
 
@@ -254,6 +256,7 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 	)
 	rootCmd := root.NewRootCmd(d)
 
