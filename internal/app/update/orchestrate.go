@@ -36,6 +36,7 @@ func Run(
 		o.OnlyPlugins, o.OnlyCLI, o.OnlySystem, o.OnlyTools,
 	)
 	toolsOnlyExclusive := o.OnlyTools && !o.OnlyPlugins && !o.OnlyCLI && !o.OnlySystem
+	systemOnlyExclusive := o.OnlySystem && !o.OnlyPlugins && !o.OnlyCLI && !o.OnlyTools
 
 	if runPlugins {
 		if err := o.RunAllGitPlugins(ctx); err != nil {
@@ -71,7 +72,7 @@ func Run(
 	}
 
 	if runSystem {
-		return RunSystemUpdate(ctx, log)
+		return RunMachineUpdatePhase(ctx, cmd, log, systemOnlyExclusive)
 	}
 	return nil
 }

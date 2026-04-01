@@ -1,12 +1,14 @@
 package update
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"mb/internal/deps"
+	"mb/internal/domain/plugin"
 	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
@@ -59,14 +61,78 @@ func TestNewUpdateCmd(t *testing.T) {
 	if fp := cmd.Flags().Lookup("only-plugins"); fp == nil {
 		t.Error("flag only-plugins missing")
 	}
-	if ft := cmd.Flags().Lookup("only-tools"); ft == nil {
-		t.Error("flag only-tools missing")
+	if ft := cmd.Flags().Lookup("only-tools"); ft != nil {
+		t.Error("flag only-tools should be absent without tools plugin (update-all) in cache")
 	}
 	if fc := cmd.Flags().Lookup("only-cli"); fc == nil {
 		t.Error("flag only-cli missing")
 	}
+	if fs := cmd.Flags().Lookup("only-system"); fs != nil {
+		t.Error("flag only-system should be absent without machine/update plugin in cache")
+	}
+}
+
+func TestNewUpdateCmdOnlyToolsWithToolsPlugin(t *testing.T) {
+	d := testUpdateDeps(t)
+	flagsJSON, err := json.Marshal(map[string]plugins.FlagDef{
+		"update-all": {Type: "long", Entrypoint: "u.sh", Description: "update"},
+	})
+	if err != nil {
+		t.Fatalf("marshal flags: %v", err)
+	}
+	if err := d.Store.UpsertPlugin(plugin.Plugin{
+		CommandPath: toolsPluginCommandPath,
+		CommandName: "tools",
+		Description: "Tools umbrella",
+		FlagsJSON:   string(flagsJSON),
+		ConfigHash:  "t1",
+	}); err != nil {
+		t.Fatalf("UpsertPlugin: %v", err)
+	}
+	cmd := NewUpdateCmd(d)
+	if ft := cmd.Flags().Lookup("only-tools"); ft == nil {
+		t.Error("flag only-tools missing when tools with update-all is in cache")
+	}
+}
+
+func TestNewUpdateCmdOnlyToolsAbsentWhenToolsWithoutUpdateAll(t *testing.T) {
+	d := testUpdateDeps(t)
+	flagsJSON, err := json.Marshal(map[string]plugins.FlagDef{
+		"other-flag": {Type: "long", Entrypoint: "x.sh", Description: "x"},
+	})
+	if err != nil {
+		t.Fatalf("marshal flags: %v", err)
+	}
+	if err := d.Store.UpsertPlugin(plugin.Plugin{
+		CommandPath: toolsPluginCommandPath,
+		CommandName: "tools",
+		Description: "Tools umbrella",
+		FlagsJSON:   string(flagsJSON),
+		ConfigHash:  "t1",
+	}); err != nil {
+		t.Fatalf("UpsertPlugin: %v", err)
+	}
+	cmd := NewUpdateCmd(d)
+	if ft := cmd.Flags().Lookup("only-tools"); ft != nil {
+		t.Error("flag only-tools should be absent when tools has no update-all flag in cache")
+	}
+}
+
+func TestNewUpdateCmdOnlySystemWithMachineUpdatePlugin(t *testing.T) {
+	d := testUpdateDeps(t)
+	if err := d.Store.UpsertPlugin(plugin.Plugin{
+		CommandPath: machineSystemUpdateCommandPath,
+		CommandName: "update",
+		Description: "test",
+		ExecPath:    filepath.Join(t.TempDir(), "noop.sh"),
+		PluginType:  "sh",
+		ConfigHash:  "testhash",
+	}); err != nil {
+		t.Fatalf("UpsertPlugin: %v", err)
+	}
+	cmd := NewUpdateCmd(d)
 	if fs := cmd.Flags().Lookup("only-system"); fs == nil {
-		t.Error("flag only-system missing")
+		t.Error("flag only-system missing when machine/update is in cache")
 	}
 }
 

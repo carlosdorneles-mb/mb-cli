@@ -36,7 +36,6 @@ Exemplo:
 mb -q plugins list
 mb --quiet plugins sync
 mb -q update --only-cli --check-only   # só código de saída (ex.: 2 = há atualização), sem texto em stdout
-mb update --only-system                # só pacotes do sistema (brew/mas ou apt/flatpak/snap)
 mb -q tools meu-comando
 ```
 

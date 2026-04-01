@@ -17,7 +17,7 @@ Mapa rápido para onde colocar código novo. Estrutura orientada a FX (bootstrap
 |         | `cli/plugincmd`                        | Comandos dinâmicos a partir do cache (`Attach`); injeta `ports.ScriptExecutor`.     |
 | App     | `app/plugins`                          | Casos de uso de plugins: `RunSync`, add/remove/update, sync — `domain`, `ports`, `shared` (sem `infra`). |
 |         | `app/envs`                             | Casos de uso `mb envs` (set/unset/list) via `ports.SecretStore` e helpers em `deps` para ficheiros. |
-|         | `app/update`                           | Orquestração de `mb update` (fases plugins/tools/CLI/sistema); usa `deps` e `infra` onde o fluxo exige (`selfupdate`, `shellhelpers`). |
+|         | `app/update`                           | Orquestração de `mb update` (fases plugins, `mb tools --update-all`, CLI, `mb machine update`); usa `deps` e `infra` onde o fluxo exige (`selfupdate`). A atualização de SO é feita pelo plugin shell `machine/update`, não em Go. |
 | Ports   | `ports`                                | `PluginCLIStore`, `PluginCacheStore`, `PluginScanner`, `SecretStore`, `ShellHelperInstaller`, `GitOperations`, `Filesystem`, `PluginLayoutValidator`, `ScriptExecutor`, … |
 | Domain  | `domain/plugin`                        | DTOs do cache (`Plugin`, `Category`, …), `ValidationWarning`, `HelpGroupDef`, merge/validação de groups. |
 | Infra   | `infra/sqlite`                         | Store SQLite; implementa `ports.PluginCacheStore`; aliases para tipos do domínio. |

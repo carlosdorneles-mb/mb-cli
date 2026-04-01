@@ -1,17 +1,66 @@
 // Package update implements the mb update command: phased updates for plugins, optional tools
-// plugin (--update-all), CLI self-update, and OS package managers when available.
+// plugin (--update-all), CLI self-update, and system packages via nested mb machine update (shell plugin).
 package update
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 
 	appupdate "mb/internal/app/update"
 	"mb/internal/cli/plugins"
 	"mb/internal/deps"
+	"mb/internal/ports"
 	"mb/internal/shared/system"
 )
+
+// machineSystemUpdateCommandPath is the plugin cache command_path that owns exposing
+// mb update --only-system in help (must match machine/update/manifest.yaml under category machine).
+const machineSystemUpdateCommandPath = "machine/update"
+
+func storeHasMachineSystemUpdate(store ports.PluginCLIStore) bool {
+	if store == nil {
+		return false
+	}
+	list, err := store.ListPlugins()
+	if err != nil {
+		return false
+	}
+	for _, p := range list {
+		if p.CommandPath == machineSystemUpdateCommandPath {
+			return true
+		}
+	}
+	return false
+}
+
+// toolsPluginCommandPath is the plugin cache command_path for the tools aggregator
+// (mb-cli-plugins/tools/manifest.yaml). --only-tools is shown only when flags_json includes update-all.
+const toolsPluginCommandPath = "tools"
+
+func storeHasToolsUpdateAll(store ports.PluginCLIStore) bool {
+	if store == nil {
+		return false
+	}
+	list, err := store.ListPlugins()
+	if err != nil {
+		return false
+	}
+	for _, p := range list {
+		if p.CommandPath != toolsPluginCommandPath || p.FlagsJSON == "" {
+			continue
+		}
+		var m map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(p.FlagsJSON), &m); err != nil {
+			continue
+		}
+		if _, ok := m["update-all"]; ok {
+			return true
+		}
+	}
+	return false
+}
 
 // NewUpdateCmd builds the root "mb update" cobra command.
 func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
@@ -20,9 +69,9 @@ func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Atualiza o CLI, plugins e o sistema operacional (quando possível)",
-		Long: `Atualiza, em sequência, os plugins instalados, opcionalmente o agregador mb tools --update-all (se existir no cache), o binário do MB CLI (conforme config) e, sem nenhum --only-*, os pacotes do sistema (Homebrew/mas no macOS; apt/flatpak/snap no Linux quando disponíveis).
+		Long: `Atualiza, em sequência, os plugins instalados, opcionalmente o agregador mb tools --update-all (se existir no cache), o binário do MB CLI (conforme config) e, sem nenhum --only-*, a fase de sistema via mb machine update (plugin shell: brew/mas no macOS; apt/flatpak/snap no Linux quando disponíveis).
 
-Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools, --only-cli e/ou --only-system para escolher quais fases correr; pode combinar várias (ex.: --only-plugins --only-cli).
+Sem flags, executa todas as fases habilitadas. Use --only-plugins e/ou --only-cli para escolher fases; com o agregador tools no cache e a flag --update-all no manifest (mb plugins sync), também --only-tools; com o plugin machine/update no cache, também --only-system (delega em mb machine update). Pode combinar várias flags --only-* (ex.: --only-plugins --only-cli).
 
 --check-only só pode ser usado juntamente com --only-cli (verifica release do binário sem baixar).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -48,14 +97,18 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins, --only-tools,
 		},
 	}
 	cmd.Flags().
-		BoolVar(&onlyPlugins, "only-plugins", false, "Inclui a fase de plugins (combine com outros --only-*; sem nenhum, executa todas)")
+		BoolVar(&onlyPlugins, "only-plugins", false, "Atualiza os plugins instalados. Combinável com outros --only-*; sem nenhum --only-*, corre todas as fases.")
+	if storeHasToolsUpdateAll(d.Store) {
+		cmd.Flags().
+			BoolVar(&onlyTools, "only-tools", false, "Atualiza todas as ferramentas instaladas. Combinável com outros --only-*; sem nenhum --only-*, corre todas as fases.")
+	}
 	cmd.Flags().
-		BoolVar(&onlyTools, "only-tools", false, "Inclui mb tools --update-all quando o plugin tools existir (combine com outros --only-*; sem nenhum, executa todas)")
+		BoolVar(&onlyCLI, "only-cli", false, "Atualiza o binário do MB CLI para a versão estável. Combinável com outros --only-*; sem nenhum --only-*, corre todas as fases.")
+	if storeHasMachineSystemUpdate(d.Store) {
+		cmd.Flags().
+			BoolVar(&onlySystem, "only-system", false, "Atualiza pacotes do sistema (Homebrew/mas ou apt/flatpak/snap quando disponíveis). Combinável com outros --only-*; sem nenhum --only-*, corre todas as fases.")
+	}
 	cmd.Flags().
-		BoolVar(&onlyCLI, "only-cli", false, "Inclui a fase do binário mb (combine com outros --only-*; sem nenhum, executa todas)")
-	cmd.Flags().
-		BoolVar(&onlySystem, "only-system", false, "Inclui a fase de pacotes do sistema (combine com outros --only-*; sem nenhum, executa todas)")
-	cmd.Flags().
-		BoolVar(&checkOnly, "check-only", false, "Só com --only-cli: verifica atualização do binário sem baixar; saída 2 se houver")
+		BoolVar(&checkOnly, "check-only", false, "Só com --only-cli: verifica release do binário sem baixar; saída 2 se houver")
 	return cmd
 }
