@@ -21,6 +21,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper de Flatpak:** `. "$MB_HELPERS_PATH/flatpak.sh"`
 - **Só o helper de GitHub:** `. "$MB_HELPERS_PATH/github.sh"`
 - **Só o helper de sudo:** `. "$MB_HELPERS_PATH/sudo.sh"`
+- **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
 
 Exemplo:
 
@@ -410,3 +411,39 @@ required_sudo --optional "instalação de dependências"
 # Segue com ou sem sudo; trate erros de permissão nas operações seguintes se necessário
 ```
 
+### shell-rc
+
+Funções para **blocos delimitados** em `~/.bashrc` e `~/.zshrc`, pensadas para plugins que precisam de linhas de init no shell (por exemplo NVM, pyenv, GVM). O ficheiro é instalado em `lib/shell` com os demais helpers e é carregado por `all.sh`; também pode importar-se sozinho com `. "$MB_HELPERS_PATH/shell-rc.sh"`.
+
+**Comportamento geral:**
+
+- Só altera ficheiros que **já existem** (`~/.bashrc` e `~/.zshrc`). **Não cria** esses ficheiros.
+- **Idempotência em `shell_rc_ensure_block`:** se a linha exata `MARKER_BEGIN` já existir no ficheiro, esse ficheiro é ignorado (nada é duplicado).
+- Os marcadores devem ser **linhas completas** e **exatamente iguais** ao passado à função (o `awk` em `shell_rc_remove_block` compara linha a linha com `$0 == b` e `$0 == e`).
+
+**Funções disponíveis:**
+
+- `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` — anexa ao fim de cada rc existente, para cada um em que `MARKER_BEGIN` ainda não apareça: uma linha em branco, depois `MARKER_BEGIN`, o texto multi-linha `BODY`, e `MARKER_END`. Retorna `1` se `MARKER_BEGIN` ou `MARKER_END` estiver vazio, ou se a escrita falhar.
+- `shell_rc_remove_block MARKER_BEGIN MARKER_END` — em cada rc existente que contenha `MARKER_BEGIN`, remove todas as linhas desde `MARKER_BEGIN` até `MARKER_END` **inclusive**. Retorna `1` se marcadores vazios ou se `awk`/`mv` falhar.
+
+**Convenção sugerida para plugins** (alinhada ao repositório `mb-cli-plugins`):
+
+- Linha inicial: `# mb-cli-plugins:<slug>:begin`
+- Linha final: `# mb-cli-plugins:<slug>:end`
+
+No **install**, chamar `shell_rc_ensure_block` após uma instalação bem-sucedida; no **uninstall**, após confirmação do utilizador, chamar `shell_rc_remove_block` antes de remover diretórios quando fizer sentido. Documentar no `README.md` do plugin que o conteúdo entre os marcadores é gerido pelo plugin.
+
+Exemplo:
+
+```sh
+. "$MB_HELPERS_PATH/shell-rc.sh"
+
+slug="mytool"
+begin="# mb-cli-plugins:${slug}:begin"
+end="# mb-cli-plugins:${slug}:end"
+body='export PATH="$HOME/.mytool/bin:$PATH"'
+
+shell_rc_ensure_block "$begin" "$end" "$body"
+# ...
+shell_rc_remove_block "$begin" "$end"
+```
