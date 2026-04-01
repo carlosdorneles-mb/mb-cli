@@ -42,13 +42,16 @@ Log que respeita `MB_QUIET` e `MB_VERBOSE` (flags `-q` e `-v` do CLI). Usa `gum 
 
 **Uso:** `log <level> <mensagem...>`
 
-**Níveis:** `none`, `debug`, `info`, `warn`, `error`, `fatal`
+**Níveis:** `none`, `debug`, `info`, `warn`, `error`, `fatal`, `output`, `print`
+
+- **`output`** e **`print`** — Mesmo efeito para o **gum**: a mensagem é registada com apresentação `none` (sem prefixo de nível estilizado). Útil para linhas de progresso ou saída “pura”. O filtro **`MB_QUIET`** continua a usar o nível declarado (`output` / `print` não são `error` nem `fatal`, logo são suprimidos em quiet).
 
 **Comportamento:**
 
 - **`MB_QUIET=1`** — Só exibe mensagens com nível `error` e `fatal`.
 - **`MB_VERBOSE=1`** — Exibe todos os níveis, incluindo `debug`.
-- **Caso contrário** — Exibe `info`, `warn`, `error`, `fatal`; o nível `debug` é omitido.
+- **Caso contrário** — Exibe `info`, `warn`, `error`, `fatal`, `output`, `print`; o nível `debug` é omitido.
+- **`MB_LOG_OUTPUT`** — Se estiver definida (qualquer valor não vazio), **todas** as chamadas `log` passam ao gum com nível de apresentação `none` (equivalente a `output`/`print` no destino), mantendo os filtros acima com base no nível **declarado** na chamada.
 
 Exemplos:
 
@@ -57,6 +60,8 @@ log info "Processando..."
 log debug "Detalhe interno: $var"
 log warn "Aviso"
 log error "Algo falhou"
+log print "=> Passo visível sem prefixo de nível"
+log output "Mesmo estilo de apresentação que print"
 ```
 
 ### memory
