@@ -10,9 +10,18 @@
 # (`sudo -n true`), ou seja, credencial em cache ou regra NOPASSWD — sem pedir senha no TTY.
 #
 # Funções públicas:
-#   is_root       — teste silencioso (0 = pode usar sudo sem prompt ou já é root).
-#   check_sudo    — igual a is_root; se falhar, log warn e retorna 1.
-#   required_sudo — exige sudo interativo, ou modo --optional para seguir sem abortar.
+#   is_root                      — teste silencioso (0 = pode usar sudo sem prompt ou já é root).
+#   warn_and_skip_without_sudo   — se não is_root: log warn (PT-BR) e retorna 86 (skip sudo; ver contrato abaixo).
+#   check_sudo                   — igual a is_root; se falhar, log warn e retorna 1.
+#   required_sudo                — exige sudo interativo, ou modo --optional para seguir sem abortar.
+#
+# Contrato de códigos de saída para plugins shell (alinhado a mb-cli-plugins/tools/update-all.sh):
+#   86 — MB_EXIT_UPDATE_SKIPPED_SUDO: sem privilégio efetivo para gestores de pacote (apt/dnf/yum/pacman).
+#        No batch --update-all, não conta como falha; o pai avisa para repetir com sudo.
+#        Em mb tools <plugin> --install|--update|--uninstall direto, o utilizador vê o log warn deste helper
+#        no stderr; o processo mb pode ainda mostrar ERRO com "exit status 86".
+#   87 — MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED: ferramenta não instalada ao atualizar; ignorado no batch.
+# Fora do update-all.sh, usar sempre return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}" (e :-87) para defaults.
 
 . "$MB_HELPERS_PATH/log.sh"
 
@@ -24,6 +33,35 @@
 #   if is_root; then ...; fi
 is_root() {
     [ "${EUID:-$(id -u)}" -eq 0 ] || sudo -n true 2>/dev/null
+}
+
+# Se já há privilégio efetivo (root ou sudo -n), retorna 0. Caso contrário regista aviso formal em
+# PT-BR no stderr e devolve MB_EXIT_UPDATE_SKIPPED_SUDO (86 por omissão), para alinhar com
+# mb tools --update-all e permitir mensagem útil quando o utilizador corre mb tools … diretamente.
+#
+# Args opcional:
+#   $1 — texto curto de contexto (ex.: nome da ferramenta) anteposto à mensagem padrão.
+#
+# Usage (no início de install_linux / update_linux / uninstall_linux):
+#   warn_and_skip_without_sudo || return $?
+#   warn_and_skip_without_sudo "Redis CLI" || return $?
+#
+# Returns:
+#   0 — pode prosseguir com apt/dnf/etc.
+#   86 — ou valor de MB_EXIT_UPDATE_SKIPPED_SUDO quando definido (fora do batch, usar :-86 no return).
+warn_and_skip_without_sudo() {
+    if is_root; then
+        return 0
+    fi
+    local ctx="${1:-}"
+    local base="Instalação, atualização ou remoção de pacotes do sistema requer privilégios de administrador (sudo)."
+    local tail=" Execute o mesmo comando com sudo (por exemplo: sudo mb tools <ferramenta> --install ou --update), ou execute sudo -v antes de repetir."
+    if [ -n "$ctx" ]; then
+        log warn "$ctx — $base$tail" >&2
+    else
+        log warn "$base$tail" >&2
+    fi
+    return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"
 }
 
 # Verifica privilégio efetivo (mesmo critério que is_root). Em caso de falha, registra

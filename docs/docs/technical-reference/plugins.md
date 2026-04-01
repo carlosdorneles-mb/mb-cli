@@ -139,6 +139,15 @@ No **diff** do sync (com logger), só são emitidas linhas para comandos **adici
 
 **Indicação (local)** no Short da folha quando a fonte tem `local_path` em `plugin_sources` (match pelo diretório do plugin).
 
+### Códigos de saída convencionais para scripts shell {#plugin-shell-exit-codes-convention}
+
+Plugins que participam em batches como **`mb tools --update-all`** (ou equivalentes) podem usar códigos acordados com o script agregador:
+
+- **86** (`MB_EXIT_UPDATE_SKIPPED_SUDO`) — sem `sudo` não interativo / root para operações de pacote; o batch trata como “saltado”, não como erro fatal.
+- **87** (`MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED`) — nada a atualizar porque a ferramenta não está instalada; ignorado no batch.
+
+O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `~/.config/mb/lib/shell/sudo.sh`, sincronizado com `mb plugins sync`). Ver [Guia: criar um plugin — códigos e sudo](../guide/creating-plugins.md#plugin-exit-codes-sudo).
+
 ## Execução: flags e argumentos
 
 O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas **argumentos posicionais** (e o ambiente mesclado, incl. `MB_VERBOSE` / `MB_QUIET` quando aplicável).

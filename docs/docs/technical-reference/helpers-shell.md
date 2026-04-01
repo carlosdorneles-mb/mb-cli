@@ -370,6 +370,7 @@ Helper para validação e solicitação de privilégios de superusuário em scri
 **Funções disponíveis:**
 
 - `is_root` — retorna `0` se houver privilégio efetivo (root ou `sudo -n`). Não escreve logs e **não** solicita senha.
+- `warn_and_skip_without_sudo` — se `is_root` passar, retorna `0`. Caso contrário regista `log warn` em **PT-BR** (mensagem formal para instalação/atualização de pacotes do sistema) e devolve **`MB_EXIT_UPDATE_SKIPPED_SUDO`** ou **86** por omissão (`"${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"`). Destinado a `install_linux` / `update_linux` / `uninstall_linux` em plugins alinhados com `mb tools --update-all`. Uso: `warn_and_skip_without_sudo || return $?` ou `warn_and_skip_without_sudo "Nome da ferramenta" || return $?`. Convenção **86** / **87** e batch: [Criar um plugin — códigos e sudo](../guide/creating-plugins.md#plugin-exit-codes-sudo).
 - `check_sudo` — aplica o mesmo teste que `is_root`. Se falhar, registra `log warn` em stderr e retorna `1`.
   - **Sem argumentos:** mensagem padrão orientando autenticar ou executar com `sudo`.
   - **`check_sudo "texto"`:** usa o texto como mensagem do warning.
@@ -382,6 +383,8 @@ Helper para validação e solicitação de privilégios de superusuário em scri
 **Uso:**
 
 ```text
+warn_and_skip_without_sudo || return $?
+
 check_sudo
 check_sudo "esta operação precisa de sudo para gravar em /etc"
 

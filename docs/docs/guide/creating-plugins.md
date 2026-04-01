@@ -169,6 +169,27 @@ Torne executável: `chmod +x run.sh`.
 
 **Helpers MB** (após `mb plugins sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](../technical-reference/helpers-shell.md). **gum** é opcional nos scripts.
 
+### Códigos de saída e sudo (batch update-all) {#plugin-exit-codes-sudo}
+
+Alguns pacotes (ex.: ferramentas com `install.sh` / `update.sh` via `apt` ou `dnf`) seguem uma **convenção de códigos** alinhada ao script `update-all` dos plugins:
+
+| Código | Variável de ambiente | Significado |
+|--------|----------------------|-------------|
+| **86** | `MB_EXIT_UPDATE_SKIPPED_SUDO` | Não há privilégio efetivo para gestores de pacote (sem root nem `sudo -n`). **Não** é falha dura no batch: o pai pode avisar para repetir com `sudo`. |
+| **87** | `MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED` | Ferramenta ainda não instalada ao atualizar; **ignorado** no batch. |
+
+O `update-all.sh` do pacote exporta `MB_EXIT_UPDATE_SKIPPED_SUDO` e `MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED` antes de invocar cada `update.sh`. Em **invocação direta** (`mb tools … --install` / `--update` / `--uninstall`), use sempre `return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"` (e `:-87` onde aplicável) para manter o default quando o export não existe.
+
+Para **86**, o helper **`warn_and_skip_without_sudo`** em `sudo.sh` (carregado via `all.sh`) regista um aviso em **PT-BR** no stderr e devolve o código **86**. Uso típico no início de `install_linux` / `update_linux` / `uninstall_linux`:
+
+```bash
+warn_and_skip_without_sudo || return $?
+```
+
+Texto adicional opcional: `warn_and_skip_without_sudo "Nome da ferramenta" || return $?`.
+
+**Nota:** o MB pode ainda mostrar um bloco **ERRO** com `exit status 86` quando o processo termina com esse código; o utilizador vê antes o **WARN** do script. Detalhe de execução: [Plugins — códigos de saída](../technical-reference/plugins.md#plugin-shell-exit-codes-convention).
+
 ## Registar e sincronizar
 
 ### Um pacote com `manifest.yaml` na raiz
