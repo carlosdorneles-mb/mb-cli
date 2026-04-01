@@ -7,6 +7,7 @@ import (
 
 	appplugins "mb/internal/app/plugins"
 	"mb/internal/cli/completion"
+	"mb/internal/cli/plugincmd"
 	"mb/internal/deps"
 	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
@@ -54,6 +55,7 @@ func withCompletionPostSync(
 				return err
 			}
 		}
+		plugincmd.Reattach(cmd.Root(), d)
 		return completion.TryRefreshInstalled(hookCtx, cmd.Root(), log, d.Runtime.Quiet)
 	}
 	return opts

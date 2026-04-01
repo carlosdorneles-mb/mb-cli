@@ -35,6 +35,33 @@ func ensureNestedPluginHelpGroups(cmd *cobra.Command, helpGroups []sqlite.Plugin
 	}
 }
 
+const pluginCommandsGroupID = "plugin_commands"
+
+// detachPluginCommands removes direct children of root that were registered by Attach
+// (built-in subcommands use group "commands", not "plugin_commands").
+func detachPluginCommands(root *cobra.Command) {
+	if root == nil {
+		return
+	}
+	var toRemove []*cobra.Command
+	for _, c := range root.Commands() {
+		if c.GroupID == pluginCommandsGroupID {
+			toRemove = append(toRemove, c)
+		}
+	}
+	for _, c := range toRemove {
+		root.RemoveCommand(c)
+	}
+}
+
+// Reattach drops plugin-registered commands from root and runs Attach again from the
+// current cache. Used before regenerating shell completion so the script matches SQLite
+// after plugins add/remove/sync in the same process.
+func Reattach(root *cobra.Command, d deps.Dependencies) {
+	detachPluginCommands(root)
+	Attach(root, d)
+}
+
 // Attach registers plugin commands from the cache under root.
 func Attach(root *cobra.Command, d deps.Dependencies) {
 	pluginList, err := d.Store.ListPlugins()
@@ -107,7 +134,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 					Short: short,
 				}
 				if parent == root {
-					categoryCmd.GroupID = "plugin_commands"
+					categoryCmd.GroupID = pluginCommandsGroupID
 				} else if cat.GroupID != "" {
 					if _, ok := registeredHelp[cat.GroupID]; ok {
 						categoryCmd.GroupID = cat.GroupID
@@ -172,7 +199,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 		)
 		leafCmd.Hidden = plugin.Hidden
 		if parent == root {
-			leafCmd.GroupID = "plugin_commands"
+			leafCmd.GroupID = pluginCommandsGroupID
 		} else if plugin.GroupID != "" {
 			if _, ok := registeredHelp[plugin.GroupID]; ok {
 				leafCmd.GroupID = plugin.GroupID
