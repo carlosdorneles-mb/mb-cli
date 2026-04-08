@@ -21,6 +21,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper de Flatpak:** `. "$MB_HELPERS_PATH/flatpak.sh"`
 - **Só o helper de GitHub:** `. "$MB_HELPERS_PATH/github.sh"`
 - **Só o helper de sudo:** `. "$MB_HELPERS_PATH/sudo.sh"`
+- **Só o helper ensure (pré-requisitos de CLI):** `. "$MB_HELPERS_PATH/ensure.sh"`
 - **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
 
 Exemplo:
@@ -413,6 +414,36 @@ Exemplo (sudo opcional):
 required_sudo --optional "instalação de dependências"
 # Segue com ou sem sudo; trate erros de permissão nas operações seguintes se necessário
 ```
+
+### ensure
+
+Verifica se comandos externos usados pelo script estão no `PATH`. Carrega **`log.sh`** automaticamente (define `MB_HELPERS_PATH` para o diretório do helper se a variável estiver vazia, como nos demais ficheiros em `lib/shell`).
+
+Se o comando exigido **não** existir, regista **`log error`** com mensagem em PT-BR e link de instalação, depois **`exit 1`**. Respeita `MB_QUIET` / `MB_VERBOSE` via [`log`](#log).
+
+**Funções disponíveis:**
+
+| Função | Comando esperado | Mensagem orienta para |
+|--------|-------------------|------------------------|
+| `ensure_npx` | `npx` | Node.js (npm/npx): https://nodejs.org/ |
+| `ensure_jq` | `jq` | https://stedolan.github.io/jq/ |
+| `ensure_yq` | `yq` | https://github.com/mikefarah/yq |
+| `ensure_kubectl` | `kubectl` | https://kubernetes.io/docs/tasks/tools/install-kubectl/ |
+| `ensure_gum` | `gum` | https://github.com/charmbracelet/gum |
+
+**Uso:** chamar no início do fluxo do script (por exemplo após `. "$MB_HELPERS_PATH/all.sh"`, que já inclui `ensure.sh`).
+
+```sh
+. "$MB_HELPERS_PATH/ensure.sh"
+
+ensure_npx
+ensure_jq
+ensure_yq
+ensure_kubectl
+ensure_gum
+```
+
+**Nota:** `ensure_gum` usa `log error`, que por sua vez invoca `gum log`. Se o `gum` não estiver instalado, essa chamada pode falhar antes de mostrar a mensagem formatada; nesse caso o utilizador vê o erro do shell ao executar `gum`. Em contexto MB, o `gum` costuma estar disponível quando o CLI corre os plugins.
 
 ### shell-rc
 

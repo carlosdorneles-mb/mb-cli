@@ -15,3 +15,4 @@
 . "${MB_HELPERS_PATH}/github.sh"
 . "${MB_HELPERS_PATH}/sudo.sh"
 . "${MB_HELPERS_PATH}/shell-rc.sh"
+. "${MB_HELPERS_PATH}/ensure.sh"
