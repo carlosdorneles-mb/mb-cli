@@ -159,3 +159,50 @@ func TestEnsureShellHelpers_overwritesWhenChecksumDiffers(t *testing.T) {
 		)
 	}
 }
+
+func TestEnsureShellHelpers_secondCallRestoresAllShWhenChecksumStillCorrect(t *testing.T) {
+	configDir := t.TempDir()
+	shellDir := filepath.Join(configDir, "lib", "shell")
+
+	if _, err := EnsureShellHelpers(configDir); err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	allPath := filepath.Join(shellDir, "all.sh")
+	if err := os.WriteFile(
+		allPath,
+		[]byte("# stale — embed should win on next sync"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := EnsureShellHelpers(configDir); err != nil {
+		t.Fatalf("second: %v", err)
+	}
+	if data, _ := os.ReadFile(allPath); !strings.Contains(string(data), "log.sh") {
+		t.Errorf(
+			"second call should restore all.sh from embed even when .checksum unchanged, got %q",
+			data,
+		)
+	}
+}
+
+func TestEnsureShellHelpers_removesOrphanSh(t *testing.T) {
+	configDir := t.TempDir()
+	shellDir := filepath.Join(configDir, "lib", "shell")
+
+	if _, err := EnsureShellHelpers(configDir); err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	orphan := filepath.Join(shellDir, "orphan_not_in_embed.sh")
+	if err := os.WriteFile(orphan, []byte("# orphan"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := EnsureShellHelpers(configDir); err != nil {
+		t.Fatalf("second: %v", err)
+	}
+	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
+		t.Errorf("orphan .sh should be removed, still exists")
+	}
+}

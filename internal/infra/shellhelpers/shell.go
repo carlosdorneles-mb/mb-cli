@@ -46,8 +46,11 @@ func helpersChecksum() (string, error) {
 // EnsureShellHelpers creates the lib/shell directory under configDir (if it does not exist),
 // writes all embedded .sh files (automatically discovered), and returns the absolute path
 // of the lib/shell directory. This path is passed to the plugin as MB_HELPERS_PATH.
-// If the .checksum file in lib/shell exists and matches the current embed checksum,
-// the files are not rewritten (automatic update when content changes).
+//
+// On every invocation (for example mb plugins sync), all embedded .sh files are rewritten
+// on disk to match the current binary. Any .sh files under lib/shell that are no longer
+// part of the embed are removed. The .checksum file is updated with the current aggregate
+// hash (useful for inspection or external tooling).
 func EnsureShellHelpers(configDir string) (string, error) {
 	shellDir := filepath.Join(configDir, "lib", "shell")
 	files, err := embeddedShellFiles()
@@ -63,11 +66,9 @@ func EnsureShellHelpers(configDir string) (string, error) {
 		return "", err
 	}
 
-	checksumPath := filepath.Join(shellDir, checksumFile)
-	if data, err := os.ReadFile(checksumPath); err == nil {
-		if strings.TrimSpace(string(data)) == currentChecksum {
-			return filepath.Abs(shellDir)
-		}
+	embedded := make(map[string]struct{}, len(files))
+	for _, name := range files {
+		embedded[name] = struct{}{}
 	}
 
 	for _, name := range files {
@@ -79,6 +80,31 @@ func EnsureShellHelpers(configDir string) (string, error) {
 			return "", err
 		}
 	}
+
+	entries, err := os.ReadDir(shellDir)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if name == checksumFile {
+			continue
+		}
+		if !strings.HasSuffix(name, ".sh") {
+			continue
+		}
+		if _, ok := embedded[name]; ok {
+			continue
+		}
+		if err := os.Remove(filepath.Join(shellDir, name)); err != nil {
+			return "", err
+		}
+	}
+
+	checksumPath := filepath.Join(shellDir, checksumFile)
 	if err := os.WriteFile(checksumPath, []byte(currentChecksum+"\n"), 0o644); err != nil {
 		return "", err
 	}

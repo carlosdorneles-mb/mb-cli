@@ -114,7 +114,7 @@ Ao registar comandos a partir do cache:
 Ordem **efetiva** no código:
 
 1. **Scan** de todas as subpastas de `PluginsDir` → plugins, categorias, avisos e lotes de `groups.yaml`.
-2. Garantir **helpers de shell** em `ConfigDir/lib/shell` (`all.sh`, `log.sh`, `.checksum`). Falha → erro.
+2. Garantir **helpers de shell** em `ConfigDir/lib/shell` (ficheiros `*.sh` embebidos no binário e `.checksum`; em cada sync reescreve-se e removem-se `*.sh` órfãos). Falha → erro.
 3. **ScanDir** de cada `local_path` registado → acrescenta plugins, categorias, avisos e lotes.
 4. **Merge global** dos grupos de help; em seguida, emissão de **avisos** de scan (warn) se houver logger.
 5. Verificação de **colisão de `command_path`** entre pacotes distintos → **erro** e sync abortado.

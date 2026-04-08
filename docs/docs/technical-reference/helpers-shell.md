@@ -34,7 +34,7 @@ Exemplo:
 log info "Olá!"
 ```
 
-O diretório e os arquivos são criados ou atualizados quando você executa **`mb plugins sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Se os helpers ainda não existirem, execute `mb plugins sync` antes de usá-los nos seus plugins. Ao atualizar o CLI para uma versão que altere os helpers, o próximo `mb plugins sync` atualiza os arquivos em `lib/shell` automaticamente (o CLI compara um checksum do conteúdo embutido com o arquivo `.checksum` nesse diretório).
+O diretório e os arquivos são criados ou atualizados quando você executa **`mb plugins sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Em **cada** sync, o MB **reescreve** todos os `*.sh` embebidos no binário para `lib/shell` e remove ficheiros `*.sh` antigos que já não façam parte do embed (por exemplo após renomear ou remover um helper). O ficheiro `.checksum` nesse diretório reflete o hash agregado atual dos helpers embebidos. Se os helpers ainda não existirem, execute `mb plugins sync` antes de usá-los nos seus plugins.
 
 ## Helpers disponíveis
 
