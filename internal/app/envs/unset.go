@@ -1,6 +1,7 @@
 package envs
 
 import (
+	"os"
 	"strings"
 
 	"mb/internal/deps"
@@ -48,6 +49,19 @@ func Unset(
 		break
 	}
 	delete(values, key)
+
+	secretKeysAfter, err := deps.LoadSecretKeys(path)
+	if err != nil {
+		return false, err
+	}
+	// Grupos explícitos: sem variáveis nem secrets, apagar .env.<grupo> (e .secrets) em vez de
+	// deixar ficheiro vazio. env.defaults mantém-se (Save vazio) para não mudar o layout default.
+	if groupFlag != "" && len(values) == 0 && len(secretKeysAfter) == 0 {
+		_ = os.Remove(path + ".secrets")
+		_ = os.Remove(path)
+		return true, nil
+	}
+
 	if err := deps.SaveDefaultEnvValues(path, values); err != nil {
 		return false, err
 	}

@@ -26,7 +26,7 @@ func TestNewCmd(t *testing.T) {
 		names[i] = c.Name()
 	}
 	slices.Sort(names)
-	want := []string{"list", "set", "unset"}
+	want := []string{"groups", "list", "set", "unset"}
 	if !slices.Equal(names, want) {
 		t.Errorf("subcommands = %v, want %v", names, want)
 	}

@@ -12,7 +12,7 @@ description: >-
 
 ## Quando aplicar
 
-- Implementar ou corrigir **`mb envs`** (list, set, unset) ou caminhos `env.defaults` / `.env.<grupo>`.
+- Implementar ou corrigir **`mb envs`** (list, groups, set, unset) ou caminhos `env.defaults` / `.env.<grupo>`.
 - Alterar **merge de ambiente** para plugins ou **`mb run`**.
 - Trabalhar com **`--secret`**, **`--secret-op`**, keyring, **`op://`**, ou cliente **`op`** (1Password).
 - Atualizar **documentação** de variáveis de ambiente ou segurança relacionada a secrets.
@@ -22,6 +22,7 @@ description: >-
 | Comando | Notas |
 |--------|--------|
 | `mb envs list` | Tabela / `--json` / `--text`; `--show-secrets`; `--group` |
+| `mb envs groups` | Tabela GRUPO / ARQUIVO; alias `group`; `--json` / `-J` |
 | `mb envs set KEY VAL` | Ficheiro plain; `--group`; **`--secret`** (valor no keyring); **`--secret-op`** (valor no 1Password, `op://` no keyring) — **mutuamente exclusivos** |
 | `mb envs unset KEY` | `(removed bool)`; se chave inexistente no grupo → mensagem informativa, **não** grava; remove keyring e campo 1Password se `op://` |
 
@@ -29,8 +30,8 @@ description: >-
 
 | Área | Caminho |
 |------|---------|
-| Casos de uso | `internal/app/envs/` (`set.go`, `unset.go`, `list.go`, `paths.go`) |
-| Cobra / UX | `internal/cli/envs/` (`set.go`, `unset.go`, `list.go`, `env.go`, `path.go`) |
+| Casos de uso | `internal/app/envs/` (`set.go`, `unset.go`, `list.go`, `groups.go`, `paths.go`) |
+| Cobra / UX | `internal/cli/envs/` (`set.go`, `unset.go`, `list.go`, `groups.go`, `env.go`, `path.go`) |
 | Merge ficheiros + secrets + `op://` | `internal/deps/envdefaults.go`, `execenv.go`; merge final `internal/shared/env/merge.go` |
 | Lista de chaves secretas | `internal/deps/secretkeys.go` (ficheiro `path.secrets`) |
 | 1Password CLI | `internal/infra/opcli/` (`client.go`, `itemjson.go`) |

@@ -16,6 +16,7 @@ func NewCmd(d deps.Dependencies) *cobra.Command {
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
 	root.AddCommand(newListCmd(d))
+	root.AddCommand(newGroupsCmd(d))
 	root.AddCommand(newSetCmd(d))
 	root.AddCommand(newUnsetCmd(d))
 	return root

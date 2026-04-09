@@ -13,8 +13,17 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "unset <KEY>",
 		Aliases: []string{"u"},
-		Short:   "Remove uma variável padrão ou de um grupo específico",
-		Args:    cobra.ExactArgs(1),
+		Short:   "Remove uma variável do grupo padrão ou de um grupo específico",
+		Long: `Remove a chave do ficheiro de ambiente do grupo escolhido.
+
+Sem --group, o alvo é o grupo padrão.
+Com --group <nome>, o alvo é o grupo específico.`,
+		Example: `# Grupo padrão (env.defaults)
+  mb envs unset API_URL
+
+  # Grupo explícito (.env.staging)
+  mb envs unset API_URL --group staging`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
@@ -45,8 +54,12 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().
-		StringVar(&unsetGroup, "group", "", "Remove do arquivo referente ao grupo informado")
+	cmd.Flags().StringVar(
+		&unsetGroup,
+		"group",
+		"",
+		"Remove a variável do grupo informado ao invés do grupo padrão (ex.: --group staging)",
+	)
 	cmd.GroupID = "commands"
 	return cmd
 }

@@ -102,3 +102,71 @@ func TestUnset_SecretKeyListRemovesKeyring(t *testing.T) {
 		t.Fatal("expected .secrets removed when last key")
 	}
 }
+
+func TestUnset_GroupRemovesEnvFileWhenLastKeyRemoved(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	groupPath := filepath.Join(tmp, ".env.staging")
+	if err := os.WriteFile(groupPath, []byte("FOO=1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ss := mapSecretStore{}
+	removed, err := Unset(ss, nil, Paths{DefaultEnvPath: def, ConfigDir: tmp}, "staging", "FOO")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removed {
+		t.Fatal("expected removed=true")
+	}
+	if _, err := os.Stat(groupPath); !os.IsNotExist(err) {
+		t.Fatalf("expected .env.staging removed, stat err=%v", err)
+	}
+}
+
+func TestUnset_GroupRemovesEnvFileWhenLastSecretRemoved(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	groupPath := filepath.Join(tmp, ".env.prod")
+	if err := os.WriteFile(groupPath, []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(groupPath+".secrets", []byte("API_KEY\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ss := mapSecretStore{}
+	if err := ss.Set("prod", "API_KEY", "v"); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := Unset(ss, nil, Paths{DefaultEnvPath: def, ConfigDir: tmp}, "prod", "API_KEY")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removed {
+		t.Fatal("expected removed=true")
+	}
+	if _, err := os.Stat(groupPath); !os.IsNotExist(err) {
+		t.Fatal("expected .env.prod removed")
+	}
+}
+
+func TestUnset_DefaultEnvFileNotRemovedWhenEmpty(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	p := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(p, []byte("ONLY=x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ss := mapSecretStore{}
+	removed, err := Unset(ss, nil, Paths{DefaultEnvPath: p, ConfigDir: tmp}, "", "ONLY")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removed {
+		t.Fatal("expected removed=true")
+	}
+	if _, err := os.Stat(p); err != nil {
+		t.Fatalf("env.defaults should still exist: %v", err)
+	}
+}

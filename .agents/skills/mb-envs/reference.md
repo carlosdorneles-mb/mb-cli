@@ -6,7 +6,8 @@
 |----------|------------------|
 | `set.go` | `Set(...)` — plain, `--secret`, `--secret-op`; transição plain↔secret remove keyring/`op` quando aplicável |
 | `unset.go` | `Unset(...) (removed bool, err)` — só grava se chave existia (ficheiro ou `.secrets`) |
-| `list.go` | `CollectListRows`, `rowsForPath`, `resolveStoredSecretForList` (`op://` → `ReadOPReference`) |
+| `list.go` | `CollectListRows`, `rowsForPath`, `secretStorageFromStored` (`local` / `keyring` / `1password`), `resolveStoredSecretForList` (`op://` → `ReadOPReference`) |
+| `groups.go` | `CollectEnvGroupRows` — `default` + `env.defaults`, glob `.env.<grupo>` (ignora `*.secrets`) |
 | `paths.go` | `TargetPath`, `KeyringGroup` |
 
 ## `internal/cli/envs`
@@ -16,7 +17,8 @@
 | `env.go` | Agrega subcomandos `list`, `set`, `unset` |
 | `set.go` | Flags `--group`, `--secret`, `--secret-op` (mutually exclusive) |
 | `unset.go` | Mensagens para `removed` vs inexistente |
-| `list.go` | `--json`, `--text`, `--show-secrets`, `--group` |
+| `list.go` | Tabela VAR, GRUPO, ARMAZENAMENTO; `--json`, `--text`, `--show-secrets`, `--group` |
+| `groups.go` | Tabela GRUPO, ARQUIVO; `--json` / `-J`; alias `group` |
 | `path.go` | `envPaths(d)` → `appenvs.Paths` |
 
 ## `internal/deps`

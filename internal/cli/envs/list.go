@@ -52,9 +52,9 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 			default:
 				table := make([][]string, len(rows))
 				for i, r := range rows {
-					table[i] = []string{r.Key + "=" + r.Value, r.Group}
+					table[i] = []string{r.Key + "=" + r.Value, r.Group, r.Storage}
 				}
-				headers := []string{"VAR", "GRUPO"}
+				headers := []string{"VAR", "GRUPO", "ARMAZENAMENTO"}
 				return system.GumTable(cmd.Context(), headers, table, out)
 			}
 		},
