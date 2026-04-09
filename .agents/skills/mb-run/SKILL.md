@@ -1,0 +1,64 @@
+---
+name: mb-run
+description: >-
+  Covers MB CLI `mb run`, which executes arbitrary programs with the same merged
+  environment as plugins (minus manifest env_files). Use when changing or explaining
+  `mb run`, subprocess env injection, `BuildMergedOSEnviron`, exit codes, PluginTimeout,
+  or docs on run vs plugins.
+---
+
+# MB CLI — `mb run`
+
+## Quando aplicar
+
+- Implementar ou corrigir **`mb run`** ou o fluxo de **ambiente** partilhado com plugins.
+- Explicar diferenças entre **`mb run`** e execução de **plugin** (sem `env_files` do manifest).
+- Ajustar **`DisableFlagParsing`**, ajuda (`mb help run`), timeout, ou propagação de código de saída.
+
+## Comportamento (superfície)
+
+| Aspeto | Detalhe |
+|--------|---------|
+| Uso | `mb run <comando> [args...]` — o primeiro argumento é resolvido com **`exec.LookPath`** (PATH ou caminho absoluto) |
+| Ambiente | **`deps.BuildMergedOSEnviron(d, nil)`** — igual aos plugins para camadas de ficheiro + inline, **sem** overlay de `env_files` do manifest (`overlay == nil`) |
+| Flags globais do `mb` | **Antes** de `run` — ex.: `mb --env-file .env.local run uv sync`. Com **`DisableFlagParsing: true`** no subcomando `run`, o Cobra **não** interpreta flags após `run`; passam todos ao programa filho |
+| Ajuda | **`mb help run`** — `mb run --help` pode ser entregue ao executável filho (documentado no Long) |
+| Timeout | Se **`Runtime.PluginTimeout > 0`**, o contexto do **`exec.CommandContext`** tem deadline (mesma config que plugins) |
+| Código de saída | Em **`exec.ExitError`**, o processo termina com **`os.Exit(código)`** para propagar o exit code do filho |
+| Erros | Comando não encontrado no PATH → erro Go (não `os.Exit`) |
+
+Para a **ordem completa** de variáveis (`env.defaults`, `--env-group`, `./.env`, `--env-file`, `--env`, secrets, `op://`, tema gum, `MB_VERBOSE`/`MB_QUIET`, `MB_HELPERS_PATH`), ver a skill **`mb-envs`** e `docs/docs/guide/environment-variables.md`.
+
+## Onde está o código
+
+| Área | Caminho |
+|------|---------|
+| Comando | `internal/cli/run/run.go` — `NewRunCmd` |
+| Merge de ambiente | `internal/deps/execenv.go` — `BuildMergedOSEnviron`, `BuildMergedOSEnvironWithExtraInline` |
+| Camadas de ficheiro / secrets | `internal/deps/envdefaults.go` — `BuildEnvFileValues` |
+
+Detalhe por ficheiro: [reference.md](reference.md).
+
+## Regras de produto (resumo)
+
+1. **`mb run` não lê `env_files` do manifest** — só plugins aplicam esse overlay (`plugincmd` passa overlay não-nulo). O utilizador usa **`--env-file`** na linha do `mb` se precisar de ficheiros extra.
+2. O ambiente efetivo é o mesmo **pipeline** que plugins: sistema → ficheiros mb → `--env` com maior precedência, mais injeções fixas (gum, verbosidade, helpers).
+3. **Stdin/stdout/stderr** são os do terminal (`os.Stdin`, etc.).
+
+## Armadilhas
+
+- Esperar **`mb run --env X=1`** a funcionar — flags após `run` vão para o **filho**; variáveis têm de ir em **`mb --env ... run ...`**.
+- Confundir **`mb run myplugin`** com **`mb categoria comando`** — `run` é só executável no PATH, não resolve comandos do cache SQLite.
+
+## Documentação no repositório
+
+- `docs/docs/guide/environment-variables.md` — precedência e `mb run`
+- `docs/docs/technical-reference/reference.md` — linha `mb run`
+
+## Verificação
+
+```bash
+go test ./internal/cli/run/... ./internal/deps/... -count=1
+```
+
+Ao alterar merge de ambiente partilhado, validar também **`cli/plugincmd`** e testes em **`internal/deps`**.
