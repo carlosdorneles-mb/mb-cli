@@ -44,7 +44,7 @@ Tipos:
 
 - **Folha com entrypoint** — um executável por comando.
 - **Folha flags-only** — só `flags`; o CLI escolhe o entrypoint pela flag.
-- **Categoria** — sem entrypoint e sem `flags`; aparece como subcomando intermédio (descrição, opcionalmente README com `-r`).
+- **Categoria** — sem entrypoint e sem `flags`; aparece como subcomando intermédio (descrição, opcionalmente README com `-r`). O campo **`aliases`** do manifest é gravado no cache (`categories.aliases_json`) e o Cobra regista os mesmos aliases que para uma folha (ex.: `mb pai <alias>` em vez do nome do segmento).
 
 **Modos de scan:**
 

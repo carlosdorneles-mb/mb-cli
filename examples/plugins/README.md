@@ -15,10 +15,11 @@ O path relativo à pasta de plugins vira o comando: `infra/ci/deploy` → `mb in
 
 ## Manifest
 
-Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **description**; **command** e **readme** são opcionais. A description aparece na lista de comandos (ex.: `mb` mostra a descrição em "infra"; `mb infra` mostra a descrição em "ci"). O `--help` mostra apenas o help (Fang); o README é exibido somente com a flag `--readme`.
+Toda categoria (e subcategoria) deve ter um `manifest.yaml` com pelo menos **description**; **command**, **readme** e **aliases** são opcionais. A description aparece na lista de comandos (ex.: `mb` mostra a descrição em "infra"; `mb infra` mostra a descrição em "ci"). O `--help` mostra apenas o help (Fang); o README é exibido somente com a flag `--readme`.
 
 - **command** (opcional): nome do comando na CLI; default = nome do diretório.
 - **description** (opcional mas recomendado para categorias): descrição (Short do Cobra).
+- **aliases** (opcional): lista de nomes alternativos para esse segmento (ex.: `aliases: [sk]` permite invocar o mesmo nó de categoria pelo alias).
 - **readme** (opcional): arquivo (ex. README.md); quando existir, o comando ou categoria ganha a flag `--readme`, que renderiza o arquivo com glow.
 - Com **entrypoint** e **type**: comando executável; qualquer flag/arg é repassada ao script.
 - Sem entrypoint mas com **flags**: cada flag tem um entrypoint; sem flag → help.

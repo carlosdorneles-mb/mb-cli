@@ -7,6 +7,62 @@ import (
 	"testing"
 )
 
+func TestScanTreeCategoryManifestAliasesJSON(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(root, "manifest.yaml"),
+		[]byte("command: pkg\ndescription: pacote\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "skills", "add"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(root, "skills", "manifest.yaml"),
+		[]byte("command: skills\ndescription: Skills CLI\naliases:\n  - sk\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(root, "skills", "add", "manifest.yaml"),
+		[]byte("command: add\ndescription: add\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(root, "skills", "add", "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewScanner("/tmp")
+	_, cats, w, _, err := s.scanTree(root)
+	if err != nil {
+		t.Fatalf("scanTree: %v", err)
+	}
+	if len(w) != 0 {
+		t.Fatalf("warnings: %+v", w)
+	}
+
+	var got string
+	for _, c := range cats {
+		if c.Path == "pkg/skills" {
+			got = c.AliasesJSON
+			break
+		}
+	}
+	want := `["sk"]`
+	if got != want {
+		t.Fatalf("category pkg/skills AliasesJSON = %q, want %q", got, want)
+	}
+}
+
 func TestScanTreeInfraStyleCommandPaths(t *testing.T) {
 	root := t.TempDir()
 	// Root category manifest (like examples/plugins/infra)

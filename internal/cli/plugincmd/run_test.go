@@ -1,22 +1,99 @@
-package plugincmd_test
+package plugincmd
 
 import (
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cli/root"
 	"mb/internal/deps"
 	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
+	"mb/internal/shared/env"
 )
+
+// testRootCmdForPluginIntegrationTests builds a root command with persistent flags and PreRun
+// aligned with internal/cli/root (verbose, quiet, env-file, env-group, env) plus Attach.
+// Usado em vez de root.NewRootCmd para evitar import cycle (root → plugincmd).
+func testRootCmdForPluginIntegrationTests(d *deps.Dependencies) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:          "mb",
+		SilenceUsage: true,
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	rootCmd.PersistentFlags().
+		BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
+	rootCmd.PersistentFlags().
+		BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
+	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "")
+	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvGroup, "env-group", "", "")
+	rootCmd.PersistentFlags().
+		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
+	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
+	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "PLUGINS"})
+	Attach(rootCmd, *d)
+	rootCmd.InitDefaultHelpCmd()
+	return rootCmd
+}
+
+// =============================================================================
+// run.go — parseRootVerbosityFlags
+// =============================================================================
+
+func TestParseRootVerbosityFlags(t *testing.T) {
+	var verbose, quiet bool
+	root := &cobra.Command{Use: "mb"}
+	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "")
+	root.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "")
+	child := &cobra.Command{Use: "hello"}
+	root.AddCommand(child)
+
+	tests := []struct {
+		name          string
+		args          []string
+		wantVerbose   bool
+		wantQuiet     bool
+		wantRemaining []string
+	}{
+		{"-v consumes and sets verbose", []string{"-v"}, true, false, []string{}},
+		{"-q consumes and sets quiet", []string{"-q"}, false, true, []string{}},
+		{"-v -q both set", []string{"-v", "-q"}, true, true, []string{}},
+		{"no flags", []string{}, false, false, []string{}},
+		{"-v then positional", []string{"-v", "foo"}, true, false, []string{"foo"}},
+		{"positional then -v", []string{"foo", "-v"}, true, false, []string{"foo"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			verbose, quiet = false, false
+			remaining := parseRootVerbosityFlags(child, tt.args)
+			if verbose != tt.wantVerbose {
+				t.Errorf("verbose = %v, want %v", verbose, tt.wantVerbose)
+			}
+			if quiet != tt.wantQuiet {
+				t.Errorf("quiet = %v, want %v", quiet, tt.wantQuiet)
+			}
+			if !reflect.DeepEqual(remaining, tt.wantRemaining) {
+				t.Errorf("remaining = %v, want %v", remaining, tt.wantRemaining)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// runEntrypointCommand / runFlagsOnlyCommand — integração com cache e executor
+// =============================================================================
 
 func envDumpAsMap(t *testing.T, filePath string) map[string]string {
 	t.Helper()
@@ -104,7 +181,7 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
 	var doCmd *cobra.Command
 	for _, c := range rootCmd.Commands() {
@@ -180,7 +257,7 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 	var out strings.Builder
 	rootCmd.SetOut(&out)
 	rootCmd.SetArgs([]string{"tools", "hello", "--help"})
@@ -235,7 +312,7 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 	rootCmd.SetArgs([]string{"tools", "hello", "-v", argsFile, "foo"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -293,7 +370,7 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 	rootCmd.SetArgs([]string{"tools", "hello", argsFile, "foo", "bar"})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -386,9 +463,9 @@ func TestEntrypointAndFlagsInjectFlagEnvsOnlyWhenFlagProvided(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
 
 	withoutFlag := filepath.Join(tmp, "without-flag.txt")
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 	rootCmd.SetArgs([]string{"tools", "do", withoutFlag})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Execute without flag: %v", err)
@@ -399,7 +476,7 @@ func TestEntrypointAndFlagsInjectFlagEnvsOnlyWhenFlagProvided(t *testing.T) {
 	}
 
 	withFlag := filepath.Join(tmp, "with-flag.txt")
-	rootCmd = root.NewRootCmd(d)
+	rootCmd = testRootCmdForPluginIntegrationTests(&d)
 	rootCmd.SetArgs([]string{"tools", "do", "--deploy", withFlag})
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Execute with flag: %v", err)
@@ -498,7 +575,7 @@ func TestFlagsOnlyMergeFlagEnvsWithPrecedence(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
 	out := filepath.Join(tmp, "env-out.txt")
 	rootCmd.SetArgs(

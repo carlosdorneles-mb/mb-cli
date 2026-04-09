@@ -284,13 +284,216 @@ func marshalEnvFilesJSON(m Manifest) (string, error) {
 	return string(b), nil
 }
 
+// maybeAppendRootCategory adds a category row from pack root manifest.yaml when it is category-only
+// and no category with the same path was already collected from the tree walk.
+func maybeAppendRootCategory(categories *[]sqlite.Category, rootPath string) {
+	rootManifestPath := filepath.Join(rootPath, "manifest.yaml")
+	raw, err := os.ReadFile(rootManifestPath)
+	if err != nil {
+		return
+	}
+	var m Manifest
+	if err := yaml.Unmarshal(raw, &m); err != nil || m.Entrypoint != "" || m.Flags.Len() > 0 {
+		return
+	}
+	seg, err := pathSegmentForDir(rootPath)
+	if err != nil || seg == "" {
+		return
+	}
+	readmePath := ""
+	if m.Readme != "" {
+		readmePath = filepath.Join(rootPath, m.Readme)
+	}
+	for _, c := range *categories {
+		if c.Path == seg {
+			return
+		}
+	}
+	*categories = append(*categories, sqlite.Category{
+		Path:        seg,
+		Description: m.Description,
+		ReadmePath:  readmePath,
+		Hidden:      m.Hidden,
+	})
+}
+
+// scanOneManifestFile processes one validated manifest after WalkDir finds manifest.yaml.
+func (s *Scanner) scanOneManifestFile(
+	rootPath, manifestPath, baseDir string,
+	manifest Manifest,
+	raw []byte,
+	plugins *[]sqlite.Plugin,
+	categories *[]sqlite.Category,
+) error {
+	debug := s.DebugLog
+
+	commandPath, err := commandPathForPluginDir(rootPath, baseDir)
+	if err != nil {
+		return err
+	}
+
+	commandName := manifest.Command
+	if commandName == "" {
+		commandName = filepath.Base(baseDir)
+	}
+
+	dbCommandPath := commandPath
+	if dbCommandPath == "" && (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) {
+		dbCommandPath = commandName
+	}
+
+	configHash, err := PluginLeafConfigHash(raw, &manifest, baseDir)
+	if err != nil {
+		return fmt.Errorf("plugin leaf hash %s: %w", manifestPath, err)
+	}
+	readmePath := ""
+	if manifest.Readme != "" {
+		readmePath = filepath.Join(baseDir, manifest.Readme)
+	}
+
+	pluginDir := baseDir
+
+	if manifest.Entrypoint != "" {
+		return appendPluginWithEntrypoint(
+			manifestPath, manifest, dbCommandPath, commandName, configHash, readmePath, pluginDir,
+			baseDir, plugins, debug,
+		)
+	}
+
+	if manifest.Flags.Len() > 0 {
+		return appendFlagsOnlyPlugin(
+			manifestPath, manifest, dbCommandPath, commandName, configHash, readmePath, pluginDir,
+			plugins, debug,
+		)
+	}
+
+	catPath, err := categoryPathForDir(rootPath, baseDir)
+	if err != nil {
+		return err
+	}
+	if catPath == "" {
+		return nil
+	}
+	catGid := nestedPluginGroupIDRaw(catPath, manifest.GroupID, debug)
+	_, _, aliasesJ, _, _, _, err := cobraFieldsFromManifest(manifest)
+	if err != nil {
+		return fmt.Errorf("cobra fields %s: %w", manifestPath, err)
+	}
+	*categories = append(*categories, sqlite.Category{
+		Path:        catPath,
+		Description: manifest.Description,
+		ReadmePath:  readmePath,
+		Hidden:      manifest.Hidden,
+		GroupID:     catGid,
+		AliasesJSON: aliasesJ,
+	})
+	return nil
+}
+
+func appendPluginWithEntrypoint(
+	manifestPath string,
+	manifest Manifest,
+	dbCommandPath, commandName, configHash, readmePath, pluginDir, baseDir string,
+	plugins *[]sqlite.Plugin,
+	debug func(string),
+) error {
+	execPath := filepath.Join(baseDir, manifest.Entrypoint)
+	pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
+	flagsJSON := ""
+	if manifest.Flags.Len() > 0 {
+		flagsMap := manifest.Flags.ToMap()
+		flagsJSONBytes, err := json.Marshal(flagsMap)
+		if err != nil {
+			return fmt.Errorf("marshal flags %s: %w", manifestPath, err)
+		}
+		flagsJSON = string(flagsJSONBytes)
+	}
+	useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+	u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
+	if err != nil {
+		return fmt.Errorf("cobra fields %s: %w", manifestPath, err)
+	}
+	useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+	envFilesJ, err := marshalEnvFilesJSON(manifest)
+	if err != nil {
+		return fmt.Errorf("env_files %s: %w", manifestPath, err)
+	}
+	gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
+	*plugins = append(*plugins, sqlite.Plugin{
+		CommandPath:     dbCommandPath,
+		CommandName:     commandName,
+		Description:     manifest.Description,
+		ExecPath:        execPath,
+		PluginType:      pluginType,
+		ConfigHash:      configHash,
+		ReadmePath:      readmePath,
+		FlagsJSON:       flagsJSON,
+		UseTemplate:     useT,
+		ArgsCount:       argsC,
+		AliasesJSON:     aliasesJ,
+		Example:         ex,
+		LongDescription: longD,
+		Deprecated:      dep,
+		PluginDir:       pluginDir,
+		Hidden:          manifest.Hidden,
+		EnvFilesJSON:    envFilesJ,
+		GroupID:         gid,
+	})
+	return nil
+}
+
+func appendFlagsOnlyPlugin(
+	manifestPath string,
+	manifest Manifest,
+	dbCommandPath, commandName, configHash, readmePath, pluginDir string,
+	plugins *[]sqlite.Plugin,
+	debug func(string),
+) error {
+	flagsMap := manifest.Flags.ToMap()
+	flagsJSON, err := json.Marshal(flagsMap)
+	if err != nil {
+		return fmt.Errorf("marshal flags %s: %w", manifestPath, err)
+	}
+	useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
+	u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
+	if err != nil {
+		return fmt.Errorf("cobra fields %s: %w", manifestPath, err)
+	}
+	useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
+	envFilesJ, err := marshalEnvFilesJSON(manifest)
+	if err != nil {
+		return fmt.Errorf("env_files %s: %w", manifestPath, err)
+	}
+	gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
+	*plugins = append(*plugins, sqlite.Plugin{
+		CommandPath:     dbCommandPath,
+		CommandName:     commandName,
+		Description:     manifest.Description,
+		ExecPath:        "",
+		PluginType:      "",
+		ConfigHash:      configHash,
+		ReadmePath:      readmePath,
+		FlagsJSON:       string(flagsJSON),
+		UseTemplate:     useT,
+		ArgsCount:       argsC,
+		AliasesJSON:     aliasesJ,
+		Example:         ex,
+		LongDescription: longD,
+		Deprecated:      dep,
+		PluginDir:       pluginDir,
+		Hidden:          manifest.Hidden,
+		EnvFilesJSON:    envFilesJ,
+		GroupID:         gid,
+	})
+	return nil
+}
+
 func (s *Scanner) scanTree(
 	rootPath string,
 ) ([]sqlite.Plugin, []sqlite.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
 	plugins := []sqlite.Plugin{}
 	categories := []sqlite.Category{}
 	warnings := []plugin.ValidationWarning{}
-	debug := s.DebugLog
 
 	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -314,134 +517,7 @@ func (s *Scanner) scanTree(
 			return nil
 		}
 
-		commandPath, err := commandPathForPluginDir(rootPath, baseDir)
-		if err != nil {
-			return err
-		}
-
-		commandName := manifest.Command
-		if commandName == "" {
-			commandName = filepath.Base(baseDir)
-		}
-
-		dbCommandPath := commandPath
-		if dbCommandPath == "" && (manifest.Entrypoint != "" || manifest.Flags.Len() > 0) {
-			dbCommandPath = commandName
-		}
-
-		configHash, err := PluginLeafConfigHash(raw, &manifest, baseDir)
-		if err != nil {
-			return fmt.Errorf("plugin leaf hash %s: %w", path, err)
-		}
-		readmePath := ""
-		if manifest.Readme != "" {
-			readmePath = filepath.Join(baseDir, manifest.Readme)
-		}
-
-		pluginDir := baseDir
-
-		if manifest.Entrypoint != "" {
-			execPath := filepath.Join(baseDir, manifest.Entrypoint)
-			pluginType := PluginTypeFromEntrypoint(manifest.Entrypoint)
-			flagsJSON := ""
-			if manifest.Flags.Len() > 0 {
-				flagsMap := manifest.Flags.ToMap()
-				flagsJSONBytes, err := json.Marshal(flagsMap)
-				if err != nil {
-					return fmt.Errorf("marshal flags %s: %w", path, err)
-				}
-				flagsJSON = string(flagsJSONBytes)
-			}
-			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
-			u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
-			if err != nil {
-				return fmt.Errorf("cobra fields %s: %w", path, err)
-			}
-			useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
-			envFilesJ, err := marshalEnvFilesJSON(manifest)
-			if err != nil {
-				return fmt.Errorf("env_files %s: %w", path, err)
-			}
-			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
-			plugins = append(plugins, sqlite.Plugin{
-				CommandPath:     dbCommandPath,
-				CommandName:     commandName,
-				Description:     manifest.Description,
-				ExecPath:        execPath,
-				PluginType:      pluginType,
-				ConfigHash:      configHash,
-				ReadmePath:      readmePath,
-				FlagsJSON:       flagsJSON,
-				UseTemplate:     useT,
-				ArgsCount:       argsC,
-				AliasesJSON:     aliasesJ,
-				Example:         ex,
-				LongDescription: longD,
-				Deprecated:      dep,
-				PluginDir:       pluginDir,
-				Hidden:          manifest.Hidden,
-				EnvFilesJSON:    envFilesJ,
-				GroupID:         gid,
-			})
-			return nil
-		}
-
-		if manifest.Flags.Len() > 0 {
-			flagsMap := manifest.Flags.ToMap()
-			flagsJSON, err := json.Marshal(flagsMap)
-			if err != nil {
-				return fmt.Errorf("marshal flags %s: %w", path, err)
-			}
-			useT, argsC, aliasesJ, ex, longD, dep := "", 0, "", "", "", ""
-			u, a, aj, e, ld, d, err := cobraFieldsFromManifest(manifest)
-			if err != nil {
-				return fmt.Errorf("cobra fields %s: %w", path, err)
-			}
-			useT, argsC, aliasesJ, ex, longD, dep = u, a, aj, e, ld, d
-			envFilesJ, err := marshalEnvFilesJSON(manifest)
-			if err != nil {
-				return fmt.Errorf("env_files %s: %w", path, err)
-			}
-			gid := nestedPluginGroupIDRaw(dbCommandPath, manifest.GroupID, debug)
-			plugins = append(plugins, sqlite.Plugin{
-				CommandPath:     dbCommandPath,
-				CommandName:     commandName,
-				Description:     manifest.Description,
-				ExecPath:        "",
-				PluginType:      "",
-				ConfigHash:      configHash,
-				ReadmePath:      readmePath,
-				FlagsJSON:       string(flagsJSON),
-				UseTemplate:     useT,
-				ArgsCount:       argsC,
-				AliasesJSON:     aliasesJ,
-				Example:         ex,
-				LongDescription: longD,
-				Deprecated:      dep,
-				PluginDir:       pluginDir,
-				Hidden:          manifest.Hidden,
-				EnvFilesJSON:    envFilesJ,
-				GroupID:         gid,
-			})
-			return nil
-		}
-
-		catPath, err := categoryPathForDir(rootPath, baseDir)
-		if err != nil {
-			return err
-		}
-		if catPath == "" {
-			return nil
-		}
-		catGid := nestedPluginGroupIDRaw(catPath, manifest.GroupID, debug)
-		categories = append(categories, sqlite.Category{
-			Path:        catPath,
-			Description: manifest.Description,
-			ReadmePath:  readmePath,
-			Hidden:      manifest.Hidden,
-			GroupID:     catGid,
-		})
-		return nil
+		return s.scanOneManifestFile(rootPath, path, baseDir, manifest, raw, &plugins, &categories)
 	})
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -449,34 +525,7 @@ func (s *Scanner) scanTree(
 
 	helpBatches := collectHelpGroupBatchesUnderRoot(rootPath, &warnings)
 
-	rootManifestPath := filepath.Join(rootPath, "manifest.yaml")
-	if raw, err := os.ReadFile(rootManifestPath); err == nil {
-		var m Manifest
-		if err := yaml.Unmarshal(raw, &m); err == nil && m.Entrypoint == "" && m.Flags.Len() == 0 {
-			seg, err := pathSegmentForDir(rootPath)
-			if err == nil && seg != "" {
-				readmePath := ""
-				if m.Readme != "" {
-					readmePath = filepath.Join(rootPath, m.Readme)
-				}
-				dup := false
-				for _, c := range categories {
-					if c.Path == seg {
-						dup = true
-						break
-					}
-				}
-				if !dup {
-					categories = append(categories, sqlite.Category{
-						Path:        seg,
-						Description: m.Description,
-						ReadmePath:  readmePath,
-						Hidden:      m.Hidden,
-					})
-				}
-			}
-		}
-	}
+	maybeAppendRootCategory(&categories, rootPath)
 
 	return plugins, categories, warnings, helpBatches, nil
 }

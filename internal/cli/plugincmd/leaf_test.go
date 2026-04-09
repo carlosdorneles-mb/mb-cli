@@ -1,4 +1,4 @@
-package plugincmd_test
+package plugincmd
 
 import (
 	"encoding/json"
@@ -8,13 +8,65 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cli/root"
 	"mb/internal/deps"
 	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
 )
+
+// =============================================================================
+// newLeafCommand — flags, readme e shorthands reservados
+// =============================================================================
+
+func TestNewLeafCommand_FlagsWithReadmeNoPanicWhenPluginUsesR(t *testing.T) {
+	flagsJSON := `{"run":{"type":"long","short":"r","entrypoint":"run.sh","description":"run"}}`
+	plugin := sqlite.Plugin{
+		CommandPath: "dev/bump",
+		CommandName: "bump",
+		FlagsJSON:   flagsJSON,
+		ReadmePath:  "/tmp/mb-readme-test.md",
+	}
+	d := deps.NewDependencies(&deps.RuntimeConfig{}, config.AppConfig{}, nil, nil, nil, nil)
+	cmd := newLeafCommand("bump", plugin, d, executor.New(), "/tmp", false, nil, nil)
+	rf := cmd.Flags().Lookup("readme")
+	if rf == nil {
+		t.Fatal("readme flag missing")
+	}
+	if rf.Shorthand != "r" {
+		t.Fatalf(
+			"readme should keep -r (MB registado antes dos flags do plugin), got shorthand %q",
+			rf.Shorthand,
+		)
+	}
+	runF := cmd.Flags().Lookup("run")
+	if runF == nil || runF.Shorthand != "" {
+		t.Fatalf("run flag should be long-only when -r fica com --readme, got %#v", runF)
+	}
+}
+
+func TestNewLeafCommand_ReservedRootShorthandDropped(t *testing.T) {
+	flagsJSON := `{"watch":{"type":"long","short":"v","entrypoint":"w.sh","description":"w"}}`
+	plugin := sqlite.Plugin{
+		CommandPath: "p/x",
+		CommandName: "x",
+		FlagsJSON:   flagsJSON,
+	}
+	d := deps.NewDependencies(&deps.RuntimeConfig{}, config.AppConfig{}, nil, nil, nil, nil)
+	global := map[string]struct{}{"v": {}}
+	cmd := newLeafCommand("x", plugin, d, executor.New(), "/tmp", false, nil, global)
+	f := cmd.Flags().Lookup("watch")
+	if f == nil {
+		t.Fatal("watch flag missing")
+	}
+	if f.Shorthand != "" {
+		t.Fatalf("want empty shorthand when manifest requests reserved v, got %q", f.Shorthand)
+	}
+}
+
+// =============================================================================
+// Attach + folha — flags-only e campos Cobra (integração)
+// =============================================================================
 
 func TestFlagsOnlyWithShort(t *testing.T) {
 	flagsWithShort := map[string]plugins.FlagDef{
@@ -78,7 +130,7 @@ func TestFlagsOnlyWithShort(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
 	var doCmd *cobra.Command
 	for _, c := range rootCmd.Commands() {
@@ -178,7 +230,7 @@ func TestFlagsOnlyWithoutShort(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
 	var doCmd *cobra.Command
 	for _, c := range rootCmd.Commands() {
@@ -258,7 +310,7 @@ func TestCobraPluginFieldsInjected(t *testing.T) {
 		executor.New(),
 		nil,
 	)
-	rootCmd := root.NewRootCmd(d)
+	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
 	var helloCmd *cobra.Command
 	for _, c := range rootCmd.Commands() {

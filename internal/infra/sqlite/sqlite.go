@@ -132,9 +132,24 @@ func (s *Store) migrateCategoryGroupIDColumn() error {
 		return err
 	}
 	if has > 0 {
+		return s.migrateCategoryAliasesJSONColumn()
+	}
+	if _, err := s.db.Exec("ALTER TABLE categories ADD COLUMN group_id TEXT"); err != nil {
+		return err
+	}
+	return s.migrateCategoryAliasesJSONColumn()
+}
+
+func (s *Store) migrateCategoryAliasesJSONColumn() error {
+	var has int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('categories') WHERE name='aliases_json'").
+		Scan(&has); err != nil {
+		return err
+	}
+	if has > 0 {
 		return nil
 	}
-	_, err := s.db.Exec("ALTER TABLE categories ADD COLUMN group_id TEXT")
+	_, err := s.db.Exec("ALTER TABLE categories ADD COLUMN aliases_json TEXT")
 	return err
 }
 
@@ -378,14 +393,15 @@ func (s *Store) UpsertCategory(cat Category) error {
 		h = 1
 	}
 	_, err := s.db.Exec(`
-INSERT INTO categories (path, description, readme_path, hidden, group_id)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO categories (path, description, readme_path, hidden, group_id, aliases_json)
+VALUES (?, ?, ?, ?, ?, ?)
 ON CONFLICT(path) DO UPDATE SET
   description = excluded.description,
   readme_path = excluded.readme_path,
   hidden = excluded.hidden,
-  group_id = excluded.group_id
-`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath), h, nullEmpty(cat.GroupID))
+  group_id = excluded.group_id,
+  aliases_json = excluded.aliases_json
+`, cat.Path, nullEmpty(cat.Description), nullEmpty(cat.ReadmePath), h, nullEmpty(cat.GroupID), nullEmpty(cat.AliasesJSON))
 	return err
 }
 
@@ -401,7 +417,7 @@ func (s *Store) DeleteAllPlugins() error {
 
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.db.Query(`
-SELECT path, COALESCE(description, ''), COALESCE(readme_path, ''), COALESCE(hidden, 0), COALESCE(group_id, '')
+SELECT path, COALESCE(description, ''), COALESCE(readme_path, ''), COALESCE(hidden, 0), COALESCE(group_id, ''), COALESCE(aliases_json, '')
 FROM categories
 ORDER BY path
 `)
@@ -414,7 +430,14 @@ ORDER BY path
 	for rows.Next() {
 		var c Category
 		var hid int
-		if err := rows.Scan(&c.Path, &c.Description, &c.ReadmePath, &hid, &c.GroupID); err != nil {
+		if err := rows.Scan(
+			&c.Path,
+			&c.Description,
+			&c.ReadmePath,
+			&hid,
+			&c.GroupID,
+			&c.AliasesJSON,
+		); err != nil {
 			return nil, err
 		}
 		c.Hidden = hid != 0

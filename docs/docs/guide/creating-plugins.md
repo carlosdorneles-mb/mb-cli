@@ -66,7 +66,7 @@ Se **duas fontes** distintas expuserem o mesmo **`command_path`**, o **`mb plugi
 
 Sem `entrypoint` e sem lista `flags`. Define um subcomando intermédio (descrição, opcionalmente `readme` e flag `-r`).
 
-Campos úteis: `command`, `description`, `long_description`, `readme`, `hidden`.  
+Campos úteis: `command`, `description`, `long_description`, `readme`, `hidden`, **`aliases`** (nomes alternativos para esse segmento na CLI, como em folhas — ex.: `aliases: [sk]` no manifest da pasta `skills` permite `mb ai sk` além de `mb ai skills`).  
 Para **help agrupado** em comandos aninhados, pode usar **`group_id`** (só faz efeito quando o path tem `/`); ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
 
 ### Folha com `entrypoint`
@@ -113,7 +113,7 @@ Exemplo completo: [examples/plugins/tools/do](https://github.com/carlosdorneles-
 |-------|--------|
 | `use` | Sufixo da linha de uso (prefixado pelo nome do comando). Ex.: `"<name>"` obrigatório, `"[env]"` opcional. |
 | `args` | Número de argumentos posicionais **obrigatórios** passados ao script (`0` = sem validação). |
-| `aliases` | Lista de nomes alternativos para o mesmo comando. |
+| `aliases` | Lista de nomes alternativos para o mesmo comando. Aplica-se a **folhas** e a **categorias** (manifest só com `description` / `readme`, sem `entrypoint` nem `flags`). |
 | `example` | Texto de exemplo no help. |
 | `deprecated` | Mensagem ao **executar** (aviso de obsoleto; o comando ainda corre). |
 

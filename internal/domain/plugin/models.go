@@ -8,6 +8,7 @@ type Category struct {
 	ReadmePath  string
 	Hidden      bool
 	GroupID     string // help group for nested categories (e.g. infra/k8s → INFRAESTRUTURA)
+	AliasesJSON string // JSON array of strings for Cobra Aliases on the category command
 }
 
 // Plugin describes a leaf plugin command row in the cache.

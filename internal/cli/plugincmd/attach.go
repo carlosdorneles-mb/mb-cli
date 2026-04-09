@@ -2,6 +2,7 @@ package plugincmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -36,6 +37,17 @@ func ensureNestedPluginHelpGroups(cmd *cobra.Command, helpGroups []sqlite.Plugin
 }
 
 const pluginCommandsGroupID = "plugin_commands"
+
+func applyCategoryAliases(cmd *cobra.Command, aliasesJSON string) {
+	if aliasesJSON == "" || cmd == nil {
+		return
+	}
+	var aliases []string
+	if err := json.Unmarshal([]byte(aliasesJSON), &aliases); err != nil {
+		return
+	}
+	cmd.Aliases = aliases
+}
 
 // detachPluginCommands removes direct children of root that were registered by Attach
 // (built-in subcommands use group "commands", not "plugin_commands").
@@ -133,6 +145,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 					Use:   seg,
 					Short: short,
 				}
+				applyCategoryAliases(categoryCmd, cat.AliasesJSON)
 				if parent == root {
 					categoryCmd.GroupID = pluginCommandsGroupID
 				} else if cat.GroupID != "" {

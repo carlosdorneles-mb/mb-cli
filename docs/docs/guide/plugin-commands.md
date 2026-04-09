@@ -17,6 +17,8 @@ Exemplos:
 
 Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do campo **`command`** do `manifest.yaml` (o último segmento do caminho interno continua a ser o nome da pasta). Plugins **só com `flags`** (sem entrypoint raiz) precisam de uma **flag declarada** para correr um script — ex.: `mb tools do --deploy`.
 
+Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** no `manifest.yaml` define atalhos para esse segmento (ex.: `mb ai sk` se `skills` tiver `aliases: [sk]`). É preciso **`mb plugins sync`** para atualizar o cache após alterar aliases.
+
 **Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. O MB compara um **digest por comando** (folha): só aparecem mensagens por comando para **adicionados**, **alterados** (conteúdo do plugin / digest mudou) ou **removidos** do pacote; **não** há linha de log quando o comando já existia e o digest não mudou. Em **`mb plugins sync`**, se não houver nenhuma dessas alterações, verá uma linha curta a indicar que o cache foi atualizado sem mudanças nos comandos. Em **`mb plugins add`**, se o pacote já estiver alinhado (nenhum comando novo, atualizado ou removido), é mostrada uma **mensagem genérica** em vez de repetir confirmações por comando. Use **`--no-remove`** no sync/add para **manter** no cache comandos já ausentes da árvore (com aviso).
 
 ## Como descobrir os comandos

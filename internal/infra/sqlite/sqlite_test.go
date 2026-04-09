@@ -249,3 +249,26 @@ func TestStoreCategoryHiddenRoundTrip(t *testing.T) {
 		t.Fatalf("got %#v", list)
 	}
 }
+
+func TestStoreCategoryAliasesJSONRoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	store, err := NewStore(filepath.Join(tmp, "catalias.db"))
+	if err != nil {
+		t.Fatalf("new store: %v", err)
+	}
+	defer store.Close()
+
+	j := `["sk","s"]`
+	if err := store.UpsertCategory(
+		Category{Path: "ai/skills", Description: "Skills", AliasesJSON: j},
+	); err != nil {
+		t.Fatalf("upsert cat: %v", err)
+	}
+	list, err := store.ListCategories()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(list) != 1 || list[0].AliasesJSON != j {
+		t.Fatalf("got AliasesJSON=%q", list[0].AliasesJSON)
+	}
+}
