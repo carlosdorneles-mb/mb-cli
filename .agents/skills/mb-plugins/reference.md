@@ -51,5 +51,6 @@
 | `internal/domain/plugin/` | DTOs (`Plugin`, categorias, validação) expostos via SQLite |
 | `internal/infra/sqlite/` | `ListPlugins`, escrita após sync, `plugin_sources` |
 | `internal/infra/executor/` | Execução com verificação de path sob raiz do plugin |
+| `internal/infra/shellhelpers/` | `EnsureShellHelpers`, embed `*.sh` → `lib/shell`; `MB_HELPERS_PATH` (ver README do pacote) |
 | `internal/ports/` | `PluginScanner`, `PluginSyncStore`, `ScriptExecutor`, `GitOperations`, … |
 | `internal/cli/root/` | Registo do grupo `plugins` e `AttachDynamicCommands` após sync |

@@ -2,10 +2,11 @@
 name: mb-plugins
 description: >-
   Covers MB CLI plugin lifecycle (`mb plugins`): sync, add, list, remove, update,
-  SQLite cache, manifest scanning, dynamic `mb <categoria>` commands, and plugin
-  execution. Use when changing or explaining `mb plugins`, `manifest.yaml`, scanner,
-  `plugin_sources`, `plugincmd`, plugin security paths, `groups.yaml`, or docs
-  under plugins / creating-plugins / plugin-commands.
+  SQLite cache, manifest scanning, dynamic `mb <categoria>` commands, plugin
+  execution, and embedded shell helpers (`internal/infra/shellhelpers`, MB_HELPERS_PATH).
+  Use when changing or explaining `mb plugins`, `manifest.yaml`, scanner,
+  `plugin_sources`, `plugincmd`, plugin security paths, `groups.yaml`, shell helpers
+  embed, or docs under plugins / creating-plugins / plugin-commands / helpers-shell.
 ---
 
 # MB CLI — `mb plugins` e execução de plugins
@@ -16,6 +17,7 @@ description: >-
 - Alterar **descoberta** (`Scanner`), **manifest** (`manifest.yaml`), **validação de paths**, **Git** (add remoto / update).
 - Trabalhar com **`cli/plugincmd`** (anexar comandos dinâmicos ao root, executar entrypoints, `env_files`, flags).
 - Atualizar **documentação** de plugins ou segurança (paths confinados ao pacote).
+- Alterar **helpers de shell** embebidos (`internal/infra/shellhelpers`) ou documentação em `helpers-shell.md`.
 
 ## Comandos (superfície)
 
@@ -58,11 +60,19 @@ Detalhe por ficheiro: [reference.md](reference.md).
 - **`--no-remove`**: útil para preservar cache, mas `exec_path` pode ficar inválido se o ficheiro foi apagado manualmente.
 - Plugins **locais** não são cópia para `PluginsDir` — o path registado tem de continuar válido.
 
+## Helpers de shell (embed)
+
+Ao alterares **helpers** (`*.sh` embebidos) ou a lógica de **embed** / `EnsureShellHelpers`, segue o README do pacote:
+
+- `internal/infra/shellhelpers/README.md` — fluxo (novo `.sh`, `all.sh`, sync, checksum).
+- `docs/docs/technical-reference/helpers-shell.md` — referência para utilizadores e lista de helpers.
+
 ## Documentação no repositório
 
 - Referência técnica: `docs/docs/technical-reference/plugins.md`
 - Criar plugin: `docs/docs/guide/creating-plugins.md`
 - Comandos e flags: `docs/docs/guide/plugin-commands.md`
+- Helpers de shell: `docs/docs/technical-reference/helpers-shell.md` (alinhado com `internal/infra/shellhelpers/README.md` quando mudas embed)
 - Mapa de pacotes: `internal/README.md`
 
 ## Verificação

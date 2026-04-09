@@ -2,9 +2,10 @@
 name: mb-run
 description: >-
   Covers MB CLI `mb run`, which executes arbitrary programs with the same merged
-  environment as plugins (minus manifest env_files). Use when changing or explaining
-  `mb run`, subprocess env injection, `BuildMergedOSEnviron`, exit codes, PluginTimeout,
-  or docs on run vs plugins.
+  environment as plugins (minus manifest env_files), including MB_HELPERS_PATH. Use when
+  changing or explaining `mb run`, subprocess env injection, `BuildMergedOSEnviron`,
+  exit codes, PluginTimeout, or docs on run vs plugins; for shell helpers embed see
+  mb-plugins skill and `internal/infra/shellhelpers/README.md`.
 ---
 
 # MB CLI — `mb run`
@@ -54,6 +55,7 @@ Detalhe por ficheiro: [reference.md](reference.md).
 
 - `docs/docs/guide/environment-variables.md` — precedência e `mb run`
 - `docs/docs/technical-reference/reference.md` — linha `mb run`
+- **Helpers de shell** — o ambiente inclui `MB_HELPERS_PATH` (mesmo pipeline que plugins). Se alterares embed ou scripts helpers, segue `internal/infra/shellhelpers/README.md` e atualiza `docs/docs/technical-reference/helpers-shell.md` (ver skill **`mb-plugins`**).
 
 ## Verificação
 
