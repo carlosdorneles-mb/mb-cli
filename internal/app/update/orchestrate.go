@@ -2,7 +2,9 @@ package update
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -17,7 +19,10 @@ import (
 // Options configures phased mb update execution.
 type Options struct {
 	OnlyPlugins, OnlyCLI, OnlySystem, OnlyTools, CheckOnly bool
-	RunAllGitPlugins                                       func(ctx context.Context) error
+	JSON                                                   bool
+	// SelfUpdate, if non-nil, is used instead of SelfUpdateConfigFromDeps for the CLI check-only path (tests).
+	SelfUpdate       *selfupdate.Config
+	RunAllGitPlugins func(ctx context.Context) error
 }
 
 // Run executes enabled update phases in order (plugins, tools, CLI, system).
@@ -30,6 +35,9 @@ func Run(
 ) error {
 	if o.CheckOnly && !o.OnlyCLI {
 		return errors.New("use --check-only apenas com --only-cli")
+	}
+	if o.JSON && (!o.CheckOnly || !o.OnlyCLI) {
+		return errors.New("use --json apenas com --only-cli --check-only")
 	}
 
 	runPlugins, runCLI, runSystem, runTools := ResolveUpdatePhases(
@@ -53,16 +61,36 @@ func Run(
 	if runCLI {
 		if o.CheckOnly {
 			suCfg := SelfUpdateConfigFromDeps(d)
+			if o.SelfUpdate != nil {
+				suCfg = o.SelfUpdate
+			}
 			local := strings.TrimSpace(version.Version)
-			out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
-			if out != "" {
-				LogInfoLines(ctx, log, out)
-			}
-			if err != nil {
-				return err
-			}
-			if code == selfupdate.ExitCodeUpdateAvailable {
-				os.Exit(selfupdate.ExitCodeUpdateAvailable)
+			if o.JSON {
+				rep, _, code, err := selfupdate.CheckOnlyDetails(ctx, suCfg, local)
+				if err != nil {
+					return err
+				}
+				raw, err := json.Marshal(rep)
+				if err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintln(cmd.OutOrStdout(), string(raw)); err != nil {
+					return err
+				}
+				if code == selfupdate.ExitCodeUpdateAvailable {
+					os.Exit(selfupdate.ExitCodeUpdateAvailable)
+				}
+			} else {
+				out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
+				if out != "" {
+					LogInfoLines(ctx, log, out)
+				}
+				if err != nil {
+					return err
+				}
+				if code == selfupdate.ExitCodeUpdateAvailable {
+					os.Exit(selfupdate.ExitCodeUpdateAvailable)
+				}
 			}
 		} else {
 			if err := RunCLIUpdate(ctx, d, log); err != nil {

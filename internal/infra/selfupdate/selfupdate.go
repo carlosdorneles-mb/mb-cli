@@ -352,6 +352,42 @@ func DestExecutablePath() (string, error) {
 // ExitCodeUpdateAvailable is returned by RunCheckOnly (and mb update --only-cli --check-only) when a newer release exists.
 const ExitCodeUpdateAvailable = 2
 
+// CheckOnlyReport is the machine-readable result of mb update --only-cli --check-only --json.
+type CheckOnlyReport struct {
+	LocalVersion    string `json:"localVersion"`
+	RemoteVersion   string `json:"remoteVersion"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+}
+
+// CheckOnlyDetails fetches the latest release tag once and computes human message and exit code.
+func CheckOnlyDetails(
+	ctx context.Context,
+	cfg *Config,
+	localVersion string,
+) (*CheckOnlyReport, string, int, error) {
+	tag, err := FetchLatestTag(ctx, cfg)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	local := strings.TrimSpace(localVersion)
+	up := ShouldFetchNewRelease(localVersion, tag)
+	rep := &CheckOnlyReport{
+		LocalVersion:    local,
+		RemoteVersion:   tag,
+		UpdateAvailable: up,
+	}
+	if up {
+		msg := fmt.Sprintf(
+			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb update --only-cli\n",
+			local,
+			tag,
+		)
+		return rep, msg, ExitCodeUpdateAvailable, nil
+	}
+	msg := MessageNoUpdateNeeded(localVersion, tag)
+	return rep, msg, 0, nil
+}
+
 // MessageNoUpdateNeeded returns the user-facing message when ShouldFetchNewRelease is false.
 func MessageNoUpdateNeeded(localVersion, tag string) string {
 	lt := tag
@@ -377,18 +413,8 @@ func RunCheckOnly(
 	cfg *Config,
 	localVersion string,
 ) (stdout string, exitCode int, err error) {
-	tag, err := FetchLatestTag(ctx, cfg)
-	if err != nil {
-		return "", 0, err
-	}
-	if ShouldFetchNewRelease(localVersion, tag) {
-		return fmt.Sprintf(
-			"Atualização disponível para o MB CLI.\nVersão instalada: %s\nÚltima release estável: %s\nExecute: mb update --only-cli\n",
-			strings.TrimSpace(localVersion),
-			tag,
-		), ExitCodeUpdateAvailable, nil
-	}
-	return MessageNoUpdateNeeded(localVersion, tag), 0, nil
+	_, msg, code, err := CheckOnlyDetails(ctx, cfg, localVersion)
+	return msg, code, err
 }
 
 // Run checks GitHub, downloads if needed, and installs. Returns messages for stdout (already updated / up to date).

@@ -267,6 +267,26 @@ func TestRunCheckOnly_newerLocalThanRelease(t *testing.T) {
 	}
 }
 
+func TestCheckOnlyDetails_matchesRunCheckOnly(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"tag_name":"v2.0.0"}`))
+	}))
+	t.Cleanup(srv.Close)
+	cfg := &Config{LatestReleaseURL: srv.URL}
+	rep, msg, code, err := CheckOnlyDetails(context.Background(), cfg, "v1.0.0")
+	if err != nil || code != ExitCodeUpdateAvailable {
+		t.Fatalf("err=%v code=%d", err, code)
+	}
+	if rep.LocalVersion != "v1.0.0" || rep.RemoteVersion != "v2.0.0" || !rep.UpdateAvailable {
+		t.Fatalf("report: %+v", rep)
+	}
+	msg2, code2, err2 := RunCheckOnly(context.Background(), cfg, "v1.0.0")
+	if err2 != nil || code2 != code || msg != msg2 {
+		t.Fatalf("RunCheckOnly diverged: err2=%v code2=%d msg2=%q", err2, code2, msg2)
+	}
+}
+
 func TestRunCheckOnly_apiError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

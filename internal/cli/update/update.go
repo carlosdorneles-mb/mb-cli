@@ -64,7 +64,7 @@ func storeHasToolsUpdateAll(store ports.PluginCLIStore) bool {
 
 // NewUpdateCmd builds the root "mb update" cobra command.
 func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
-	var onlyPlugins, onlyCLI, onlySystem, onlyTools, checkOnly bool
+	var onlyPlugins, onlyCLI, onlySystem, onlyTools, checkOnly, jsonOut bool
 
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -73,7 +73,7 @@ func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
 
 Sem flags, executa todas as fases habilitadas. Use --only-plugins e/ou --only-cli para escolher fases; com o agregador tools no cache e a flag --update-all no manifest (mb plugins sync), também --only-tools; com o plugin machine/update no cache, também --only-system (delega em mb machine update). Pode combinar várias flags --only-* (ex.: --only-plugins --only-cli).
 
---check-only só pode ser usado juntamente com --only-cli (verifica release do binário sem baixar).`,
+--check-only só pode ser usado juntamente com --only-cli (verifica release do binário sem baixar). Com --only-cli --check-only, --json imprime no stdout um objeto JSON com versão local, última release e se há atualização (sem texto legível).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			if ctx == nil {
@@ -90,6 +90,7 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins e/ou --only-cl
 				OnlySystem:  onlySystem,
 				OnlyTools:   onlyTools,
 				CheckOnly:   checkOnly,
+				JSON:        jsonOut,
 				RunAllGitPlugins: func(ctx context.Context) error {
 					return plugins.RunUpdateAll(ctx, cmd, d, log)
 				},
@@ -110,5 +111,7 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins e/ou --only-cl
 	}
 	cmd.Flags().
 		BoolVar(&checkOnly, "check-only", false, "Só com --only-cli: verifica release do binário sem baixar; saída 2 se houver")
+	cmd.Flags().
+		BoolVar(&jsonOut, "json", false, "Só com --only-cli --check-only: imprime JSON (localVersion, remoteVersion, updateAvailable) no stdout")
 	return cmd
 }

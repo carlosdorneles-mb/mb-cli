@@ -35,7 +35,7 @@ Exemplo:
 ```bash
 mb -q plugins list
 mb --quiet plugins sync
-mb -q update --only-cli --check-only   # só código de saída (ex.: 2 = há atualização), sem texto em stdout
+mb -q update --only-cli --check-only   # só código de saída (ex.: 2 = há atualização); sem texto legível em stdout (com `--json`, a linha JSON ainda vai para stdout)
 mb -q tools meu-comando
 ```
 

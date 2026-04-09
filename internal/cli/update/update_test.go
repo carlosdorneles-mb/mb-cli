@@ -70,6 +70,9 @@ func TestNewUpdateCmd(t *testing.T) {
 	if fs := cmd.Flags().Lookup("only-system"); fs != nil {
 		t.Error("flag only-system should be absent without machine/update plugin in cache")
 	}
+	if fj := cmd.Flags().Lookup("json"); fj == nil {
+		t.Error("flag json missing")
+	}
 }
 
 func TestNewUpdateCmdOnlyToolsWithToolsPlugin(t *testing.T) {
@@ -159,6 +162,22 @@ func TestCheckOnlyWithoutOnlyCLIErrors(t *testing.T) {
 		t.Fatal("expected error")
 	}
 	if !strings.Contains(err.Error(), "--check-only") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestJSONWithoutOnlyCLIAndCheckOnlyErrors(t *testing.T) {
+	d := testUpdateDeps(t)
+	cmd := NewUpdateCmd(d)
+	var errBuf strings.Builder
+	cmd.SetOut(os.Stdout)
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{"--json"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--json") {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
