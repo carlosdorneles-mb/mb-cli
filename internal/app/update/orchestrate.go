@@ -83,7 +83,7 @@ func Run(
 			} else {
 				out, code, err := selfupdate.RunCheckOnly(ctx, suCfg, local)
 				if out != "" {
-					LogInfoLines(ctx, log, out)
+					LogCheckOnlyHumanLines(ctx, log, out)
 				}
 				if err != nil {
 					return err

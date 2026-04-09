@@ -359,6 +359,13 @@ type CheckOnlyReport struct {
 	UpdateAvailable bool   `json:"updateAvailable"`
 }
 
+// IsPlainCheckOnlyLine reports lines that should be printed at gum level "none" (Print), not "info".
+func IsPlainCheckOnlyLine(line string) bool {
+	s := strings.TrimSpace(line)
+	return strings.HasPrefix(s, "Versão instalada:") ||
+		strings.HasPrefix(s, "Última release estável:")
+}
+
 // CheckOnlyDetails fetches the latest release tag once and computes human message and exit code.
 func CheckOnlyDetails(
 	ctx context.Context,

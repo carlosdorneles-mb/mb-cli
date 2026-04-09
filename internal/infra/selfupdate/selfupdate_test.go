@@ -287,6 +287,22 @@ func TestCheckOnlyDetails_matchesRunCheckOnly(t *testing.T) {
 	}
 }
 
+func TestIsPlainCheckOnlyLine(t *testing.T) {
+	t.Parallel()
+	if !IsPlainCheckOnlyLine("Versão instalada: v1.0.0") {
+		t.Fatal("expected plain for Versão instalada")
+	}
+	if !IsPlainCheckOnlyLine("  Última release estável: v2.0.0") {
+		t.Fatal("expected plain for Última release estável")
+	}
+	if IsPlainCheckOnlyLine("Atualização disponível para o MB CLI.") {
+		t.Fatal("headline should use info, not plain")
+	}
+	if IsPlainCheckOnlyLine("Execute: mb update --only-cli") {
+		t.Fatal("footer should use info, not plain")
+	}
+}
+
 func TestRunCheckOnly_apiError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
