@@ -40,6 +40,7 @@ func TestCompletionInstall_yesWritesBashrc(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	root := NewRootCmd(d)
 	root.SetOut(io.Discard)
@@ -86,6 +87,7 @@ func TestCompletionInstall_nonTTYRequiresYes(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	root := NewRootCmd(d)
 	root.SetOut(io.Discard)
@@ -123,6 +125,7 @@ func TestCompletionUninstall_yesRemovesBlock(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 	root := NewRootCmd(d)

@@ -19,7 +19,13 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 		Aliases: []string{"ls", "l"},
 		Short:   "Lista variáveis padrão ou de um grupo específico",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			rows, err := appenvs.CollectListRows(d.SecretStore, envPaths(d), listGroup, showSecrets)
+			rows, err := appenvs.CollectListRows(
+				d.SecretStore,
+				d.OnePassword,
+				envPaths(d),
+				listGroup,
+				showSecrets,
+			)
 			if err != nil {
 				return err
 			}

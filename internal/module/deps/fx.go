@@ -5,6 +5,7 @@ import (
 
 	mbdeps "mb/internal/deps"
 	infrakeyring "mb/internal/infra/keyring"
+	"mb/internal/infra/opcli"
 	"mb/internal/ports"
 )
 
@@ -12,6 +13,7 @@ import (
 var DepsModule = fx.Module("deps",
 	fx.Provide(
 		func() ports.SecretStore { return infrakeyring.SystemKeyring{} },
+		func() ports.OnePasswordEnv { return opcli.New() },
 	),
 	fx.Provide(mbdeps.NewDependencies),
 )

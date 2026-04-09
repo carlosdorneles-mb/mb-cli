@@ -49,5 +49,6 @@ O CLI suporta um tempo máximo de execução por plugin (`PluginTimeout`). Quand
 2. **Revise o conteúdo antes de adicionar** — dê uma olhada no repositório (manifest, scripts, dependências) antes de instalar.
 3. **Plugins locais** — ao registrar um path local com `mb plugins add <path>`, o CLI não copia arquivos; ele usa esse diretório como raiz do plugin. Certifique-se de que o path aponta para um projeto em que você confia.
 4. **Variáveis de ambiente** — use `--env-file` ou `--env` para injetar apenas o que o plugin precisa; evite expor credenciais desnecessárias ao processo do plugin.
+5. **Secrets** — para defaults persistentes, prefira **`mb envs set ... --secret`** (keyring) ou **`--secret-op`** (1Password + referência no keyring) em vez de gravar segredos em ficheiros `.env` em claro. Detalhes em [Variáveis de ambiente](./environment-variables.md).
 
 Para mais detalhes sobre como o CLI descobre e executa plugins, veja [Plugins (referência técnica)](../technical-reference/plugins.md).

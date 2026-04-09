@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -34,25 +35,42 @@ func SaveDefaultEnvValues(path string, values map[string]string) error {
 }
 
 // mergeSecretKeysInto resolves keys listed in path.secrets from the keyring and adds them to merged.
+// Values stored as op:// references are resolved via onePassword when non-nil.
 func mergeSecretKeysInto(
 	merged map[string]string,
 	path, keyringGroup string,
 	secrets ports.SecretStore,
-) {
+	onePassword ports.OnePasswordEnv,
+) error {
 	if secrets == nil {
 		secrets = keyring.SystemKeyring{}
 	}
 	keys, err := LoadSecretKeys(path)
 	if err != nil {
-		return
+		return nil
 	}
 	for _, key := range keys {
 		val, err := secrets.Get(keyringGroup, key)
 		if err != nil {
 			continue
 		}
-		merged[key] = val
+		resolved, rerr := resolveSecretValueForMerge(val, onePassword)
+		if rerr != nil {
+			return fmt.Errorf("variável %q (grupo %s): %w", key, keyringGroup, rerr)
+		}
+		merged[key] = resolved
 	}
+	return nil
+}
+
+func resolveSecretValueForMerge(val string, onePassword ports.OnePasswordEnv) (string, error) {
+	if !strings.HasPrefix(val, "op://") {
+		return val, nil
+	}
+	if onePassword == nil {
+		return "", fmt.Errorf("referência 1Password (op://) sem integração disponível")
+	}
+	return onePassword.ReadOPReference(val)
 }
 
 // BuildEnvFileValues loads env.defaults, overlays .env.<EnvGroup> when EnvGroup is set,
@@ -60,7 +78,12 @@ func mergeSecretKeysInto(
 // then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring.
 // Used for plugin execution and mb run.
 // If secrets is nil, the OS keyring implementation is used.
-func BuildEnvFileValues(rt *RuntimeConfig, secrets ports.SecretStore) (map[string]string, error) {
+// onePassword resolves op:// references; nil refuses op:// values with an error.
+func BuildEnvFileValues(
+	rt *RuntimeConfig,
+	secrets ports.SecretStore,
+	onePassword ports.OnePasswordEnv,
+) (map[string]string, error) {
 	if secrets == nil {
 		secrets = keyring.SystemKeyring{}
 	}
@@ -73,7 +96,15 @@ func BuildEnvFileValues(rt *RuntimeConfig, secrets ports.SecretStore) (map[strin
 	for key, value := range defaultValues {
 		merged[key] = value
 	}
-	mergeSecretKeysInto(merged, rt.DefaultEnvPath, "default", secrets)
+	if err := mergeSecretKeysInto(
+		merged,
+		rt.DefaultEnvPath,
+		"default",
+		secrets,
+		onePassword,
+	); err != nil {
+		return nil, err
+	}
 
 	if rt.EnvGroup != "" {
 		if err := ValidateEnvGroup(rt.EnvGroup); err != nil {
@@ -90,7 +121,15 @@ func BuildEnvFileValues(rt *RuntimeConfig, secrets ports.SecretStore) (map[strin
 		for key, value := range groupValues {
 			merged[key] = value
 		}
-		mergeSecretKeysInto(merged, groupPath, rt.EnvGroup, secrets)
+		if err := mergeSecretKeysInto(
+			merged,
+			groupPath,
+			rt.EnvGroup,
+			secrets,
+			onePassword,
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := mergeCwdDotEnvIfPresent(merged); err != nil {

@@ -95,6 +95,7 @@ func TestLeafToolsWithNestedBrunoHelpGroupNoPanic(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	r := root.NewRootCmd(d)
 
@@ -174,6 +175,7 @@ func TestAttachAppliesCategoryAliasesFromCache(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	rootCmd := root.NewRootCmd(d)
 
@@ -240,6 +242,7 @@ func TestReattachClearsPluginCommandsWhenCacheEmpty(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 	r := root.NewRootCmd(d)

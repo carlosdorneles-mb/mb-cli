@@ -45,6 +45,18 @@ func TestEnvSetGroup(t *testing.T) {
 	}
 }
 
+func TestEnvSetSecretAndSecretOPMutuallyExclusive(t *testing.T) {
+	d := testDeps(t)
+	root := NewCmd(d)
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	root.SetArgs([]string{"set", "K", "v", "--secret", "--secret-op"})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected error for --secret together with --secret-op")
+	}
+}
+
 func TestEnvSetRequiresTwoArgs(t *testing.T) {
 	d := testDeps(t)
 	root := NewCmd(d)

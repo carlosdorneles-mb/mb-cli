@@ -64,6 +64,7 @@ func TestUpdateOnlyToolsRunsNestedToolsUpdateAll(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	rootCmd := cliroot.NewRootCmd(d)
 	rootCmd.SetOut(os.Stdout)

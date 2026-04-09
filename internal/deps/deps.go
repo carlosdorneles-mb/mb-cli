@@ -28,6 +28,7 @@ type Dependencies struct {
 	Scanner     ports.PluginScanner
 	Executor    ports.ScriptExecutor
 	SecretStore ports.SecretStore
+	OnePassword ports.OnePasswordEnv // optional; nil disables 1Password env integration
 }
 
 // NewDependencies constructs the dependency bundle for Fx / tests.
@@ -38,6 +39,7 @@ func NewDependencies(
 	scanner ports.PluginScanner,
 	exec ports.ScriptExecutor,
 	secrets ports.SecretStore,
+	onePassword ports.OnePasswordEnv,
 ) Dependencies {
 	return Dependencies{
 		Runtime:     runtime,
@@ -46,5 +48,6 @@ func NewDependencies(
 		Scanner:     scanner,
 		Executor:    exec,
 		SecretStore: secrets,
+		OnePassword: onePassword,
 	}
 }

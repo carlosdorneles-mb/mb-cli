@@ -10,7 +10,7 @@ import (
 
 func newSetCmd(d deps.Dependencies) *cobra.Command {
 	var setGroup string
-	var secret bool
+	var secret, secretOP bool
 	cmd := &cobra.Command{
 		Use:     "set <KEY> <VALUE>",
 		Aliases: []string{"s"},
@@ -22,19 +22,29 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 			key, value := args[0], args[1]
 			if err := appenvs.Set(
 				d.SecretStore,
+				d.OnePassword,
 				envPaths(d),
 				setGroup,
 				key,
 				value,
 				secret,
+				secretOP,
 			); err != nil {
 				return err
 			}
 
 			if setGroup != "" {
-				_ = log.Info(ctx, "variável %q salva no grupo %q", key, setGroup)
+				if secretOP {
+					_ = log.Info(ctx, "variável %q guardada no 1Password (grupo %q)", key, setGroup)
+				} else {
+					_ = log.Info(ctx, "variável %q salva no grupo %q", key, setGroup)
+				}
 			} else {
-				_ = log.Info(ctx, "variável %q salva no grupo padrão", key)
+				if secretOP {
+					_ = log.Info(ctx, "variável %q guardada no 1Password (grupo padrão)", key)
+				} else {
+					_ = log.Info(ctx, "variável %q salva no grupo padrão", key)
+				}
 			}
 			return nil
 		},
@@ -43,6 +53,9 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 		StringVar(&setGroup, "group", "", "Grava a variável no grupo informado ao invés do grupo padrão")
 	cmd.Flags().
 		BoolVar(&secret, "secret", false, "Guarda o valor no keyring do sistema em vez do ficheiro env")
+	cmd.Flags().
+		BoolVar(&secretOP, "secret-op", false, "Guarda o valor no 1Password (CLI op); a referência op:// fica no keyring")
+	cmd.MarkFlagsMutuallyExclusive("secret", "secret-op")
 	cmd.GroupID = "commands"
 	return cmd
 }

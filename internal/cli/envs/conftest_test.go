@@ -48,5 +48,6 @@ func testDeps(t *testing.T) deps.Dependencies {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		infrakeyring.SystemKeyring{},
+		nil,
 	)
 }

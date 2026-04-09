@@ -180,6 +180,7 @@ func TestEntrypointAndFlagsRunsDefaultOrFlag(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 
@@ -256,6 +257,7 @@ func TestEntrypointCommandHelpShowsHelp(t *testing.T) {
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
 		nil,
+		nil,
 	)
 	rootCmd := testRootCmdForPluginIntegrationTests(&d)
 	var out strings.Builder
@@ -310,6 +312,7 @@ func TestEntrypointCommandGlobalFlagsNotPassedToPlugin(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 	rootCmd := testRootCmdForPluginIntegrationTests(&d)
@@ -368,6 +371,7 @@ func TestEntrypointCommandPositionalArgsPassedToPlugin(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 	rootCmd := testRootCmdForPluginIntegrationTests(&d)
@@ -461,6 +465,7 @@ func TestEntrypointAndFlagsInjectFlagEnvsOnlyWhenFlagProvided(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 
@@ -573,6 +578,7 @@ func TestFlagsOnlyMergeFlagEnvsWithPrecedence(t *testing.T) {
 		store,
 		plugins.NewScanner(pluginsDir),
 		executor.New(),
+		nil,
 		nil,
 	)
 	rootCmd := testRootCmdForPluginIntegrationTests(&d)

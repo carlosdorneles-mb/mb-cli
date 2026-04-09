@@ -27,7 +27,7 @@ func testDependencies(t *testing.T) deps.Dependencies {
 			PluginsDir:     filepath.Join(tmp, "plugins"),
 		},
 	}
-	return deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil)
+	return deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil, nil)
 }
 
 func TestNewRunCmd_RequiresArg(t *testing.T) {
@@ -94,7 +94,7 @@ func TestNewRunCmd_InjectsCwdDotenv(t *testing.T) {
 			PluginsDir:     filepath.Join(tmp, "plugins"),
 		},
 	}
-	d := deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil)
+	d := deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil, nil)
 	root := &cobra.Command{Use: "mb"}
 	root.AddCommand(NewRunCmd(d))
 	root.SetOut(io.Discard)

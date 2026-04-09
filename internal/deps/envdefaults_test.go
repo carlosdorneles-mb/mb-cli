@@ -1,10 +1,52 @@
 package deps
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+type stringSecretStore map[string]string
+
+func (m stringSecretStore) key(group, k string) string { return group + "\x00" + k }
+
+func (m stringSecretStore) Set(group, k, v string) error {
+	m[m.key(group, k)] = v
+	return nil
+}
+
+func (m stringSecretStore) Get(group, k string) (string, error) {
+	v, ok := m[m.key(group, k)]
+	if !ok {
+		return "", errors.New("missing")
+	}
+	return v, nil
+}
+
+func (m stringSecretStore) Delete(group, k string) error {
+	delete(m, m.key(group, k))
+	return nil
+}
+
+type stubOnePassword struct {
+	read func(ref string) (string, error)
+}
+
+func (s stubOnePassword) EnsureAvailable() error { return nil }
+
+func (s stubOnePassword) PutSecret(_, _, _ string) (string, error) {
+	return "", errors.New("not used")
+}
+
+func (s stubOnePassword) RemoveSecretField(_, _ string) error { return nil }
+
+func (s stubOnePassword) ReadOPReference(ref string) (string, error) {
+	if s.read != nil {
+		return s.read(ref)
+	}
+	return "", errors.New("no read")
+}
 
 func TestBuildEnvFileValues_DefaultOnly(t *testing.T) {
 	tmp := t.TempDir()
@@ -18,7 +60,7 @@ func TestBuildEnvFileValues_DefaultOnly(t *testing.T) {
 			DefaultEnvPath: p,
 		},
 	}
-	m, err := BuildEnvFileValues(rt, nil)
+	m, err := BuildEnvFileValues(rt, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +86,7 @@ func TestBuildEnvFileValues_GroupOverlay(t *testing.T) {
 		},
 		EnvGroup: "staging",
 	}
-	m, err := BuildEnvFileValues(rt, nil)
+	m, err := BuildEnvFileValues(rt, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +126,7 @@ func TestBuildEnvFileValues_CwdDotEnvBeforeEnvFile(t *testing.T) {
 		},
 		EnvFilePath: extra,
 	}
-	m, err := BuildEnvFileValues(rt, nil)
+	m, err := BuildEnvFileValues(rt, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +135,63 @@ func TestBuildEnvFileValues_CwdDotEnvBeforeEnvFile(t *testing.T) {
 	}
 	if m["B"] != "cwd" {
 		t.Errorf("B=%q, want cwd", m["B"])
+	}
+}
+
+func TestBuildEnvFileValues_ResolvesOPReferences(t *testing.T) {
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("# empty\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(def+".secrets", []byte("TOKEN\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	secrets := stringSecretStore{}
+	secrets.Set("default", "TOKEN", "op://Private/item-1/TOKEN")
+	op := stubOnePassword{
+		read: func(ref string) (string, error) {
+			if ref == "op://Private/item-1/TOKEN" {
+				return "from-1p", nil
+			}
+			return "", errors.New("unexpected ref")
+		},
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	m, err := BuildEnvFileValues(rt, secrets, op)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["TOKEN"] != "from-1p" {
+		t.Fatalf("TOKEN=%q", m["TOKEN"])
+	}
+}
+
+func TestBuildEnvFileValues_OPReferenceWithoutReaderErrors(t *testing.T) {
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(def+".secrets", []byte("X\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	secrets := stringSecretStore{}
+	secrets.Set("default", "X", "op://v/i/X")
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	_, err := BuildEnvFileValues(rt, secrets, nil)
+	if err == nil {
+		t.Fatal("expected error when op:// present and OnePassword is nil")
 	}
 }
 
@@ -105,7 +204,7 @@ func TestBuildEnvFileValues_InvalidEnvGroup(t *testing.T) {
 		},
 		EnvGroup: "../x",
 	}
-	_, err := BuildEnvFileValues(rt, nil)
+	_, err := BuildEnvFileValues(rt, nil, nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}

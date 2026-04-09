@@ -19,13 +19,28 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			key := args[0]
-			if err := appenvs.Unset(d.SecretStore, envPaths(d), unsetGroup, key); err != nil {
+			removed, err := appenvs.Unset(
+				d.SecretStore,
+				d.OnePassword,
+				envPaths(d),
+				unsetGroup,
+				key,
+			)
+			if err != nil {
 				return err
 			}
+			if !removed {
+				if unsetGroup != "" {
+					_ = log.Info(ctx, "Não existe variável %q no grupo %q", key, unsetGroup)
+				} else {
+					_ = log.Info(ctx, "Não existe variável %q no grupo padrão", key)
+				}
+				return nil
+			}
 			if unsetGroup != "" {
-				_ = log.Info(ctx, "variável %q removida do grupo %q", key, unsetGroup)
+				_ = log.Info(ctx, "Variável %q removida do grupo %q", key, unsetGroup)
 			} else {
-				_ = log.Info(ctx, "variável %q removida do grupo padrão", key)
+				_ = log.Info(ctx, "Variável %q removida do grupo padrão", key)
 			}
 			return nil
 		},
