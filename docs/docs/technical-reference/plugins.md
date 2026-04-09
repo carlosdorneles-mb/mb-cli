@@ -163,9 +163,9 @@ O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas *
 ### O que o script recebe
 
 - **Posicionais** após o consumo das flags acima. Ex.: `mb tools hello foo bar` → `$1`, `$2`.
-- **Ambiente:** sistema + defaults + `env_files` do plugin + `flags[].envs` (apenas das flags usadas) + `--env` + `MB_VERBOSE`/`MB_QUIET`.
+- **Ambiente:** sistema + defaults + `env_files` do plugin + `flags[].envs` (apenas das flags usadas) + `--env` + `MB_VERBOSE`/`MB_QUIET` + variáveis de contexto **`MB_CTX_*`** (invocação, path no manifest, irmãos Cobra, etc.).
   - Precedência prática em conflito de chave: `--env` > `flags[].envs` > `env_files`.
-  - Ver [Variáveis de ambiente](../guide/environment-variables.md) e [Flags globais](../guide/global-flags.md).
+  - Ver [Variáveis de ambiente](../guide/environment-variables.md), [Flags globais](../guide/global-flags.md) e [Contexto de invocação de plugins](plugin-invocation-context.md).
 
 ### `--help` / `-h`
 

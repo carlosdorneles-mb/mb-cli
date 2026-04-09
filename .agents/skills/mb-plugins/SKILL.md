@@ -69,10 +69,10 @@ Ao alterares **helpers** (`*.sh` embebidos) ou a lógica de **embed** / `EnsureS
 
 ## Documentação no repositório
 
-- Referência técnica: `docs/docs/technical-reference/plugins.md`
+- Referência técnica: `docs/docs/technical-reference/plugins.md`, `docs/docs/technical-reference/plugin-invocation-context.md` (`MB_CTX_*`)
 - Criar plugin: `docs/docs/guide/creating-plugins.md`
 - Comandos e flags: `docs/docs/guide/plugin-commands.md`
-- Helpers de shell: `docs/docs/technical-reference/helpers-shell.md` (alinhado com `internal/infra/shellhelpers/README.md` quando mudas embed)
+- Helpers de shell: `docs/docs/technical-reference/helpers-shell.md` (alinhado com `internal/infra/shellhelpers/README.md` quando mudas embed); variáveis `MB_CTX_*` em `plugin-invocation-context.md`
 - Mapa de pacotes: `internal/README.md`
 
 ## Verificação

@@ -2,7 +2,7 @@
 
 Scripts de shell embutidos no MB CLI e **sempre** materializados em `~/.config/mb/lib/shell` em cada `mb plugins sync`: o conteúdo em disco é substituído pelo que está embebido no binário, e ficheiros `*.sh` órfãos (já não presentes no embed) são removidos. Os plugins recebem a variável **`MB_HELPERS_PATH`** apontando para esse diretório e podem carregá-los (ex.: `. "$MB_HELPERS_PATH/all.sh"`) para usar funções como `log` que respeitam as flags do CLI.
 
-**Documentação:** [Helpers de shell](../../../../docs/docs/technical-reference/helpers-shell.md) — como carregar nos plugins e lista de helpers disponíveis.
+**Documentação:** [Helpers de shell](../../../../docs/docs/technical-reference/helpers-shell.md) — como carregar nos plugins e lista de helpers disponíveis. Variáveis de contexto `MB_CTX_*` (runtime do CLI): [Contexto de invocação de plugins](../../../../docs/docs/technical-reference/plugin-invocation-context.md).
 
 ---
 

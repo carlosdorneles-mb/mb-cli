@@ -61,6 +61,20 @@ func TestEnsureShellHelpers(t *testing.T) {
 	if !strings.Contains(string(allData), "kubernetes.sh") {
 		t.Errorf("all.sh should source kubernetes.sh, got: %s", allData)
 	}
+	if !strings.Contains(string(allData), "context.sh") {
+		t.Errorf("all.sh should source context.sh, got: %s", allData)
+	}
+	contextPath := filepath.Join(shellDir, "context.sh")
+	contextData, _ := os.ReadFile(contextPath)
+	if !strings.Contains(string(contextData), "mb_context_dump()") {
+		t.Errorf("context.sh should define mb_context_dump(), got: %s", contextData)
+	}
+	if !strings.Contains(string(contextData), "mb_ctx_has_plugin_flag()") {
+		t.Errorf("context.sh should define mb_ctx_has_plugin_flag(), got: %s", contextData)
+	}
+	if !strings.Contains(string(contextData), "mb_context_dump_json()") {
+		t.Errorf("context.sh should define mb_context_dump_json(), got: %s", contextData)
+	}
 	logPath := filepath.Join(shellDir, "log.sh")
 	logData, _ := os.ReadFile(logPath)
 	if !strings.Contains(string(logData), "log()") {
@@ -146,6 +160,12 @@ func TestEnsureShellHelpers_overwritesWhenChecksumDiffers(t *testing.T) {
 	if !strings.Contains(string(allData), "kubernetes.sh") {
 		t.Errorf(
 			"all.sh should have been overwritten with embed content (sources kubernetes.sh), got: %s",
+			allData,
+		)
+	}
+	if !strings.Contains(string(allData), "context.sh") {
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources context.sh), got: %s",
 			allData,
 		)
 	}

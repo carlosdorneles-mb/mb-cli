@@ -27,6 +27,7 @@ const sidebars = {
       items: [
         'technical-reference/architecture',
         'technical-reference/plugins',
+        'technical-reference/plugin-invocation-context',
         'technical-reference/helpers-shell',
         'technical-reference/cli-config',
         'technical-reference/reference',

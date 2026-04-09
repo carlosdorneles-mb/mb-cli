@@ -3,7 +3,9 @@ package plugincmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,6 +50,14 @@ func runEntrypointCommand(
 		if err != nil {
 			return err
 		}
+		merged = appendPluginInvocationEnv(
+			merged,
+			cmd,
+			plugin,
+			os.Args,
+			d.Runtime.ConfigDir,
+			changedLocalPluginFlags(cmd),
+		)
 		ctx := cmd.Context()
 		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc
@@ -107,6 +117,16 @@ func runFlagsOnlyCommand(
 				if err != nil {
 					return err
 				}
+				flagNames := append([]string(nil), changedFlagNames...)
+				sort.Strings(flagNames)
+				merged = appendPluginInvocationEnv(
+					merged,
+					cmd,
+					plugin,
+					os.Args,
+					d.Runtime.ConfigDir,
+					flagNames,
+				)
 				ctx := cmd.Context()
 				if d.Runtime.PluginTimeout > 0 {
 					var cancel context.CancelFunc
@@ -158,6 +178,16 @@ func runFlagsOnlyCommand(
 		if err != nil {
 			return err
 		}
+		flagNames := append([]string(nil), changedFlagNames...)
+		sort.Strings(flagNames)
+		merged = appendPluginInvocationEnv(
+			merged,
+			cmd,
+			plugin,
+			os.Args,
+			d.Runtime.ConfigDir,
+			flagNames,
+		)
 		ctx := cmd.Context()
 		if d.Runtime.PluginTimeout > 0 {
 			var cancel context.CancelFunc

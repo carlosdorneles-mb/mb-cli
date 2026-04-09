@@ -23,6 +23,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper de sudo:** `. "$MB_HELPERS_PATH/sudo.sh"`
 - **Só o helper ensure (pré-requisitos de CLI):** `. "$MB_HELPERS_PATH/ensure.sh"`
 - **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
+- **Só o helper de contexto (invocação `mb`, pares `MB_CTX_*`):** `. "$MB_HELPERS_PATH/context.sh"`
 
 Exemplo:
 
@@ -36,7 +37,84 @@ log info "Olá!"
 
 O diretório e os arquivos são criados ou atualizados quando você executa **`mb plugins sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Em **cada** sync, o MB **reescreve** todos os `*.sh` embebidos no binário para `lib/shell` e remove ficheiros `*.sh` antigos que já não façam parte do embed (por exemplo após renomear ou remover um helper). O ficheiro `.checksum` nesse diretório reflete o hash agregado atual dos helpers embebidos. Se os helpers ainda não existirem, execute `mb plugins sync` antes de usá-los nos seus plugins.
 
+## Variáveis `MB_CTX_*` (contexto da invocação)
+
+O MB define variáveis de ambiente com o prefixo **`MB_CTX_`** quando **executa um plugin** (linha de comandos, path no manifest, flags do plugin, irmãos na árvore Cobra, etc.). Essa referência **não** faz parte dos ficheiros `lib/shell`: é comportamento do runtime do CLI.
+
+A documentação completa (tabela, exemplos, limitações e privacidade) está em **[Contexto de invocação de plugins](plugin-invocation-context.md)**. Este ficheiro (`helpers-shell.md`) cobre apenas os **scripts** embebidos, incluindo o helper `context.sh` que lê essas variáveis.
+
 ## Helpers disponíveis
+
+### context
+
+Funções que leem as variáveis `MB_CTX_*` injetadas pelo MB (carregue `. "$MB_HELPERS_PATH/context.sh"` ou `. "$MB_HELPERS_PATH/all.sh"`). O significado de cada variável está em [Contexto de invocação de plugins](plugin-invocation-context.md).
+
+**`mb_context_dump`**
+
+Imprime no stdout os pares `MB_CTX_*` de contexto conhecidos (uma linha por variável, `NOME=valor`). Útil para depuração ou para copiar o estado num relatório de erro. Para exemplos de valores típicos, veja a página [Contexto de invocação de plugins](plugin-invocation-context.md#exemplo-comando-aninhado-com-flag).
+
+**`mb_context_dump_json`**
+
+Imprime **um único objeto JSON** no stdout com os mesmos dados (chaves em *snake_case*: `invocation`, `config_dir`, `command_path`, `command_name`, `parent_command_path`, `cobr_command_path`, `plugin_flags` como array de strings, `peer_commands` como array). Útil para enviar contexto a outra ferramenta ou para logs estruturados.
+
+Usa **`jq`** quando está no `PATH`; caso contrário tenta **`python3`** com o módulo `json`. Se nenhum existir, escreve uma mensagem em stderr e devolve código de saída **1**.
+
+```sh
+json="$(mb_context_dump_json)" || exit 1
+curl -sS -X POST -H 'Content-Type: application/json' -d "$json" https://example.com/hook
+```
+
+**`mb_peer_commands_lines`**
+
+Lê `MB_CTX_PEER_COMMANDS` e imprime um nome de comando irmão por linha. Se `jq` estiver no `PATH`, usa-o para analisar o JSON; caso contrário, usa um analisador simples (adequado a nomes sem caracteres especiais problemáticos).
+
+Exemplo: percorrer irmãos e mostrar uma mensagem por comando (por exemplo para validar pré-requisitos ou listar alternativas). Carrega `all.sh` para ter `log` e `context`:
+
+```sh
+#!/usr/bin/env bash
+. "$MB_HELPERS_PATH/all.sh"
+
+while IFS= read -r peer; do
+  [[ -z "$peer" ]] && continue
+  log info "Outro comando neste grupo: $peer"
+done < <(mb_peer_commands_lines)
+```
+
+Exemplo só para depuração rápida no terminal:
+
+```sh
+. "$MB_HELPERS_PATH/context.sh"
+mb_context_dump
+```
+
+Se quiser enviar cada linha para o helper `log` (por exemplo nível `debug`), com `log` já carregado (via `all.sh`):
+
+```sh
+. "$MB_HELPERS_PATH/all.sh"
+while IFS= read -r line; do log debug "$line"; done < <(mb_context_dump)
+```
+
+Outras funções (todas em `context.sh`):
+
+**`mb_ctx_has_plugin_flag`** — `mb_ctx_has_plugin_flag <nome-longo>`: código de saída **0** se `<nome-longo>` estiver em `MB_CTX_PLUGIN_FLAGS` (comparação exata com cada palavra).
+
+```sh
+if mb_ctx_has_plugin_flag install; then
+  : # utilizador passou a flag de manifest mapeada para "install"
+fi
+```
+
+**`mb_ctx_peer_contains`** — `mb_ctx_peer_contains <nome>`: saída **0** se `<nome>` for um dos comandos irmãos listados em `MB_CTX_PEER_COMMANDS`.
+
+**`mb_ctx_peer_count`** — imprime o número de comandos irmãos (inteiro, uma linha).
+
+**`mb_ctx_cache_db`** — imprime `${MB_CTX_CONFIG_DIR}/cache.db`; saída **1** se `MB_CTX_CONFIG_DIR` estiver vazio.
+
+**`mb_ctx_parent_is`** — `mb_ctx_parent_is <path>`: saída **0** se `MB_CTX_PARENT_COMMAND_PATH` for exatamente `<path>` (ex.: `mb_ctx_parent_is tools`).
+
+**`mb_ctx_command_path_is`** — `mb_ctx_command_path_is <path>`: saída **0** se `MB_CTX_COMMAND_PATH` for exatamente `<path>` (ex.: `tools/vscode`).
+
+**`mb_ctx_path_depth`** — imprime o número de segmentos de `MB_CTX_COMMAND_PATH` (`hello` → `1`, `tools/vscode` → `2`, vazio → `0`).
 
 ### log
 
