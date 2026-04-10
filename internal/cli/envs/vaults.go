@@ -6,19 +6,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appenvs "mb/internal/usecase/envs"
 	"mb/internal/deps"
 	"mb/internal/shared/system"
+	appenvs "mb/internal/usecase/envs"
 )
 
-func newGroupsCmd(d deps.Dependencies) *cobra.Command {
+func newVaultsCmd(d deps.Dependencies) *cobra.Command {
 	var asJSON bool
 	cmd := &cobra.Command{
-		Use:     "groups",
-		Aliases: []string{"group"},
-		Short:   "Lista grupos de env e o caminho do ficheiro de cada um",
+		Use:   "vaults",
+		Short: "Lista vaults de env e o caminho do ficheiro de cada um",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			rows, err := appenvs.CollectEnvGroupRows(envPaths(d))
+			rows, err := appenvs.CollectVaultRows(envPaths(d))
 			if err != nil {
 				return err
 			}
@@ -33,14 +32,14 @@ func newGroupsCmd(d deps.Dependencies) *cobra.Command {
 			}
 			table := make([][]string, len(rows))
 			for i, r := range rows {
-				table[i] = []string{r.Group, r.Path}
+				table[i] = []string{r.Vault, r.Path}
 			}
-			headers := []string{"GRUPO", "ARQUIVO"}
+			headers := []string{"VAULT", "ARQUIVO"}
 			return system.GumTable(cmd.Context(), headers, table, out)
 		},
 	}
 	cmd.Flags().
-		BoolVarP(&asJSON, "json", "J", false, "Emite JSON [{\"group\":\"...\",\"path\":\"...\"},...]")
+		BoolVarP(&asJSON, "json", "J", false, "Emite JSON [{\"vault\":\"...\",\"path\":\"...\"},...]")
 	cmd.GroupID = "commands"
 	return cmd
 }

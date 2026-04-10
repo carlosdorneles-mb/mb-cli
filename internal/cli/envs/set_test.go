@@ -13,7 +13,7 @@ func TestEnvSetPersistsToDefaultFile(t *testing.T) {
 	root := NewCmd(d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(os.NewFile(0, os.DevNull))
-	root.SetArgs([]string{"set", "MYKEY", "myval"})
+	root.SetArgs([]string{"set", "MYKEY=myval"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("set: %v", err)
 	}
@@ -26,12 +26,12 @@ func TestEnvSetPersistsToDefaultFile(t *testing.T) {
 	}
 }
 
-func TestEnvSetGroup(t *testing.T) {
+func TestEnvSetVault(t *testing.T) {
 	d := testDeps(t)
 	root := NewCmd(d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(os.NewFile(0, os.DevNull))
-	root.SetArgs([]string{"set", "--group", "staging", "API", "https://x"})
+	root.SetArgs([]string{"set", "--vault", "staging", "API=https://x"})
 	if err := root.Execute(); err != nil {
 		t.Fatalf("set: %v", err)
 	}
@@ -57,12 +57,12 @@ func TestEnvSetSecretAndSecretOPMutuallyExclusive(t *testing.T) {
 	}
 }
 
-func TestEnvSetRequiresTwoArgs(t *testing.T) {
+func TestEnvSetRequiresKeyEqualsValue(t *testing.T) {
 	d := testDeps(t)
 	root := NewCmd(d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
-	root.SetArgs([]string{"set", "only"})
+	root.SetArgs([]string{"set", "onlykey"})
 	err := root.Execute()
 	if err == nil {
 		t.Fatal("expected arg error")
@@ -75,7 +75,7 @@ func TestEnvSetLogsToStderr(t *testing.T) {
 	root := NewCmd(d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&errBuf)
-	root.SetArgs([]string{"set", "K", "v"})
+	root.SetArgs([]string{"set", "K=v"})
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}

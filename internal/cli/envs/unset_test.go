@@ -12,7 +12,7 @@ func TestEnvUnsetRemovesFromDefaultFile(t *testing.T) {
 	rootSet := NewCmd(d)
 	rootSet.SetOut(&bytes.Buffer{})
 	rootSet.SetErr(os.NewFile(0, os.DevNull))
-	rootSet.SetArgs([]string{"set", "MYKEY", "myval"})
+	rootSet.SetArgs([]string{"set", "MYKEY=myval"})
 	if err := rootSet.Execute(); err != nil {
 		t.Fatalf("set: %v", err)
 	}

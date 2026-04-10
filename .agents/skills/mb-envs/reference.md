@@ -1,46 +1,47 @@
 # Referência — ficheiros `mb envs` e ambiente
 
-## `internal/app/envs`
+## `internal/usecase/envs`
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `set.go` | `Set(...)` — plain, `--secret`, `--secret-op`; transição plain↔secret remove keyring/`op` quando aplicável |
-| `unset.go` | `Unset(...) (removed bool, err)` — só grava se chave existia (ficheiro ou `.secrets`) |
-| `list.go` | `CollectListRows`, `rowsForPath`, `secretStorageFromStored` (`local` / `keyring` / `1password`), `resolveStoredSecretForList` (`op://` → `ReadOPReference`) |
-| `groups.go` | `CollectEnvGroupRows` — `default` + `env.defaults`, glob `.env.<grupo>` (ignora `*.secrets`) |
+| `set.go` | `Set(...)` — plain, `--secret`, `--secret-op` (`*.opsecrets`, sem keyring para `op://` novos) |
+| `unset.go` | `Unset(...) (removed bool, err)` — ficheiro, `.secrets`, `.opsecrets`, keyring, 1Password |
+| `list.go` | `CollectListRows`, `rowsForPath`, `secretStorageFromStored` (`local` / `keyring` / `1password`) |
+| `vaults.go` | `CollectVaultRows` — `default` + `env.defaults`, glob `.env.<vault>` (ignora `*.secrets`, `*.opsecrets`) |
 | `paths.go` | `TargetPath`, `KeyringGroup` |
+| `secretpref.go` | `ResolveSetSecretFlags`, `MB_ENVS_SECRET_STORE` |
 
 ## `internal/cli/envs`
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `env.go` | Agrega subcomandos `list`, `set`, `unset` |
-| `set.go` | Flags `--group`, `--secret`, `--secret-op` (mutually exclusive) |
-| `unset.go` | Mensagens para `removed` vs inexistente |
-| `list.go` | Tabela VAR, GRUPO, ARMAZENAMENTO; `--json`, `--text`, `--show-secrets`, `--group` |
-| `groups.go` | Tabela GRUPO, ARQUIVO; `--json` / `-J`; alias `group` |
+| `env.go` | Agrega subcomandos `list`, `vaults`, `set`, `unset` |
+| `set.go` | `KEY=VALOR` múltiplos; `--vault`, `--secret`, `--secret-op`, `--yes` |
+| `unset.go` | Várias chaves; `--vault` |
+| `list.go` | Tabela VAR, VAULT, ARMAZENAMENTO; `--json`, `--text`, `--show-secrets`, `--vault` |
+| `vaults.go` | Tabela VAULT, ARQUIVO; `--json` / `-J` |
 | `path.go` | `envPaths(d)` → `appenvs.Paths` |
 
 ## `internal/deps`
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `envdefaults.go` | `LoadDefaultEnvValues`, `BuildEnvFileValues`, `mergeSecretKeysInto`, `resolveSecretValueForMerge` (`op://`) |
+| `envdefaults.go` | `LoadDefaultEnvValues`, `BuildEnvFileValues`, `mergeSecretKeysInto`, `mergeOPRefsInto`, `resolveSecretValueForMerge` |
 | `execenv.go` | `BuildMergedOSEnviron` — orquestra ficheiros + `--env` + tema gum + `MB_*` |
 | `secretkeys.go` | `LoadSecretKeys`, `AddSecretKey`, `RemoveSecretKey` (`path + ".secrets"`) |
-| `deps.go` | `Dependencies` com `SecretStore`, `OnePassword` |
+| `opsecrets.go` | `LoadOPSecretRefs`, `SetOPSecretRef`, `RemoveOPSecretRef` (`path + ".opsecrets"`) |
+| `deps.go` | `Dependencies` com `SecretStore`, `OnePassword`; `RuntimeConfig.EnvVault` |
+
+## `internal/shared/envvault`
+
+Validação de nomes de vault e `FilePath` para `.env.<vault>`.
 
 ## `internal/infra/opcli`
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `client.go` | `PutSecret`, `RemoveSecretField`, `ReadOPReference`; `op item get/create/edit`; `isItemNotFound` |
-| `itemjson.go` | `upsertConcealedFieldInItemJSON`, `marshalItemJSONForOPEdit` (omitir `vault`), `fieldReferenceFromItemJSON` |
-
-## `internal/ports/onepassword.go`
-
-Interface `OnePasswordEnv` — implementação concreta: `*opcli.Client`.
+| `client.go` | `PutSecret`, `RemoveSecretField`, `ReadOPReference`; item title `mb-cli env / <vault>` |
 
 ## Manifest de plugins
 
-`internal/infra/plugins/manifest_env.go` — `env_files` por grupo (overlay após ficheiros globais, antes de `--env` na prática de precedência documentada).
+`internal/infra/plugins/manifest_env.go` — `env_files` por **vault** (campo YAML/JSON `vault`).

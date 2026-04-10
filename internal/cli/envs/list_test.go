@@ -20,12 +20,12 @@ func TestEnvListEmpty(t *testing.T) {
 	}
 }
 
-func TestEnvListInvalidGroup(t *testing.T) {
+func TestEnvListInvalidVault(t *testing.T) {
 	d := testDeps(t)
 	root := NewCmd(d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
-	root.SetArgs([]string{"list", "--group", "grupo inválido"})
+	root.SetArgs([]string{"list", "--vault", "grupo inválido"})
 	err := root.Execute()
 	if err == nil {
 		t.Fatal("expected validation error")

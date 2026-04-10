@@ -6,24 +6,24 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appenvs "mb/internal/usecase/envs"
 	"mb/internal/deps"
 	"mb/internal/shared/system"
+	appenvs "mb/internal/usecase/envs"
 )
 
 func newListCmd(d deps.Dependencies) *cobra.Command {
-	var listGroup string
+	var listVault string
 	var asJSON, asText, showSecrets bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
-		Short:   "Lista variáveis padrão ou de um grupo específico",
+		Short:   "Lista variáveis do vault padrão ou de um vault específico",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			rows, err := appenvs.CollectListRows(
 				d.SecretStore,
 				d.OnePassword,
 				envPaths(d),
-				listGroup,
+				listVault,
 				showSecrets,
 			)
 			if err != nil {
@@ -52,20 +52,20 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 			default:
 				table := make([][]string, len(rows))
 				for i, r := range rows {
-					table[i] = []string{r.Key + "=" + r.Value, r.Group, r.Storage}
+					table[i] = []string{r.Key + "=" + r.Value, r.Vault, r.Storage}
 				}
-				headers := []string{"VAR", "GRUPO", "ARMAZENAMENTO"}
+				headers := []string{"VAR", "VAULT", "ARMAZENAMENTO"}
 				return system.GumTable(cmd.Context(), headers, table, out)
 			}
 		},
 	}
-	cmd.Flags().StringVar(&listGroup, "group", "", "Lista apenas variáveis do grupo informado")
+	cmd.Flags().StringVar(&listVault, "vault", "", "Lista apenas variáveis do vault informado")
 	cmd.Flags().
 		BoolVar(&showSecrets, "show-secrets", false, "Mostra o valor real das variáveis guardadas no keyring (por defeito mostram ***)")
 	cmd.Flags().
 		BoolVarP(&asJSON, "json", "J", false, "Emite variáveis como objeto JSON {\"CHAVE\":\"valor\",...}")
 	cmd.Flags().
-		BoolVarP(&asText, "text", "T", false, "Emite somente key=value por linha (sem grupo)")
+		BoolVarP(&asText, "text", "T", false, "Emite somente key=value por linha (sem vault)")
 	cmd.MarkFlagsMutuallyExclusive("json", "text")
 	cmd.GroupID = "commands"
 	return cmd

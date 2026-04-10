@@ -33,7 +33,7 @@ func TestEnvTargetPathDefault(t *testing.T) {
 	}
 }
 
-func TestEnvTargetPathGroup(t *testing.T) {
+func TestEnvTargetPathVault(t *testing.T) {
 	t.Parallel()
 	d := testDeps(t)
 	p, err := envTargetPath(d, "staging")
@@ -46,11 +46,11 @@ func TestEnvTargetPathGroup(t *testing.T) {
 	}
 }
 
-func TestEnvTargetPathInvalidGroup(t *testing.T) {
+func TestEnvTargetPathInvalidVault(t *testing.T) {
 	t.Parallel()
 	d := testDeps(t)
 	_, err := envTargetPath(d, "grupo inválido")
 	if err == nil {
-		t.Fatal("expected error for invalid group name")
+		t.Fatal("expected error for invalid vault name")
 	}
 }

@@ -3,8 +3,8 @@ package envs
 import (
 	"sort"
 
-	appenvs "mb/internal/usecase/envs"
 	"mb/internal/deps"
+	appenvs "mb/internal/usecase/envs"
 )
 
 func envPaths(d deps.Dependencies) appenvs.Paths {
