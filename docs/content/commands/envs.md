@@ -6,6 +6,8 @@ sidebar_position: 1
 
 Gerencia variáveis de ambiente globais que são injetadas em plugins e no comando `mb run`.
 
+Para entender como as variáveis são mescladas e a ordem de precedência, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+
 ## Subcomandos
 
 ### `mb envs list`
@@ -71,16 +73,30 @@ mb envs vaults --json
 
 **Output:** tabela **VAULT** / **ARQUIVO**. O vault `default` aponta para `env.defaults`.
 
-## Ordem de precedência
+## Integração com 1Password (`--secret-op`) {#envs-1password-secret-op}
 
-Quando um plugin ou `mb run` executa, as variáveis são mescladas nesta ordem (da menor para a maior precedência):
+O MB pode guardar valores sensíveis no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no **PATH**). O fluxo é distinto de `--secret`: o **valor** fica num item no cofre 1Password; a **referência** `op://` é gravada no ficheiro `*.opsecrets` — **não** no keyring.
 
-1. Variáveis do sistema (`os.Environ()`)
-2. `env.defaults` (`~/.config/mb/env.defaults`)
-3. Vault (`~/.config/mb/.env.<nome>`) com `--env-vault`
-4. `.env` no diretório atual (cwd)
-5. `--env-file <path>`
-6. `env_files` do manifest (só plugins)
-7. `--env KEY=VALUE` (maior precedência)
+### Requisitos
 
-Para mais detalhes, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+- **`op` instalado e sessão ativa** — inicie sessão com a CLI conforme a documentação da 1Password (`op signin`, etc.). Sem `op` disponível, o MB sugere instalar com `mb tools 1password-cli`.
+- As flags `--secret` e `--secret-op` são **mutuamente exclusivas**.
+
+### Como funciona
+
+O MB cria ou reutiliza um item do tipo **senha** no 1Password por vault lógico, com título `mb-cli env / default` (vault padrão) ou `mb-cli env / <nome-do-vault>` (com `--vault`), e grava o valor num campo reservado ao MB. A referência `op://...` fica em `env.defaults.opsecrets` ou `.env.<vault>.opsecrets`.
+
+### Listagem e execução
+
+- Com `mb envs list --show-secrets`, referências `op://` são **resolvidas** com `op read` (é preciso sessão 1Password válida).
+- Ao mesclar o ambiente para **plugins** ou `mb run`, entradas em `*.opsecrets` e valores `op://` ainda no keyring são resolvidos via `op`. Se a integração não estiver disponível, o comando falha com mensagem clara.
+
+### Remover
+
+`mb envs unset` (com o mesmo `--vault`, se aplicável) remove a chave dos ficheiros, de `.secrets`, de `*.opsecrets`, do keyring e do item 1Password.
+
+## Ver também
+
+- [Variáveis de ambiente](../user-guide/environment-variables.md) — Ordem de precedência, conceito e uso prático
+- [`mb run`](../commands/run.md) — Executar comandos com ambiente mesclado
+- [Comandos de plugins](../user-guide/plugin-commands.md) — Como plugins herdam o ambiente

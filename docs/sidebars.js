@@ -10,7 +10,8 @@ const sidebars = {
     {
       type: 'category',
       label: 'Começar',
-      collapsed: false,
+      collapsed: true,
+      link: { type: 'doc', id: 'getting-started/index' },
       items: [
         'getting-started/index',
         'getting-started/local-development',
@@ -19,7 +20,8 @@ const sidebars = {
     {
       type: 'category',
       label: 'Guia do Usuário',
-      collapsed: false,
+      collapsed: true,
+      link: { type: 'generated-index' },
       items: [
         'user-guide/environment-variables',
         'user-guide/plugin-commands',
@@ -30,7 +32,8 @@ const sidebars = {
     {
       type: 'category',
       label: 'Comandos do CLI',
-      collapsed: false,
+      collapsed: true,
+      link: { type: 'generated-index' },
       items: [
         'commands/envs',
         'commands/plugins',
@@ -52,15 +55,16 @@ const sidebars = {
         'technical-reference/cli-config',
         'technical-reference/reference',
         'technical-reference/versioning-and-release',
-        {
-          type: 'category',
-          label: 'Criar Plugins',
-          collapsed: true,
-          items: [
-            'plugin-authoring/create-a-plugin',
-            'plugin-authoring/shell-helpers',
-          ],
-        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Criar Plugins',
+      collapsed: true,
+      link: { type: 'generated-index' },
+      items: [
+        'plugin-authoring/create-a-plugin',
+        'plugin-authoring/shell-helpers',
       ],
     },
   ],

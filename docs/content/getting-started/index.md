@@ -4,34 +4,145 @@ sidebar_position: 1
 
 # Começar
 
-## Instalação do CLI
+Neste guia você vai instalar o MB CLI e entender o básico do seu funcionamento.
 
-A forma recomendada é usar o **script de instalação**, que baixa o binário do MB CLI, o **gum**, o **glow**, o **jq** e o **fzf** (dependências) do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases) (e dos repositórios charmbracelet/gum, charmbracelet/glow, jqlang/jq e junegunn/fzf), valida os downloads com `checksums.txt` quando disponível e instala em **`~/.local/bin`** (sem precisar de sudo).
+## Pré-requisitos
 
-**Instalar:**
+- **Linux** ou **macOS** (amd64 ou arm64)
+- **Bash** disponível no sistema
+- **`curl`** instalado (para o script de instalação)
+
+## Instalação rápida
+
+A forma mais simples é usar o script de instalação, que baixa o binário do MB CLI e suas dependências (**gum**, **glow**, **jq**, **fzf**) direto do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases):
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
 ```
 
-Para uma versão específica:
+## Instalação com versão específica
+
+Para fixar uma versão:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash -s -- --version 0.0.5
 ```
 
-Garanta que `~/.local/bin` está no seu `PATH`. Depois rode `mb plugins sync` para atualizar o cache de plugins e os helpers de shell.
+## Verificar instalação
 
-Para **atualizar plugins, o binário do MB e o sistema**, use **`mb update`** sem flags. A atualização de **pacotes do SO** corre no plugin **`machine/update`** (shell); sem esse plugin instalado e **`mb plugins sync`**, a fase de sistema não faz nada útil. Use **`--only-plugins`** e/ou **`--only-cli`** para escolher fases; **`--only-tools`** é atalho para **`mb tools --update-all`** (mesma fase) e só aparece na ajuda quando o pacote **`tools`** está no cache com essa flag no manifest. **`--only-system`** delega em **`mb machine update`** (mesma fase) e só aparece na ajuda quando **`machine/update`** está no cache. Pode **combinar** várias flags **`--only-*`**. Para **só o binário do MB CLI** (release oficial), use **`mb update --only-cli`**. **`--check-only`** só junto de **`--only-cli`**. Só aplica a binários com versão embutida (GitHub Release); se compilaste localmente ou usaste `go install`, o comando indica que uses `install.sh`. Linux/macOS, amd64/arm64. No Linux, a fase APT pode pedir **`sudo`** interativo.
+```bash
+mb --version
+mb help
+```
 
-**`mb update --only-cli --check-only`** — mesma condição; saída **`2`** se houver release mais nova (útil em scripts; usar throttle para a API do GitHub).
+Se o comando `mb` não for encontrado, garanta que `~/.local/bin` está no seu `PATH`:
 
-**Remover o CLI:**
+```bash
+# Adicione ao ~/.bashrc, ~/.zshrc ou equivalente
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+## Diretórios por sistema operacional
+
+| Sistema | Configuração | Cache | Helpers de shell |
+|---------|-------------|-------|------------------|
+| **Linux** | `~/.config/mb` | `~/.config/mb/cache.db` | `~/.config/mb/lib/shell` |
+| **macOS** | `~/Library/Application Support/mb` | `~/Library/Application Support/mb/cache.db` | `~/Library/Application Support/mb/lib/shell` |
+
+A variável de ambiente **`MB_HELPERS_PATH`** (injetada nos plugins) aponta automaticamente para o diretório correto do seu sistema.
+
+## Primeiro uso
+
+Após a instalação, sincronize os plugins (mesmo que ainda não tenha nenhum):
+
+```bash
+mb plugins sync
+```
+
+Isso atualiza o cache de comandos e os helpers de shell.
+
+## Adicionar um plugin
+
+```bash
+# Por URL Git
+mb plugins add https://github.com/org/repo
+
+# Por path local (sem copiar arquivos)
+mb plugins add /caminho/para/meu-plugin --package meu-plugin
+
+# A partir da raiz do pacote
+cd /caminho/para/meu-plugin
+mb plugins add .
+```
+
+Após adicionar, o sync é automático. Verifique os comandos disponíveis:
+
+```bash
+mb plugins list
+mb help
+```
+
+## Atualizar
+
+O comando `mb update` cuida de tudo:
+
+```bash
+# Atualizar tudo (plugins, CLI, ferramentas, sistema)
+mb update
+
+# Só o binário do MB CLI
+mb update --only-cli
+
+# Só os plugins
+mb update --only-plugins
+
+# Só verificar se há nova versão do CLI
+mb update --only-cli --check-only
+```
+
+## Desinstalar
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
 ```
 
-Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf` (se foram instalados pelo install.sh). Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
+Ou remova manualmente:
 
-Próximo passo: [Desenvolvimento Local](./local-development.md) para compilar a partir do código ou [Criar um plugin](../plugin-authoring/create-a-plugin.md) para montar seu primeiro plugin.
+```bash
+# Binário
+rm -f ~/.local/bin/mb
+
+# Dependências (se instaladas pelo install.sh)
+rm -f ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf
+```
+
+Para limpar dados e configuração:
+
+```bash
+# Linux
+rm -rf ~/.config/mb
+
+# macOS
+rm -rf ~/Library/Application\ Support/mb
+```
+
+> **Nota:** A desinstalação pelo script ou remoção manual dos binários **não apaga** os dados de configuração e plugins. Remova os diretórios acima se desejar uma limpeza completa.
+
+## Resumo rápido
+
+| Ação | Comando |
+|------|---------|
+| Instalar | `curl -sSL …/install.sh \| bash` |
+| Sincronizar | `mb plugins sync` |
+| Listar plugins | `mb plugins list` |
+| Adicionar plugin | `mb plugins add <url ou path>` |
+| Atualizar tudo | `mb update` |
+| Ajuda | `mb help` |
+| Desinstalar | `curl -sSL …/uninstall.sh \| bash` |
+
+## Próximos passos
+
+- [Desenvolvimento Local](./local-development.md) — compilar a partir do código
+- [Criar um plugin](../plugin-authoring/create-a-plugin.md) — montar seu primeiro plugin
+- [Variáveis de ambiente](../user-guide/environment-variables.md) — ordem de precedência e uso
+- [Comandos de plugins](../user-guide/plugin-commands.md) — descobrir e executar comandos

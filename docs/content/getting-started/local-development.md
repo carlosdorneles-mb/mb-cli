@@ -11,7 +11,13 @@ Se você for alterar o código ou contribuir para o MB CLI.
 - Go 1.26.1+ (ou a versão em `go.mod`)
 - `make`
 
-## Build e instalação
+## Instalação das dependências
+
+```bash
+make deps
+```
+
+## Build e instalação do CLI
 
 ```bash
 make build          # binário em bin/mb
@@ -35,6 +41,7 @@ Para usar os plugins de exemplo do repositório:
 ```bash
 make install-plugins-examples   # regista cada plugin com mb plugins add
 make run plugins sync           # ou mb plugins sync
+make uninstall-plugins-examples # remove os plugins de exemplos
 ```
 
 ## Testes
@@ -42,6 +49,8 @@ make run plugins sync           # ou mb plugins sync
 ```bash
 make test
 ```
+
+Para visualizar todos os comandos disponíveis no Makefile, execute apenas `make` no terminal.
 
 ## Arquitetura do Código
 
