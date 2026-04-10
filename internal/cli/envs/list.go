@@ -1,17 +1,12 @@
 package envs
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/spf13/cobra"
 
-	"mb/internal/deps"
-	"mb/internal/shared/system"
-	appenvs "mb/internal/usecase/envs"
+	"mb/internal/usecase/envs"
 )
 
-func newListCmd(d deps.Dependencies) *cobra.Command {
+func newListCmd(svc *envs.ListService) *cobra.Command {
 	var listVault string
 	var asJSON, asText, showSecrets bool
 	cmd := &cobra.Command{
@@ -19,44 +14,20 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 		Aliases: []string{"ls", "l"},
 		Short:   "Lista variáveis do vault padrão ou de um vault específico",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			rows, err := appenvs.CollectListRows(
-				d.SecretStore,
-				d.OnePassword,
-				envPaths(d),
-				listVault,
-				showSecrets,
-			)
+			format := envs.FormatTable
+			if asJSON {
+				format = envs.FormatJSON
+			} else if asText {
+				format = envs.FormatText
+			}
+			rows, err := svc.List(cmd.Context(), envs.ListRequest{
+				Vault:       listVault,
+				ShowSecrets: showSecrets,
+			})
 			if err != nil {
 				return err
 			}
-			out := cmd.OutOrStdout()
-			switch {
-			case asJSON:
-				obj := make(map[string]string, len(rows))
-				for _, r := range rows {
-					obj[r.Key] = r.Value
-				}
-				b, mErr := json.Marshal(obj)
-				if mErr != nil {
-					return mErr
-				}
-				_, err = fmt.Fprintln(out, string(b))
-				return err
-			case asText:
-				for _, r := range rows {
-					if _, err = fmt.Fprintf(out, "%s=%s\n", r.Key, r.Value); err != nil {
-						return err
-					}
-				}
-				return nil
-			default:
-				table := make([][]string, len(rows))
-				for i, r := range rows {
-					table[i] = []string{r.Key + "=" + r.Value, r.Vault, r.Storage}
-				}
-				headers := []string{"VAR", "VAULT", "ARMAZENAMENTO"}
-				return system.GumTable(cmd.Context(), headers, table, out)
-			}
+			return envs.FormatRows(cmd.Context(), cmd.OutOrStdout(), rows, format)
 		},
 	}
 	cmd.Flags().StringVar(&listVault, "vault", "", "Lista apenas variáveis do vault informado")

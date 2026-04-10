@@ -9,7 +9,7 @@ import (
 
 func TestEnvUnsetRemovesFromDefaultFile(t *testing.T) {
 	d := testDeps(t)
-	rootSet := NewCmd(d)
+	rootSet := NewCmd(testListServiceForDeps(t, d), d)
 	rootSet.SetOut(&bytes.Buffer{})
 	rootSet.SetErr(os.NewFile(0, os.DevNull))
 	rootSet.SetArgs([]string{"set", "MYKEY=myval"})
@@ -17,7 +17,7 @@ func TestEnvUnsetRemovesFromDefaultFile(t *testing.T) {
 		t.Fatalf("set: %v", err)
 	}
 
-	rootUnset := NewCmd(d)
+	rootUnset := NewCmd(testListServiceForDeps(t, d), d)
 	rootUnset.SetOut(&bytes.Buffer{})
 	rootUnset.SetErr(os.NewFile(0, os.DevNull))
 	rootUnset.SetArgs([]string{"unset", "MYKEY"})

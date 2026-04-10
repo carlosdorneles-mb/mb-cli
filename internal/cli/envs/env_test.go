@@ -11,7 +11,7 @@ import (
 func TestNewCmd(t *testing.T) {
 	t.Parallel()
 	d := testDeps(t)
-	cmd := NewCmd(d)
+	cmd := NewCmd(testListServiceForDeps(t, d), d)
 
 	if cmd.Use != "envs" {
 		t.Errorf("Use = %q, want envs", cmd.Use)

@@ -10,7 +10,7 @@ import (
 
 func TestEnvSetPersistsToDefaultFile(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(os.NewFile(0, os.DevNull))
 	root.SetArgs([]string{"set", "MYKEY=myval"})
@@ -28,7 +28,7 @@ func TestEnvSetPersistsToDefaultFile(t *testing.T) {
 
 func TestEnvSetVault(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(os.NewFile(0, os.DevNull))
 	root.SetArgs([]string{"set", "--vault", "staging", "API=https://x"})
@@ -47,7 +47,7 @@ func TestEnvSetVault(t *testing.T) {
 
 func TestEnvSetSecretAndSecretOPMutuallyExclusive(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"set", "K", "v", "--secret", "--secret-op"})
@@ -59,7 +59,7 @@ func TestEnvSetSecretAndSecretOPMutuallyExclusive(t *testing.T) {
 
 func TestEnvSetRequiresKeyEqualsValue(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"set", "onlykey"})
@@ -72,7 +72,7 @@ func TestEnvSetRequiresKeyEqualsValue(t *testing.T) {
 func TestEnvSetLogsToStderr(t *testing.T) {
 	d := testDeps(t)
 	var errBuf bytes.Buffer
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&errBuf)
 	root.SetArgs([]string{"set", "K=v"})

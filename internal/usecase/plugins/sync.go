@@ -3,13 +3,11 @@ package plugins
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
 	"mb/internal/domain/plugin"
 	"mb/internal/ports"
-	"mb/internal/shared/system"
 )
 
 // SyncOptions configures RunSync behaviour.
@@ -33,14 +31,14 @@ type SyncReport struct {
 
 // RunSync rescans PluginsDir and each plugin_sources.local_path tree, merges results, and replaces plugin, category, and help-group rows in SQLite. It does not mutate plugin_sources (add/remove/update handle that).
 // Used by mb plugins sync and after plugins add/remove/update.
-// log: gum log on stderr (warnings + optional success). If nil, warnings are dropped and success is not emitted.
+// log: warnings and success messages. If nil, warnings are dropped and success is not emitted.
 func RunSync(
 	ctx context.Context,
 	rt PluginRuntime,
 	store ports.PluginSyncStore,
 	scanner ports.PluginScanner,
 	shell ports.ShellHelperInstaller,
-	log *system.Logger,
+	log ports.Logger,
 	opts SyncOptions,
 ) (SyncReport, error) {
 	runCtx := ctx
@@ -53,13 +51,7 @@ func RunSync(
 		return SyncReport{}, err
 	}
 	beforeByKey := pluginsByCommandKey(beforePlugins)
-
-	pluginHelpLog := log
-	if pluginHelpLog == nil {
-		quiet, verbose := rt.Quiet, rt.Verbose
-		pluginHelpLog = system.NewLogger(quiet, verbose, os.Stderr)
-	}
-	scanner.SetDebugLog(func(msg string) { _ = pluginHelpLog.Debug(runCtx, "%s", msg) })
+	scanner.SetDebugLog(func(msg string) { _ = logDebugOrNil(log, runCtx, msg) })
 	defer func() { scanner.SetDebugLog(nil) }()
 
 	pluginsList, categories, warnings, hgBatches, err := scanner.Scan()
@@ -87,7 +79,7 @@ func RunSync(
 		hgBatches = append(hgBatches, hg...)
 	}
 	mergedHelp := plugin.MergeHelpGroupsGlobal(hgBatches, func(msg string) {
-		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
+		_ = logDebugOrNil(log, runCtx, msg)
 	})
 	if log != nil {
 		for _, w := range warnings {
@@ -115,10 +107,10 @@ func RunSync(
 		validGroupIDs[g.ID] = struct{}{}
 	}
 	normalizePluginGroupIDs(pluginsList, validGroupIDs, func(msg string) {
-		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
+		_ = logDebugOrNil(log, runCtx, msg)
 	})
 	normalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
-		_ = pluginHelpLog.Debug(runCtx, "%s", msg)
+		_ = logDebugOrNil(log, runCtx, msg)
 	})
 
 	if err := store.DeleteAllPlugins(); err != nil {
@@ -193,7 +185,7 @@ func diffRemovedKeys(before, after map[string]plugin.Plugin) []string {
 
 func emitPluginSyncDiff(
 	ctx context.Context,
-	log *system.Logger,
+	log ports.Logger,
 	before map[string]plugin.Plugin,
 	afterList []plugin.Plugin,
 	removedKeys []string,
@@ -314,4 +306,12 @@ func checkPluginPathCollisions(pluginsList []plugin.Plugin) error {
 		seen[key] = p.PluginDir
 	}
 	return nil
+}
+
+// logDebugOrNil safely calls log.Debug or does nothing if log is nil.
+func logDebugOrNil(log ports.Logger, ctx context.Context, msg string) error {
+	if log == nil {
+		return nil
+	}
+	return log.Debug(ctx, "%s", msg)
 }

@@ -10,7 +10,7 @@ import (
 
 func TestEnvListEmpty(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
 	root.SetErr(os.NewFile(0, os.DevNull))
@@ -22,7 +22,7 @@ func TestEnvListEmpty(t *testing.T) {
 
 func TestEnvListInvalidVault(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"list", "--vault", "grupo inválido"})
@@ -41,7 +41,7 @@ func TestEnvListJSON(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
 	root.SetErr(os.NewFile(0, os.DevNull))
@@ -63,7 +63,7 @@ func TestEnvListText(t *testing.T) {
 	if err := os.WriteFile(d.Runtime.DefaultEnvPath, []byte("FOO=bar\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
 	root.SetErr(os.NewFile(0, os.DevNull))
@@ -78,7 +78,7 @@ func TestEnvListText(t *testing.T) {
 
 func TestEnvListJSONAndTextMutuallyExclusive(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"list", "-J", "-T"})

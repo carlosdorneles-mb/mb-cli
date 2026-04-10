@@ -23,6 +23,7 @@ import (
 	"mb/internal/shared/ui"
 	"mb/internal/shared/version"
 	"mb/internal/usecase/addplugin"
+	usecaseenvs "mb/internal/usecase/envs"
 	usecaseplugins "mb/internal/usecase/plugins"
 )
 
@@ -43,7 +44,7 @@ func NewRootCmd(
 	shell ports.ShellHelperInstaller,
 	layout ports.PluginLayoutValidator,
 ) RootCommand {
-	addPluginSvc, syncSvc, rmSvc, upSvc := buildPluginServices(d, fsys, git, shell, layout)
+	addPluginSvc, syncSvc, rmSvc, upSvc, listSvc := buildPluginServices(d, fsys, git, shell, layout)
 	var openDoc bool
 	rootCmd := &cobra.Command{
 		Use:   "mb",
@@ -85,7 +86,7 @@ func NewRootCmd(
 
 	rootCmd.SetHelpCommandGroupID("commands")
 
-	envsCmd := envs.NewCmd(d)
+	envsCmd := envs.NewCmd(listSvc, d)
 	envsCmd.GroupID = "commands"
 	rootCmd.AddCommand(envsCmd)
 
@@ -222,7 +223,7 @@ func buildPluginServices(
 	git ports.GitOperations,
 	shell ports.ShellHelperInstaller,
 	layout ports.PluginLayoutValidator,
-) (*addplugin.Service, *usecaseplugins.SyncService, *usecaseplugins.RemoveService, *usecaseplugins.UpdateService) {
+) (*addplugin.Service, *usecaseplugins.SyncService, *usecaseplugins.RemoveService, *usecaseplugins.UpdateService, *usecaseenvs.ListService) {
 	rt := usecaseplugins.PluginRuntime{
 		ConfigDir:  d.Runtime.ConfigDir,
 		PluginsDir: d.Runtime.PluginsDir,
@@ -247,5 +248,11 @@ func buildPluginServices(
 	rmSvc := usecaseplugins.NewRemoveService(rt, d.Store, d.Scanner, shell, fsys, syncSvc)
 	upSvc := usecaseplugins.NewUpdateService(rt, d.Store, d.Scanner, shell, git, fsys, syncSvc)
 
-	return addPluginSvc, syncSvc, rmSvc, upSvc
+	paths := usecaseenvs.Paths{
+		DefaultEnvPath: d.Runtime.DefaultEnvPath,
+		ConfigDir:      d.Runtime.ConfigDir,
+	}
+	listSvc := usecaseenvs.NewListService(d.SecretStore, d.OnePassword, paths)
+
+	return addPluginSvc, syncSvc, rmSvc, upSvc, listSvc
 }

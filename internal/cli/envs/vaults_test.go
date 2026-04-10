@@ -10,7 +10,7 @@ import (
 
 func TestEnvVaultsTable(t *testing.T) {
 	d := testDeps(t)
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
 	root.SetErr(os.NewFile(0, os.DevNull))
@@ -32,7 +32,7 @@ func TestEnvVaultsJSON(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	root := NewCmd(d)
+	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
 	root.SetErr(os.NewFile(0, os.DevNull))

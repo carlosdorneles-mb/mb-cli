@@ -31,12 +31,7 @@ type SyncOptions struct {
 }
 
 // Logger is the minimal logging surface used by this use case.
-type Logger interface {
-	Info(ctx context.Context, msg string, args ...any) error
-	Warn(ctx context.Context, msg string, args ...any) error
-	Debug(ctx context.Context, msg string, args ...any) error
-	Error(ctx context.Context, msg string, args ...any) error
-}
+type Logger = ports.Logger
 
 // SyncReport summarizes plugin command changes detected during sync.
 type SyncReport struct {

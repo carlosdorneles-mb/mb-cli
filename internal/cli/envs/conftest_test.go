@@ -13,6 +13,7 @@ import (
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
+	"mb/internal/usecase/envs"
 )
 
 func testDeps(t *testing.T) deps.Dependencies {
@@ -50,4 +51,13 @@ func testDeps(t *testing.T) deps.Dependencies {
 		infrakeyring.SystemKeyring{},
 		nil,
 	)
+}
+
+func testListServiceForDeps(t *testing.T, d deps.Dependencies) *envs.ListService {
+	t.Helper()
+	paths := envs.Paths{
+		DefaultEnvPath: d.Runtime.DefaultEnvPath,
+		ConfigDir:      d.Runtime.ConfigDir,
+	}
+	return envs.NewListService(d.SecretStore, d.OnePassword, paths)
 }

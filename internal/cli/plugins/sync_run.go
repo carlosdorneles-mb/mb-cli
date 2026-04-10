@@ -37,9 +37,17 @@ func RunSync(
 		d.Store,
 		d.Scanner,
 		shellhelpers.Installer{},
-		log,
+		toPluginLogger(log),
 		opts,
 	)
+}
+
+// toPluginLogger adapts *system.Logger to ports.Logger, returning nil for nil input.
+func toPluginLogger(log *system.Logger) appplugins.Logger {
+	if log == nil {
+		return nil
+	}
+	return log
 }
 
 func withCompletionPostSync(
