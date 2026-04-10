@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"charm.land/fang/v2"
 
@@ -41,6 +43,12 @@ func main() {
 		fang.WithColorSchemeFunc(ui.MBHelpTheme()),
 	}
 	if err := fang.Execute(ctx, rootCmd, opts...); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			if code := exitErr.ExitCode(); code >= 0 {
+				os.Exit(code)
+			}
+		}
 		os.Exit(1)
 	}
 }

@@ -15,12 +15,16 @@
 #   check_sudo                   — igual a is_root; se falhar, log warn e retorna 1.
 #   required_sudo                — exige sudo interativo, ou modo --optional para seguir sem abortar.
 #
-# Contrato de códigos de saída para plugins shell (alinhado a mb-cli-plugins/tools/update-all.sh):
+# Contrato de códigos de saída para plugins shell (alinhado a mb-cli-plugins/tools/update-all.sh e
+# constantes Go em mb/internal/shared/pluginexit):
 #   86 — MB_EXIT_UPDATE_SKIPPED_SUDO: sem privilégio efetivo para gestores de pacote (apt/dnf/yum/pacman).
 #        No batch --update-all, não conta como falha; o pai avisa para repetir com sudo.
 #        Em mb tools <plugin> --install|--update|--uninstall direto, o utilizador vê o log warn deste helper
 #        no stderr; o processo mb pode ainda mostrar ERRO com "exit status 86".
 #   87 — MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED: ferramenta não instalada ao atualizar; ignorado no batch.
+#   88 — MB_EXIT_INSTALL_ALREADY_INSTALLED: em lote (MB_TOOLS_INSTALL_BATCH), install.sh pode devolver 88
+#        quando a ferramenta já está instalada; o install-many trata como sucesso sem nova instalação.
+#        Em instalação única costuma-se exit 0 para não sinalizar erro.
 # Fora do update-all.sh, usar sempre return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}" (e :-87) para defaults.
 
 . "$MB_HELPERS_PATH/log.sh"
