@@ -84,7 +84,7 @@ func TestBuildEnvFileValues_GroupOverlay(t *testing.T) {
 			ConfigDir:      tmp,
 			DefaultEnvPath: def,
 		},
-		EnvGroup: "staging",
+		EnvVault: "staging",
 	}
 	m, err := BuildEnvFileValues(rt, nil, nil)
 	if err != nil {
@@ -195,17 +195,50 @@ func TestBuildEnvFileValues_OPReferenceWithoutReaderErrors(t *testing.T) {
 	}
 }
 
-func TestBuildEnvFileValues_InvalidEnvGroup(t *testing.T) {
+func TestBuildEnvFileValues_InvalidEnvVault(t *testing.T) {
 	tmp := t.TempDir()
 	rt := &RuntimeConfig{
 		Paths: Paths{
 			ConfigDir:      tmp,
 			DefaultEnvPath: filepath.Join(tmp, "env.defaults"),
 		},
-		EnvGroup: "../x",
+		EnvVault: "../x",
 	}
 	_, err := BuildEnvFileValues(rt, nil, nil)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestBuildEnvFileValues_OPSecretsFile(t *testing.T) {
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("#\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(def+".opsecrets", []byte(`TOKEN=op://Private/item-1/TOKEN
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	op := stubOnePassword{
+		read: func(ref string) (string, error) {
+			if ref == "op://Private/item-1/TOKEN" {
+				return "from-file-op", nil
+			}
+			return "", errors.New("unexpected ref")
+		},
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	m, err := BuildEnvFileValues(rt, nil, op)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["TOKEN"] != "from-file-op" {
+		t.Fatalf("TOKEN=%q", m["TOKEN"])
 	}
 }

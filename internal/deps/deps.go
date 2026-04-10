@@ -13,8 +13,8 @@ type RuntimeConfig struct {
 	Verbose     bool
 	Quiet       bool
 	EnvFilePath string
-	// EnvGroup overlays ~/.config/mb/.env.<EnvGroup> on env.defaults when running plugins.
-	EnvGroup        string
+	// EnvVault overlays ~/.config/mb/.env.<EnvVault> on env.defaults when running plugins.
+	EnvVault        string
 	InlineEnvValues []string
 	// PluginTimeout limits how long a plugin script can run. Zero means no limit.
 	PluginTimeout time.Duration

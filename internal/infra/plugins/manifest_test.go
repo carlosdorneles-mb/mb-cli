@@ -134,22 +134,22 @@ func TestEnvFilesSpecAndNormalize(t *testing.T) {
 	yamlDoc := `
 env_files:
   - file: .env
-    group: test
+    vault: test
   - file: .env.local
 `
 	var m Manifest
 	if err := yaml.Unmarshal([]byte(yamlDoc), &m); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	m.normalizeEnvFileGroups()
+	m.normalizeEnvFileVaults()
 	if m.EnvFiles.Len() != 2 {
 		t.Fatalf("len %d", m.EnvFiles.Len())
 	}
-	if m.EnvFiles.List[0].File != ".env" || m.EnvFiles.List[0].Group != "test" {
+	if m.EnvFiles.List[0].File != ".env" || m.EnvFiles.List[0].Vault != "test" {
 		t.Errorf("first: %+v", m.EnvFiles.List[0])
 	}
 	if m.EnvFiles.List[1].File != ".env.local" ||
-		m.EnvFiles.List[1].Group != ManifestEnvGroupDefault {
+		m.EnvFiles.List[1].Vault != ManifestEnvVaultDefault {
 		t.Errorf("second: %+v", m.EnvFiles.List[1])
 	}
 }

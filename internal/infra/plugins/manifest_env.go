@@ -12,11 +12,11 @@ import (
 	"mb/internal/shared/safepath"
 )
 
-// MergeManifestEnvFiles loads KEY=VALUE from manifest env_files entries whose group
-// matches effectiveGroup (use ManifestEnvGroupDefault when --env-group is unset).
+// MergeManifestEnvFiles loads KEY=VALUE from manifest env_files entries whose vault
+// matches effectiveVault (use ManifestEnvVaultDefault when --env-vault is unset).
 // Later files in the list override earlier ones for duplicate keys.
 func MergeManifestEnvFiles(
-	pluginDir, envFilesJSON, effectiveGroup string,
+	pluginDir, envFilesJSON, effectiveVault string,
 ) (map[string]string, error) {
 	if envFilesJSON == "" || pluginDir == "" {
 		return map[string]string{}, nil
@@ -27,7 +27,7 @@ func MergeManifestEnvFiles(
 	}
 	merged := map[string]string{}
 	for _, e := range entries {
-		if e.Group != effectiveGroup {
+		if e.Vault != effectiveVault {
 			continue
 		}
 		abs := filepath.Join(pluginDir, e.File)

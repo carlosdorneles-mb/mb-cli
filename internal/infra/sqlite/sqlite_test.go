@@ -207,7 +207,7 @@ func TestStoreEnvFilesJSONRoundTrip(t *testing.T) {
 		t.Fatalf("new store: %v", err)
 	}
 	defer store.Close()
-	j := `[{"file":".env","group":"staging"}]`
+	j := `[{"file":".env","vault":"staging"}]`
 	p := Plugin{
 		CommandPath:  "tools/x",
 		CommandName:  "x",

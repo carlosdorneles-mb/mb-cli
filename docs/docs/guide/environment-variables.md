@@ -8,15 +8,15 @@ O MB CLI controla o ambiente em que os **plugins** e o comando **`mb run`** são
 
 ## Secrets no keyring
 
-Variáveis definidas com **`mb envs set <KEY> <VALUE> --secret`** não são gravadas em ficheiro: o valor fica no **keyring do sistema** (macOS Keychain, Linux Secret Service, Windows Credential Manager). Ao listar com **`mb envs list`**, essas chaves aparecem com valor **`***`**; use **`mb envs list --show-secrets`** para ver o valor real (lido do keyring). Ao executar plugins ou **`mb run`**, o CLI resolve os secrets a partir do keyring e injecta o valor real no ambiente do processo.
+Variáveis definidas com **`mb envs set KEY=VALOR --secret`** não são gravadas em ficheiro: o valor fica no **keyring do sistema** (macOS Keychain, Linux Secret Service, Windows Credential Manager). A chave é listada no ficheiro **`.secrets`** ao lado do `.env` / `env.defaults`. Ao listar com **`mb envs list`**, essas chaves aparecem com valor **`***`**; use **`mb envs list --show-secrets`** para ver o valor real (lido do keyring). Ao executar plugins ou **`mb run`**, o CLI resolve os secrets a partir do keyring e injecta o valor real no ambiente do processo.
 
-Para guardar o valor no **1Password** e só manter uma referência **`op://`** no keyring, use **`--secret-op`** (não combina com **`--secret`**); detalhes na secção [Integração com 1Password](#envs-1password-secret-op).
+Para guardar o valor no **1Password** com referência **`op://`** no ficheiro **`*.opsecrets`** (e não no keyring), use **`--secret-op`** (não combina com **`--secret`**); detalhes na secção [Integração com 1Password](#envs-1password-secret-op).
 
-**`mb envs unset <KEY>`** remove a variável do ficheiro (ou só a entrada na lista de secrets, para chaves só-secret) e, se for secret, também do keyring; com referência **`op://`**, remove também o campo correspondente no 1Password. Se a chave **não existir** nesse grupo (nem no ficheiro nem na lista **`.secrets`** do grupo), o comando termina com sucesso (**código 0**) e informa que não há variável com esse nome — **não** altera ficheiros nem o keyring.
+**`mb envs unset`** aceita várias chaves; remove do ficheiro, da lista **`.secrets`** / **`*.opsecrets`**, do keyring e do 1Password conforme o caso. Se a chave **não existir** nesse vault, o comando termina com sucesso (**código 0**) e informa — **não** altera ficheiros nem stores.
 
 ## Integração com 1Password (--secret-op) {#envs-1password-secret-op}
 
-O MB pode guardar valores sensíveis no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no **PATH**). O fluxo é distinto de **`--secret`**: o **valor** fica num item no cofre 1Password; no keyring fica apenas uma **referência** no formato **`op://`** (e a chave continua listada no ficheiro **`.secrets`** do grupo, como nos outros secrets).
+O MB pode guardar valores sensíveis no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no **PATH**). O fluxo é distinto de **`--secret`**: o **valor** fica num item no cofre 1Password; a **referência** **`op://`** é gravada no ficheiro **`*.opsecrets`** (dotenv `KEY=op://...`) ao lado do env — **não** no keyring. Entradas antigas que ainda tenham **`op://`** só no keyring continuam a ser resolvidas até migrar.
 
 ### Requisitos
 
@@ -26,34 +26,37 @@ O MB pode guardar valores sensíveis no **1Password** via [1Password CLI](https:
 ### Como definir
 
 ```bash
-mb envs set API_TOKEN "seu-valor" --secret-op
-mb envs set API_TOKEN "seu-valor" --secret-op --group staging
+mb envs set API_TOKEN=seu-valor --secret-op
+mb envs set API_TOKEN=seu-valor --secret-op --vault staging
+mb envs set A=1 B=2 C=3 --secret
 ```
 
-O MB cria ou reutiliza um item do tipo **senha** no 1Password por grupo lógico, com título **`mb-cli env / default`** (grupo padrão) ou **`mb-cli env / <nome-do-grupo>`** (com **`--group`**), e grava o valor num campo reservado ao MB. No keyring guarda a referência **`op://...`**; o ficheiro **`env.defaults`** (ou **`.env.<grupo>`**) **não** contém o valor em claro.
+O MB cria ou reutiliza um item do tipo **senha** no 1Password por vault lógico, com título **`mb-cli env / default`** (vault padrão) ou **`mb-cli env / <nome-do-vault>`** (com **`--vault`**), e grava o valor num campo reservado ao MB. A referência **`op://...`** fica em **`env.defaults.opsecrets`** ou **`.env.<vault>.opsecrets`**; o ficheiro principal **não** contém o valor em claro.
+
+No **vault padrão**, **`--secret-op`** pede confirmação (pode haver pedidos frequentes de desbloqueio do 1Password em qualquer comando `mb` que resolva esse ambiente). Em CI ou pipes, use **`--yes`** para confirmar sem prompt.
 
 ### Listagem e execução
 
-- Com **`mb envs list --show-secrets`**, referências **`op://`** são **resolvidas** com **`op read`** (é preciso sessão 1Password válida).
-- Ao mesclar o ambiente para **plugins** ou **`mb run`**, valores **`op://`** no keyring são também resolvidos via integração com o `op`. Se a integração ou o `op` não estiverem disponíveis, o comando falha com mensagem clara em vez de injetar a referência literal.
+- Com **`mb envs list --show-secrets`**, referências **`op://`** (ficheiro ou keyring legado) são **resolvidas** com **`op read`** (é preciso sessão 1Password válida).
+- Ao mesclar o ambiente para **plugins** ou **`mb run`**, entradas em **`*.opsecrets`** e valores **`op://`** ainda no keyring são resolvidos via integração com o `op`. Se a integração ou o `op` não estiverem disponíveis, o comando falha com mensagem clara em vez de injetar a referência literal.
 
 ### Remover
 
-**`mb envs unset <KEY>`** (com o mesmo **`--group`**, se aplicável) remove a chave da lista **`.secrets`**, apaga a entrada no keyring e remove o campo no item 1Password quando o valor armazenado era uma referência **`op://`**.
+**`mb envs unset`** (com o mesmo **`--vault`**, se aplicável) remove a chave dos ficheiros, de **`.secrets`**, de **`*.opsecrets`**, do keyring e do item 1Password quando aplicável.
 
 ## Ordem de precedência
 
 Da **menor** para a **maior** precedência:
 
 1. **Variáveis do sistema** — O que já está em `os.Environ()` (incluindo o que você exportou no shell).
-2. **`env.defaults`** — `~/.config/mb/env.defaults` (e secrets do grupo default resolvidos do keyring; valores guardados como **`op://`** são lidos com o 1Password CLI quando a integração está disponível).
-3. **Grupo (`--env-group`)** — Se você passar **`--env-group <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (e os secrets desse grupo são resolvidos do keyring, incluindo **`op://`**; mesmas chaves do grupo sobrescrevem as do default).
+2. **`env.defaults`** — `~/.config/mb/env.defaults` (secrets **`.secrets`** no keyring; **`*.opsecrets`** com **`op://`** resolvidos via 1Password CLI quando a integração está disponível).
+3. **Vault (`--env-vault`)** — Se você passar **`--env-vault <nome>`**, o arquivo `~/.config/mb/.env.<nome>` é mesclado por cima do `env.defaults` (secrets e **`op://`** desse vault da mesma forma; mesmas chaves sobrescrevem as do default).
 4. **`.env` no diretório atual** — Se existir um ficheiro **`.env`** no **diretório de trabalho atual** (cwd) quando o comando corre, as variáveis dele são mescladas a seguir. Se o ficheiro não existir, esta etapa é ignorada. Erros de leitura (permissões, formato inválido) fazem o comando falhar com mensagem clara.
 5. **`--env-file <path>`** — Mesclado em seguida e sobrescreve chaves anteriores em caso de conflito.
-6. **`env_files` do manifest** (só **plugins**) — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **grupo efetivo**: sem `--env-group`, entram só entradas com grupo `default` (ou com `group` omitido no YAML); com **`--env-group test`**, entram só entradas com `group: test`. Vários arquivos para o mesmo grupo são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela. O comando **`mb run`** não usa manifest de plugin, logo esta camada não se aplica.
+6. **`env_files` do manifest** (só **plugins**) — Arquivos `.env` declarados no `manifest.yaml` do plugin para o **vault efetivo**: sem **`--env-vault`**, entram só entradas com **`vault: default`** (ou `vault` omitido no YAML); com **`--env-vault test`**, entram só entradas com **`vault: test`**. Vários arquivos para o mesmo vault são aplicados **na ordem** do manifest (o último vence em chaves repetidas). Paths são relativos à pasta do plugin e não podem sair dela. O comando **`mb run`** não usa manifest de plugin, logo esta camada não se aplica.
 7. **`--env KEY=VALUE`** — Maior precedência (pode ser repetido).
 
-Ou seja: sem `--env-group`, só entram as variáveis de `env.defaults` como base (além do sistema); com grupo, o arquivo do grupo na config complementa/sobrescreve o default; em seguida entra o `./.env` do cwd (se existir), depois **`--env-file`**, depois os `env_files` do manifest (em comandos de plugin), e por fim **`--env`** tem a última palavra.
+Ou seja: sem **`--env-vault`**, só entram as variáveis de `env.defaults` como base (além do sistema); com vault, o arquivo na config complementa/sobrescreve o default; em seguida entra o `./.env` do cwd (se existir), depois **`--env-file`**, depois os `env_files` do manifest (em comandos de plugin), e por fim **`--env`** tem a última palavra.
 
 ## Tema padrão do gum
 
@@ -72,23 +75,23 @@ Esses defaults só são aplicados quando a chave ainda não existe no ambiente m
 
 Você pode definir variáveis que serão usadas em toda execução de plugins e de **`mb run`**, sem precisar passar `--env` toda vez:
 
-- **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`), **GRUPO** (`default` para `env.defaults`, ou o nome do grupo para `~/.config/mb/.env.<grupo>`) e **ARMAZENAMENTO** (`local` para variáveis em ficheiro; `keyring` ou `1password` para secrets — `1password` quando o keyring guarda uma referência **`op://`**). Variáveis guardadas como secret mostram o valor como **`***`**; use **`--show-secrets`** para ver o valor real (keyring; referências **`op://`** são resolvidas com o 1Password CLI).
+- **`mb envs list`** — Tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** (`default` para `env.defaults`, ou o nome do vault para `~/.config/mb/.env.<vault>`) e **ARMAZENAMENTO** (`local`; `keyring`; `1password` para segredos 1Password ou referências **`op://`** legadas no keyring). Use **`--show-secrets`** para ver valores reais.
 - **`mb envs list --json`** ou **`-J`** — Emite um único objeto JSON (`{"CHAVE":"valor", ...}`), útil para scripts. Não pode ser usado junto com **`--text` / `-T`**.
-- **`mb envs list --text`** ou **`-T`** — Emite só linhas **`CHAVE=valor`** (sem coluna de grupo). Não pode ser usado junto com **`--json` / `-J`**.
-- **`mb envs list --group <grupo>`** — Lista só as variáveis desse grupo (arquivo `.env.<grupo>`).
-- **`mb envs groups`** (alias **`group`**) — Tabela **GRUPO** / **ARQUIVO**: o grupo implícito **`default`** aponta para **`env.defaults`**; cada **`~/.config/mb/.env.<grupo>`** existente aparece como linha adicional. **`--json` / `-J`** emite um array JSON `[{"group":"...","path":"..."},...]`.
-- **`mb envs set <KEY> <VALUE>`** — Grava a env no arquivo padrão de variáveis de ambiente. Com **`--group <grupo>`**, grava no arquivo referente ao grupo. O nome do grupo só pode conter letras, números, `.`, `_` e `-`. Com **`--secret`**, o valor é guardado no **keyring do sistema** (não em ficheiro). Com **`--secret-op`**, o valor é guardado no **1Password** e no keyring fica só a referência **`op://`** (exige **`op`** no PATH e sessão válida); não usar **`--secret`** em conjunto. Ao executar plugins ou **`mb run`**, os valores são resolvidos a partir do keyring e, no caso **`op://`**, via CLI do 1Password.
-- **`mb envs unset <KEY>`** — Remove do arquivo padrão de variáveis de ambiente ou, com **`--group`**, só do arquivo do grupo. Se a variável estava guardada como secret (lista **`.secrets`** desse ficheiro), é também removida do keyring (e do 1Password, se aplicável). Com **`--group`**, se não restar nenhuma variável nem entrada em **`.secrets`**, o ficheiro **`.env.<grupo>`** (e o **`.secrets`** associado, se existir) é **apagado** — o **`env.defaults`** não é removido quando fica vazio. Se **`KEY`** não estiver definida nesse grupo, mostra que não existe variável com esse nome e **não** grava nada (comportamento idempotente; saída **0**).
+- **`mb envs list --text`** ou **`-T`** — Emite só linhas **`CHAVE=valor`** (sem coluna de vault). Não pode ser usado junto com **`--json` / `-J`**.
+- **`mb envs list --vault <nome>`** — Lista só as variáveis desse vault (ficheiro `.env.<nome>`).
+- **`mb envs vaults`** — Tabela **VAULT** / **ARQUIVO**: o vault **`default`** aponta para **`env.defaults`**; cada **`~/.config/mb/.env.<vault>`** existente aparece como linha adicional. **`--json` / `-J`** emite `[{"vault":"...","path":"..."},...]`.
+- **`mb envs set KEY=VALOR [KEY2=VALOR2 ...]`** — Grava no ficheiro padrão ou com **`--vault <nome>`** no **`.env.<nome>`**. O nome do vault só pode conter letras, números, `.`, `_` e `-`. Com **`--secret`**, o valor vai ao **keyring** (lista **`.secrets`**). Com **`--secret-op`**, valor no **1Password** e referência em **`*.opsecrets`**. Sem flags, pode usar a variável **`MB_ENVS_SECRET_STORE`** (`plain` / `keyring` / `op`) no ambiente do processo ou nos ficheiros alvo em texto claro.
+- **`mb envs unset KEY [KEY2 ...]`** — Remove uma ou mais chaves do vault padrão ou de **`--vault`**. Se não restar conteúdo nem segredos num **vault explícito**, apaga **`.env.<vault>`**, **`.secrets`** e **`.opsecrets`** associados; **`env.defaults`** nunca é apagado por ficar vazio.
 
-### Grupo na linha de comando: `--env-group`
+### Vault na linha de comando: `--env-vault`
 
-Para uma execução usar o overlay de um grupo (por exemplo staging):
+Para uma execução usar o overlay de um vault (por exemplo staging):
 
 ```bash
-mb --env-group staging tools meu-comando
+mb --env-vault staging tools meu-comando
 ```
 
-Carrega `env.defaults` e depois aplica `~/.config/mb/.env.staging` por cima. Sem `--env-group`, apenas o `env.defaults` entra nessa camada (como antes).
+Carrega `env.defaults` e depois aplica `~/.config/mb/.env.staging` por cima. Sem **`--env-vault`**, apenas o `env.defaults` entra nessa camada (como antes).
 
 ### Arquivo de ambiente: `--env-file`
 
@@ -111,11 +114,11 @@ mb run python script.py
 mb run uv sync
 ```
 
-As flags globais do `mb` (`-e` / `--env`, `--env-file`, `--env-group`, `-v` / `--verbose`, `-q` / `--quiet`) podem ir **antes** de `run` **ou** **logo após** `run`, sempre **antes do nome do executável**. O que vier depois do primeiro argumento posicional é repassado ao programa filho (ex.: `mb run grep -r padrão .`). Exemplos:
+As flags globais do `mb` (`-e` / `--env`, `--env-file`, `--env-vault`, `-v` / `--verbose`, `-q` / `--quiet`) podem ir **antes** de `run` **ou** **logo após** `run`, sempre **antes do nome do executável**. O que vier depois do primeiro argumento posicional é repassado ao programa filho (ex.: `mb run grep -r padrão .`). Exemplos:
 
 ```bash
 mb --env-file .env.local run uv sync
-mb run --env-group staging -e FOO=bar python script.py
+mb run --env-vault staging -e FOO=bar python script.py
 ```
 
 Depois de `--` no `mb run`, nada é interpretado como flag do MB (útil se o filho precisar de argumentos que começam por `-`).
@@ -139,6 +142,6 @@ No seu plugin, você pode acessar variáveis injetadas normalmente. Por exemplo,
 echo "API_KEY está definida? ${API_KEY:-não}"
 ```
 
-Se você definiu `API_KEY` com `mb envs set API_KEY seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
+Se você definiu `API_KEY` com `mb envs set API_KEY=seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
 
 Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](../technical-reference/plugins.md).

@@ -8,7 +8,7 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/ports"
-	"mb/internal/shared/envgroup"
+	"mb/internal/shared/envvault"
 )
 
 const secretsSuffix = ".secrets"
@@ -22,26 +22,26 @@ const (
 
 // ListRow is one variable shown by mb envs list.
 type ListRow struct {
-	Key, Value, Group, Storage string
+	Key, Value, Vault, Storage string
 }
 
-// CollectListRows returns rows for default and all valid group env files, optionally revealing secrets.
+// CollectListRows returns rows for default and all valid vault env files, optionally revealing secrets.
 func CollectListRows(
 	secrets ports.SecretStore,
 	onePassword ports.OnePasswordEnv,
 	paths Paths,
-	listGroup string,
+	listVault string,
 	showSecrets bool,
 ) ([]ListRow, error) {
-	if listGroup != "" {
-		if err := envgroup.Validate(listGroup); err != nil {
+	if listVault != "" {
+		if err := envvault.Validate(listVault); err != nil {
 			return nil, err
 		}
-		p, err := envgroup.FilePath(paths.ConfigDir, listGroup)
+		p, err := envvault.FilePath(paths.ConfigDir, listVault)
 		if err != nil {
 			return nil, err
 		}
-		return rowsForPath(secrets, onePassword, p, listGroup, showSecrets)
+		return rowsForPath(secrets, onePassword, p, listVault, showSecrets)
 	}
 
 	defRows, err := rowsForPath(secrets, onePassword, paths.DefaultEnvPath, "default", showSecrets)
@@ -59,29 +59,29 @@ func CollectListRows(
 		if !strings.HasPrefix(base, ".env.") {
 			continue
 		}
-		g := strings.TrimPrefix(base, ".env.")
-		if g == "" || envgroup.Validate(g) != nil {
+		v := strings.TrimPrefix(base, ".env.")
+		if v == "" || envvault.Validate(v) != nil {
 			continue
 		}
-		if strings.HasSuffix(path, secretsSuffix) {
+		if strings.HasSuffix(path, secretsSuffix) || strings.HasSuffix(path, opSecretsSuffix) {
 			continue
 		}
-		r, err := rowsForPath(secrets, onePassword, path, g, showSecrets)
+		r, err := rowsForPath(secrets, onePassword, path, v, showSecrets)
 		if err != nil {
 			return nil, err
 		}
 		rows = append(rows, r...)
 	}
 	sort.Slice(rows, func(i, j int) bool {
-		gi, gj := rows[i].Group, rows[j].Group
-		if gi != gj {
-			if gi == "default" {
+		vi, vj := rows[i].Vault, rows[j].Vault
+		if vi != vj {
+			if vi == "default" {
 				return true
 			}
-			if gj == "default" {
+			if vj == "default" {
 				return false
 			}
-			return gi < gj
+			return vi < vj
 		}
 		if rows[i].Key != rows[j].Key {
 			return rows[i].Key < rows[j].Key
@@ -94,7 +94,7 @@ func CollectListRows(
 func rowsForPath(
 	secrets ports.SecretStore,
 	onePassword ports.OnePasswordEnv,
-	path, group string,
+	path, vault string,
 	showSecrets bool,
 ) ([]ListRow, error) {
 	values, err := deps.LoadDefaultEnvValues(path)
@@ -105,49 +105,80 @@ func rowsForPath(
 	if err != nil {
 		return nil, err
 	}
-	keyringGroup := KeyringGroup(group)
-	seen := make(map[string]bool)
+	opRefs, err := deps.LoadOPSecretRefs(path)
+	if err != nil {
+		return nil, err
+	}
+	keyringGroup := KeyringGroup(vault)
+
+	keySet := make(map[string]bool)
+	for k := range values {
+		keySet[k] = true
+	}
+	for _, k := range secretKeys {
+		keySet[k] = true
+	}
+	for k := range opRefs {
+		keySet[k] = true
+	}
+	keys := sortedStringSet(keySet)
+
 	var rows []ListRow
-	for _, key := range sortedMapKeys(values) {
-		seen[key] = true
-		if isSecretKey(secretKeys, key) {
-			stored, gerr := secrets.Get(keyringGroup, key)
+	for _, key := range keys {
+		ref, inOP := opRefs[key]
+		inOP = inOP && ref != "" && strings.HasPrefix(ref, "op://")
+		inSK := isSecretKey(secretKeys, key)
+		plainVal, inPlain := values[key]
+
+		switch {
+		case inOP:
 			val := "***"
-			if showSecrets && gerr == nil {
-				val, err = resolveStoredSecretForList(stored, onePassword)
-				if err != nil {
-					return nil, err
+			if showSecrets {
+				if onePassword == nil {
+					return nil, fmt.Errorf(
+						"referência 1Password (op://) sem integração disponível (use sessão 1Password e cliente op)",
+					)
+				}
+				var rerr error
+				val, rerr = onePassword.ReadOPReference(ref)
+				if rerr != nil {
+					return nil, rerr
 				}
 			}
 			rows = append(rows, ListRow{
-				Key: key, Value: val, Group: group,
+				Key: key, Value: val, Vault: vault, Storage: Storage1Password,
+			})
+		case inSK:
+			stored, gerr := secrets.Get(keyringGroup, key)
+			val := "***"
+			if showSecrets && gerr == nil {
+				var rerr error
+				val, rerr = resolveStoredSecretForList(stored, onePassword)
+				if rerr != nil {
+					return nil, rerr
+				}
+			}
+			rows = append(rows, ListRow{
+				Key: key, Value: val, Vault: vault,
 				Storage: secretStorageFromStored(stored, gerr),
 			})
-		} else {
+		case inPlain:
 			rows = append(rows, ListRow{
-				Key: key, Value: values[key], Group: group, Storage: StorageLocal,
+				Key: key, Value: plainVal, Vault: vault, Storage: StorageLocal,
 			})
 		}
-	}
-	for _, key := range secretKeys {
-		if seen[key] {
-			continue
-		}
-		stored, gerr := secrets.Get(keyringGroup, key)
-		val := "***"
-		if showSecrets && gerr == nil {
-			val, err = resolveStoredSecretForList(stored, onePassword)
-			if err != nil {
-				return nil, err
-			}
-		}
-		rows = append(rows, ListRow{
-			Key: key, Value: val, Group: group,
-			Storage: secretStorageFromStored(stored, gerr),
-		})
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Key < rows[j].Key })
 	return rows, nil
+}
+
+func sortedStringSet(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func resolveStoredSecretForList(stored string, onePassword ports.OnePasswordEnv) (string, error) {
@@ -179,13 +210,4 @@ func isSecretKey(secretKeys []string, key string) bool {
 		}
 	}
 	return false
-}
-
-func sortedMapKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }

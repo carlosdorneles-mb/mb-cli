@@ -14,7 +14,7 @@ import (
 	"mb/internal/domain/plugin"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/env"
-	"mb/internal/shared/envgroup"
+	"mb/internal/shared/envvault"
 	"mb/internal/shared/safepath"
 )
 
@@ -241,8 +241,8 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 				errs = append(errs, "env_files: file não pode ser vazio")
 				break
 			}
-			if err := envgroup.Validate(ef.Group); err != nil {
-				errs = append(errs, "env_files grupo inválido ("+ef.File+"): "+err.Error())
+			if err := envvault.Validate(ef.Vault); err != nil {
+				errs = append(errs, "env_files vault inválido ("+ef.File+"): "+err.Error())
 				break
 			}
 			envPath := filepath.Join(baseDir, ef.File)

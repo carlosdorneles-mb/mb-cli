@@ -20,7 +20,7 @@ import (
 )
 
 // testRootCmdForPluginIntegrationTests builds a root command with persistent flags and PreRun
-// aligned with internal/cli/root (verbose, quiet, env-file, env-group, env) plus Attach.
+// aligned with internal/cli/root (verbose, quiet, env-file, env-vault, env) plus Attach.
 // Usado em vez de root.NewRootCmd para evitar import cycle (root → plugincmd).
 func testRootCmdForPluginIntegrationTests(d *deps.Dependencies) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -38,7 +38,7 @@ func testRootCmdForPluginIntegrationTests(d *deps.Dependencies) *cobra.Command {
 	rootCmd.PersistentFlags().
 		BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
 	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "")
-	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvGroup, "env-group", "", "")
+	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvVault, "env-vault", "", "")
 	rootCmd.PersistentFlags().
 		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável na execução do processo atual. Ex.: KEY=VALUE")
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
@@ -533,7 +533,7 @@ func TestFlagsOnlyMergeFlagEnvsWithPrecedence(t *testing.T) {
 	}
 
 	envFilesJSONBytes, err := json.Marshal(
-		[]plugins.EnvFileEntry{{File: ".env.default", Group: "default"}},
+		[]plugins.EnvFileEntry{{File: ".env.default", Vault: "default"}},
 	)
 	if err != nil {
 		t.Fatalf("marshal env_files: %v", err)

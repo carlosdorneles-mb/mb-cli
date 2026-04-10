@@ -71,12 +71,12 @@ func testAddService(t *testing.T) (*addplugin.Service, *deps.RuntimeConfig) {
 // osFSAdapter adapts the real OS to the ports.Filesystem interface for tests.
 type osFSAdapter struct{}
 
-func (osFSAdapter) RemoveAll(path string) error                { return os.RemoveAll(path) }
+func (osFSAdapter) RemoveAll(path string) error                  { return os.RemoveAll(path) }
 func (osFSAdapter) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
-func (osFSAdapter) Stat(name string) (os.FileInfo, error)      { return os.Stat(name) }
-func (osFSAdapter) IsNotExist(err error) bool                  { return os.IsNotExist(err) }
-func (osFSAdapter) ReadDir(name string) ([]os.DirEntry, error) { return os.ReadDir(name) }
-func (osFSAdapter) Getwd() (string, error)                     { return os.Getwd() }
+func (osFSAdapter) Stat(name string) (os.FileInfo, error)        { return os.Stat(name) }
+func (osFSAdapter) IsNotExist(err error) bool                    { return os.IsNotExist(err) }
+func (osFSAdapter) ReadDir(name string) ([]os.DirEntry, error)   { return os.ReadDir(name) }
+func (osFSAdapter) Getwd() (string, error)                       { return os.Getwd() }
 
 type shellInstaller struct{}
 
@@ -92,19 +92,21 @@ type gitOpsForTestImpl struct{}
 
 func (gitOpsForTestImpl) ParseGitURL(raw string) (string, string, error) {
 	// Only treat https://, git@, ssh:// as Git URLs
-	if strings.HasPrefix(raw, "https://") || strings.HasPrefix(raw, "git@") || strings.HasPrefix(raw, "ssh://") {
+	if strings.HasPrefix(raw, "https://") || strings.HasPrefix(raw, "git@") ||
+		strings.HasPrefix(raw, "ssh://") {
 		parts := strings.Split(raw, "/")
-		name := parts[len(parts)-1]
-		if strings.HasSuffix(name, ".git") {
-			name = strings.TrimSuffix(name, ".git")
-		}
+		name := strings.TrimSuffix(parts[len(parts)-1], ".git")
 		return name, raw, nil
 	}
 	// Return error so addplugin.Service falls through to addLocal
 	return "", "", fmt.Errorf("not a git URL")
 }
 
-func (gitOpsForTestImpl) Clone(ctx context.Context, repoURL, destDir string, opts ports.GitCloneOpts) error {
+func (gitOpsForTestImpl) Clone(
+	ctx context.Context,
+	repoURL, destDir string,
+	opts ports.GitCloneOpts,
+) error {
 	return nil
 }
 
@@ -438,15 +440,16 @@ func TestAddPluginService_InvalidPath(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nonexistent path")
 	}
-	if !strings.Contains(err.Error(), "não encontrado") && !strings.Contains(err.Error(), "acesso ao diretório") {
+	if !strings.Contains(err.Error(), "não encontrado") &&
+		!strings.Contains(err.Error(), "acesso ao diretório") {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 // fakeStoreForAdd implements ports.PluginCacheStore for unit tests.
 type fakeStoreForAdd struct {
-	sources  map[string]plugin.PluginSource
-	plugins  []plugin.Plugin
+	sources    map[string]plugin.PluginSource
+	plugins    []plugin.Plugin
 	categories []plugin.Category
 	helpGroups []plugin.PluginHelpGroup
 }

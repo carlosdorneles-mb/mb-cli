@@ -19,7 +19,7 @@
 | Ficheiro | Responsabilidade |
 |----------|------------------|
 | `execenv.go` | `BuildMergedOSEnviron`, `BuildMergedOSEnvironWithExtraInline` — `overlay` usado por plugins para `env_files`; **`nil` para `mb run`**; `AppendShellHelpersEnv` → `MB_HELPERS_PATH` (`internal/infra/shellhelpers`) |
-| `envdefaults.go` | `BuildEnvFileValues` — `env.defaults`, `--env-group`, `./.env`, `--env-file`; secrets e `op://` |
+| `envdefaults.go` | `BuildEnvFileValues` — `env.defaults`, `--env-vault`, `./.env`, `--env-file`; secrets, `*.opsecrets` e `op://` |
 
 ## Contraste com plugins
 

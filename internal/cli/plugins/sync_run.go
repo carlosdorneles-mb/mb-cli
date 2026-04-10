@@ -5,12 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/cli/completion"
 	"mb/internal/cli/plugincmd"
 	"mb/internal/deps"
 	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
+	appplugins "mb/internal/usecase/plugins"
 )
 
 // RunSync rescans plugin trees and refreshes SQLite (plugins, categories, help groups); see app/plugins.RunSync.

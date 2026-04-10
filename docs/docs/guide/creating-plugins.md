@@ -138,13 +138,13 @@ As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pel
 
 ### `env_files` (opcional)
 
-Ficheiros `.env` **dentro da pasta do plugin**, mesclados na execução conforme **`--env-group`**:
+Ficheiros `.env` **dentro da pasta do plugin**, mesclados na execução conforme **`--env-vault`**:
 
 ```yaml
 env_files:
   - file: .env
   - file: .env.local
-    group: local
+    vault: local
 ```
 
 Manifestos só de **categoria** ignoram `env_files`. Ordem de precedência do ambiente: [Variáveis de ambiente](./environment-variables.md).

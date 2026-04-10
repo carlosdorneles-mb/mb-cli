@@ -29,7 +29,7 @@
 |----------|------------------|
 | `scanner.go` | `Scanner` — descobre `manifest.yaml`, monta `command_path`, tipos sh/bin |
 | `manifest.go` | Parse/validação manifest, categorias, flags, entrypoints |
-| `manifest_env.go` | `env_files` por grupo, merge para execução |
+| `manifest_env.go` | `env_files` por vault (`vault` no YAML/JSON), merge para execução |
 | `git.go` / `git_service.go` | Operações Git (clone, fetch, tags) |
 | `layout_validator.go` | `LayoutValidator` — paths permitidos no pacote |
 | `source.go` | `SourceForPlugin`, resolução de diretório de instalação |

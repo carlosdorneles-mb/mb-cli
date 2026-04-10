@@ -22,13 +22,13 @@ description: >-
 |--------|---------|
 | Uso | `mb run <comando> [args...]` — o primeiro argumento é resolvido com **`exec.LookPath`** (PATH ou caminho absoluto) |
 | Ambiente | **`deps.BuildMergedOSEnviron(d, nil)`** — igual aos plugins para camadas de ficheiro + inline, **sem** overlay de `env_files` do manifest (`overlay == nil`) |
-| Flags globais do `mb` | **Antes** de `run`, ou **prefixo logo após** `run` (antes do executável): `-e`/`--env`, `--env-file`, `--env-group`, `-v`/`--verbose`, `-q`/`--quiet` — via **`runtimeflags.ParseLeadingRuntimeFlags`** em conjunto com o que o root já parseou. Com **`DisableFlagParsing: true`**, o Cobra **não** parseia; o `run` descasca só esse prefixo e o resto vai ao filho (ex.: `mb run grep -r`) |
+| Flags globais do `mb` | **Antes** de `run`, ou **prefixo logo após** `run` (antes do executável): `-e`/`--env`, `--env-file`, `--env-vault`, `-v`/`--verbose`, `-q`/`--quiet` — via **`runtimeflags.ParseLeadingRuntimeFlags`** em conjunto com o que o root já parseou. Com **`DisableFlagParsing: true`**, o Cobra **não** parseia; o `run` descasca só esse prefixo e o resto vai ao filho (ex.: `mb run grep -r`) |
 | Ajuda | **`mb help run`** — `mb run --help` pode ser entregue ao executável filho (documentado no Long) |
 | Timeout | Se **`Runtime.PluginTimeout > 0`**, o contexto do **`exec.CommandContext`** tem deadline (mesma config que plugins) |
 | Código de saída | Em **`exec.ExitError`**, o processo termina com **`os.Exit(código)`** para propagar o exit code do filho |
 | Erros | Comando não encontrado no PATH → erro Go (não `os.Exit`) |
 
-Para a **ordem completa** de variáveis (`env.defaults`, `--env-group`, `./.env`, `--env-file`, `--env`, secrets, `op://`, tema gum, `MB_VERBOSE`/`MB_QUIET`, `MB_HELPERS_PATH`), ver a skill **`mb-envs`** e `docs/docs/guide/environment-variables.md`.
+Para a **ordem completa** de variáveis (`env.defaults`, `--env-vault`, `./.env`, `--env-file`, `--env`, secrets, `*.opsecrets`, `op://`, tema gum, `MB_VERBOSE`/`MB_QUIET`, `MB_HELPERS_PATH`), ver a skill **`mb-envs`** e `docs/docs/guide/environment-variables.md`.
 
 ## Onde está o código
 

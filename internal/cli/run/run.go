@@ -20,10 +20,10 @@ func NewRunCmd(d deps.Dependencies) *cobra.Command {
 		Use:   "run [command]",
 		Short: "Executa um comando com as variáveis de ambiente do CLI",
 		Long: `Repassa o comando e os argumentos ao executável (PATH ou caminho), com o mesmo ambiente
-mesclado dos plugins (env.defaults, --env-group, ./.env no diretório atual, --env-file, --env, etc.).
+mesclado dos plugins (env.defaults, --env-vault, ./.env no diretório atual, --env-file, --env, etc.).
 
-As flags globais do MB (-e/--env, --env-file, --env-group, -v/--verbose, -q/--quiet) podem ir antes
-de mb (ex.: mb --env-group st run cmd) ou logo após run (ex.: mb run --env-group st cmd), sempre
+As flags globais do MB (-e/--env, --env-file, --env-vault, -v/--verbose, -q/--quiet) podem ir antes
+de mb (ex.: mb --env-vault st run cmd) ou logo após run (ex.: mb run --env-vault st cmd), sempre
 antes do nome do executável. Flags do programa filho ficam depois do nome (ex.: mb run grep -r).
 
 Para ajuda deste comando use: mb help run`,

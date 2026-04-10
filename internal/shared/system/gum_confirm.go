@@ -13,7 +13,14 @@ import (
 )
 
 // Confirm asks yes/no via gum confirm when gum is on PATH; otherwise prompt on out and read a line from in (y/yes = true).
-func Confirm(ctx context.Context, prompt string, in io.Reader, out io.Writer) (bool, error) {
+// extraGumArgs are appended to the gum confirm invocation (e.g. "--no-show-help"); ignored when using the text fallback.
+func Confirm(
+	ctx context.Context,
+	prompt string,
+	in io.Reader,
+	out io.Writer,
+	extraGumArgs ...string,
+) (bool, error) {
 	if out == nil {
 		out = os.Stderr
 	}
@@ -24,11 +31,14 @@ func Confirm(ctx context.Context, prompt string, in io.Reader, out io.Writer) (b
 	if err != nil {
 		return confirmFallback(prompt, in, out)
 	}
-	cmd := exec.CommandContext(ctx, gumPath,
+	args := []string{
 		"confirm", prompt,
 		"--affirmative", "Sim",
 		"--negative", "Não",
-	)
+		"--no-show-help",
+	}
+	args = append(args, extraGumArgs...)
+	cmd := exec.CommandContext(ctx, gumPath, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

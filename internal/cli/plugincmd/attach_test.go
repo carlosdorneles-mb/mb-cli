@@ -289,19 +289,21 @@ func rootHasPluginCommand(rootCmd *cobra.Command, name string) bool {
 }
 
 // rootTestInfraPorts delegates to the root package's test adapters.
-func rootTestInfraPorts(t *testing.T) (ports.Filesystem, ports.GitOperations, ports.ShellHelperInstaller, ports.PluginLayoutValidator) {
+func rootTestInfraPorts(
+	t *testing.T,
+) (ports.Filesystem, ports.GitOperations, ports.ShellHelperInstaller, ports.PluginLayoutValidator) {
 	t.Helper()
 	return &plugincmdTestOSFS{}, &plugincmdTestGitOps{}, &plugincmdTestShellInstaller{}, &plugincmdTestLayoutValidator{}
 }
 
 type plugincmdTestOSFS struct{}
 
-func (plugincmdTestOSFS) RemoveAll(string) error                          { return nil }
-func (plugincmdTestOSFS) MkdirAll(string, os.FileMode) error              { return nil }
-func (plugincmdTestOSFS) Stat(name string) (os.FileInfo, error)           { return os.Stat(name) }
-func (plugincmdTestOSFS) IsNotExist(err error) bool                       { return os.IsNotExist(err) }
-func (plugincmdTestOSFS) ReadDir(name string) ([]os.DirEntry, error)      { return os.ReadDir(name) }
-func (plugincmdTestOSFS) Getwd() (string, error)                          { return os.Getwd() }
+func (plugincmdTestOSFS) RemoveAll(string) error                     { return nil }
+func (plugincmdTestOSFS) MkdirAll(string, os.FileMode) error         { return nil }
+func (plugincmdTestOSFS) Stat(name string) (os.FileInfo, error)      { return os.Stat(name) }
+func (plugincmdTestOSFS) IsNotExist(err error) bool                  { return os.IsNotExist(err) }
+func (plugincmdTestOSFS) ReadDir(name string) ([]os.DirEntry, error) { return os.ReadDir(name) }
+func (plugincmdTestOSFS) Getwd() (string, error)                     { return os.Getwd() }
 
 type plugincmdTestGitOps struct{}
 
@@ -315,13 +317,23 @@ func (plugincmdTestGitOps) Clone(context.Context, string, string, ports.GitClone
 	return nil
 }
 func (plugincmdTestGitOps) LatestTag(context.Context, string) (string, error) { return "", nil }
-func (plugincmdTestGitOps) GetVersion(string) (string, error)             { return "1.0.0", nil }
-func (plugincmdTestGitOps) GetCurrentBranch(string) (string, error)       { return "main", nil }
-func (plugincmdTestGitOps) IsGitRepo(string) bool                         { return false }
-func (plugincmdTestGitOps) FetchTags(context.Context, string) error       { return nil }
-func (plugincmdTestGitOps) ListLocalTags(string) ([]string, error)        { return nil, nil }
-func (plugincmdTestGitOps) NewerTag(string, string) (string, bool)        { return "", false }
-func (plugincmdTestGitOps) CheckoutTag(context.Context, string, string) error { return nil }
+
+func (plugincmdTestGitOps) GetVersion(
+	string,
+) (string, error) {
+	return "1.0.0", nil
+}
+
+func (plugincmdTestGitOps) GetCurrentBranch(
+	string,
+) (string, error) {
+	return "main", nil
+}
+func (plugincmdTestGitOps) IsGitRepo(string) bool                              { return false }
+func (plugincmdTestGitOps) FetchTags(context.Context, string) error            { return nil }
+func (plugincmdTestGitOps) ListLocalTags(string) ([]string, error)             { return nil, nil }
+func (plugincmdTestGitOps) NewerTag(string, string) (string, bool)             { return "", false }
+func (plugincmdTestGitOps) CheckoutTag(context.Context, string, string) error  { return nil }
 func (plugincmdTestGitOps) FetchAndPull(context.Context, string, string) error { return nil }
 
 type plugincmdTestShellInstaller struct{}
@@ -330,4 +342,4 @@ func (plugincmdTestShellInstaller) EnsureShellHelpers(string) (string, error) { 
 
 type plugincmdTestLayoutValidator struct{}
 
-func (plugincmdTestLayoutValidator) ValidatePluginRoot(string) error      { return nil }
+func (plugincmdTestLayoutValidator) ValidatePluginRoot(string) error { return nil }

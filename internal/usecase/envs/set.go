@@ -8,23 +8,23 @@ import (
 	"mb/internal/ports"
 )
 
-// Set persists key/value for the given group: plain file, keyring when asSecret,
-// or 1Password (reference in keyring) when secretOP (--secret-op, sem --secret).
+// Set persists key/value for the given vault: plain file, keyring when asSecret,
+// or 1Password with op:// reference stored in path.opsecrets when secretOP (--secret-op, sem --secret).
 func Set(
 	secrets ports.SecretStore,
 	onePassword ports.OnePasswordEnv,
 	paths Paths,
-	setGroup, key, value string,
+	setVault, key, value string,
 	asSecret, secretOP bool,
 ) error {
 	if asSecret && secretOP {
 		return fmt.Errorf("use apenas --secret ou --secret-op, não ambos")
 	}
-	path, err := TargetPath(paths, setGroup)
+	path, err := TargetPath(paths, setVault)
 	if err != nil {
 		return err
 	}
-	kg := KeyringGroup(setGroup)
+	kg := KeyringGroup(setVault)
 
 	values, err := deps.LoadDefaultEnvValues(path)
 	if err != nil {
@@ -32,7 +32,6 @@ func Set(
 	}
 
 	if asSecret || secretOP {
-		var stored string
 		if secretOP {
 			if onePassword == nil {
 				return fmt.Errorf("integração 1Password indisponível")
@@ -44,15 +43,19 @@ func Set(
 			if err != nil {
 				return err
 			}
-			stored = ref
+			if err := deps.SetOPSecretRef(path, key, ref); err != nil {
+				return err
+			}
+			_ = deps.RemoveSecretKey(path, key)
+			_ = secrets.Delete(kg, key)
 		} else {
-			stored = value
-		}
-		if err := secrets.Set(kg, key, stored); err != nil {
-			return err
-		}
-		if err := deps.AddSecretKey(path, key); err != nil {
-			return err
+			if err := secrets.Set(kg, key, value); err != nil {
+				return err
+			}
+			if err := deps.AddSecretKey(path, key); err != nil {
+				return err
+			}
+			_ = deps.RemoveOPSecretRef(path, key)
 		}
 		delete(values, key)
 		return deps.SaveDefaultEnvValues(path, values)
@@ -63,15 +66,26 @@ func Set(
 		return err
 	}
 	for _, sk := range secretKeys {
-		if sk == key {
-			raw, _ := secrets.Get(kg, key)
-			if strings.HasPrefix(raw, "op://") && onePassword != nil {
-				_ = onePassword.RemoveSecretField(kg, key)
-			}
-			_ = secrets.Delete(kg, key)
-			_ = deps.RemoveSecretKey(path, key)
-			break
+		if sk != key {
+			continue
 		}
+		raw, _ := secrets.Get(kg, key)
+		if strings.HasPrefix(raw, "op://") && onePassword != nil {
+			_ = onePassword.RemoveSecretField(kg, key)
+		}
+		_ = secrets.Delete(kg, key)
+		_ = deps.RemoveSecretKey(path, key)
+		break
+	}
+	opRefs, err := deps.LoadOPSecretRefs(path)
+	if err != nil {
+		return err
+	}
+	if _, ok := opRefs[key]; ok {
+		if onePassword != nil {
+			_ = onePassword.RemoveSecretField(kg, key)
+		}
+		_ = deps.RemoveOPSecretRef(path, key)
 	}
 	values[key] = value
 	return deps.SaveDefaultEnvValues(path, values)

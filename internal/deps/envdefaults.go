@@ -56,7 +56,7 @@ func mergeSecretKeysInto(
 		}
 		resolved, rerr := resolveSecretValueForMerge(val, onePassword)
 		if rerr != nil {
-			return fmt.Errorf("variável %q (grupo %s): %w", key, keyringGroup, rerr)
+			return fmt.Errorf("variável %q (vault %s): %w", key, keyringGroup, rerr)
 		}
 		merged[key] = resolved
 	}
@@ -73,9 +73,29 @@ func resolveSecretValueForMerge(val string, onePassword ports.OnePasswordEnv) (s
 	return onePassword.ReadOPReference(val)
 }
 
-// BuildEnvFileValues loads env.defaults, overlays .env.<EnvGroup> when EnvGroup is set,
+func mergeOPRefsInto(
+	merged map[string]string,
+	path string,
+	onePassword ports.OnePasswordEnv,
+) error {
+	refs, err := LoadOPSecretRefs(path)
+	if err != nil {
+		return err
+	}
+	for key, ref := range refs {
+		resolved, rerr := resolveSecretValueForMerge(ref, onePassword)
+		if rerr != nil {
+			return fmt.Errorf("variável %q (opsecrets): %w", key, rerr)
+		}
+		merged[key] = resolved
+	}
+	return nil
+}
+
+// BuildEnvFileValues loads env.defaults, overlays .env.<EnvVault> when EnvVault is set,
 // then overlays ./.env from the current working directory when that file exists,
-// then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring.
+// then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring;
+// keys in path.opsecrets hold op:// references read from disk and resolved via onePassword.
 // Used for plugin execution and mb run.
 // If secrets is nil, the OS keyring implementation is used.
 // onePassword resolves op:// references; nil refuses op:// values with an error.
@@ -105,29 +125,35 @@ func BuildEnvFileValues(
 	); err != nil {
 		return nil, err
 	}
+	if err := mergeOPRefsInto(merged, rt.DefaultEnvPath, onePassword); err != nil {
+		return nil, err
+	}
 
-	if rt.EnvGroup != "" {
-		if err := ValidateEnvGroup(rt.EnvGroup); err != nil {
-			return nil, fmt.Errorf("--env-group: %w", err)
+	if rt.EnvVault != "" {
+		if err := ValidateEnvVault(rt.EnvVault); err != nil {
+			return nil, fmt.Errorf("--env-vault: %w", err)
 		}
-		groupPath, err := GroupEnvFilePath(rt.ConfigDir, rt.EnvGroup)
+		vaultPath, err := VaultEnvFilePath(rt.ConfigDir, rt.EnvVault)
 		if err != nil {
 			return nil, err
 		}
-		groupValues, err := LoadDefaultEnvValues(groupPath)
+		vaultValues, err := LoadDefaultEnvValues(vaultPath)
 		if err != nil {
 			return nil, err
 		}
-		for key, value := range groupValues {
+		for key, value := range vaultValues {
 			merged[key] = value
 		}
 		if err := mergeSecretKeysInto(
 			merged,
-			groupPath,
-			rt.EnvGroup,
+			vaultPath,
+			rt.EnvVault,
 			secrets,
 			onePassword,
 		); err != nil {
+			return nil, err
+		}
+		if err := mergeOPRefsInto(merged, vaultPath, onePassword); err != nil {
 			return nil, err
 		}
 	}
@@ -150,7 +176,7 @@ func BuildEnvFileValues(
 }
 
 // mergeCwdDotEnvIfPresent overlays ./.env from the current working directory when the file exists.
-// It runs after env.defaults / --env-group and before --env-file.
+// It runs after env.defaults / --env-vault and before --env-file.
 func mergeCwdDotEnvIfPresent(merged map[string]string) error {
 	wd, err := os.Getwd()
 	if err != nil {

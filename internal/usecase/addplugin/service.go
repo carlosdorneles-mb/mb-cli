@@ -59,27 +59,36 @@ type Request struct {
 // Service orchestrates plugin addition.
 // All dependencies are interfaces, making it trivially testable with fakes.
 type Service struct {
-	rt       Runtime
-	store    ports.PluginCacheStore
-	scanner  ports.PluginScanner
-	fsys     ports.Filesystem
-	git      ports.GitOperations
-	shell    ports.ShellHelperInstaller
-	layout   ports.PluginLayoutValidator
-	syncer   *Syncer
+	rt      Runtime
+	store   ports.PluginCacheStore
+	scanner ports.PluginScanner
+	fsys    ports.Filesystem
+	git     ports.GitOperations
+	shell   ports.ShellHelperInstaller
+	layout  ports.PluginLayoutValidator
+	syncer  *Syncer
 }
 
 // New creates a new AddPlugin service.
-func New(rt Runtime, store ports.PluginCacheStore, scanner ports.PluginScanner, fsys ports.Filesystem, git ports.GitOperations, shell ports.ShellHelperInstaller, layout ports.PluginLayoutValidator, syncer *Syncer) *Service {
+func New(
+	rt Runtime,
+	store ports.PluginCacheStore,
+	scanner ports.PluginScanner,
+	fsys ports.Filesystem,
+	git ports.GitOperations,
+	shell ports.ShellHelperInstaller,
+	layout ports.PluginLayoutValidator,
+	syncer *Syncer,
+) *Service {
 	return &Service{
-		rt:     rt,
-		store:  store,
+		rt:      rt,
+		store:   store,
 		scanner: scanner,
-		fsys:   fsys,
-		git:    git,
-		shell:  shell,
-		layout: layout,
-		syncer: syncer,
+		fsys:    fsys,
+		git:     git,
+		shell:   shell,
+		layout:  layout,
+		syncer:  syncer,
 	}
 }
 
@@ -100,7 +109,12 @@ func (s *Service) Add(ctx context.Context, req Request, log Logger) error {
 	return s.addLocal(ctx, source, req.Package, syncOpts, log)
 }
 
-func (s *Service) addRemote(ctx context.Context, gitURL, pkg, tag string, syncOpts SyncOptions, log Logger) error {
+func (s *Service) addRemote(
+	ctx context.Context,
+	gitURL, pkg, tag string,
+	syncOpts SyncOptions,
+	log Logger,
+) error {
 	repoName, normalizedURL, err := s.git.ParseGitURL(gitURL)
 	if err != nil {
 		return fmt.Errorf("URL inválida: %w", err)
@@ -172,19 +186,36 @@ func (s *Service) addRemote(ctx context.Context, gitURL, pkg, tag string, syncOp
 		return err
 	}
 
-	report, err := s.syncer.Run(ctx, s.toSyncRuntime(), s.store, s.scanner, s.shell, log, toSyncOptions(syncOpts))
+	report, err := s.syncer.Run(
+		ctx,
+		s.toSyncRuntime(),
+		s.store,
+		s.scanner,
+		s.shell,
+		log,
+		toSyncOptions(syncOpts),
+	)
 	if err != nil {
 		return err
 	}
 	if !report.AnyChange {
-		_ = log.Info(ctx, "Pacote %q verificado; nenhum comando novo, atualizado ou removido.", installDir)
+		_ = log.Info(
+			ctx,
+			"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+			installDir,
+		)
 		return nil
 	}
 	_ = log.Info(ctx, "Pacote %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
 }
 
-func (s *Service) addLocal(ctx context.Context, pathArg, pkg string, syncOpts SyncOptions, log Logger) error {
+func (s *Service) addLocal(
+	ctx context.Context,
+	pathArg, pkg string,
+	syncOpts SyncOptions,
+	log Logger,
+) error {
 	var absPath string
 	var err error
 	if pathArg == "." {
@@ -219,7 +250,12 @@ func (s *Service) addLocal(ctx context.Context, pathArg, pkg string, syncOpts Sy
 	return s.addLocalSingle(ctx, absPath, pkg, syncOpts, log)
 }
 
-func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, syncOpts SyncOptions, log Logger) error {
+func (s *Service) addLocalCollection(
+	ctx context.Context,
+	absPath, pkg string,
+	syncOpts SyncOptions,
+	log Logger,
+) error {
 	entries, err := s.fsys.ReadDir(absPath)
 	if err != nil {
 		return err
@@ -252,10 +288,15 @@ func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, s
 	})
 
 	if len(candidates) == 0 {
-		return fmt.Errorf("nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido")
+		return fmt.Errorf(
+			"nenhum plugin encontrado: a raiz não tem manifest.yaml e nenhum subdiretório direto com manifest.yaml válido",
+		)
 	}
 	if pkg != "" && len(candidates) > 1 {
-		return fmt.Errorf("--package não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)", len(candidates))
+		return fmt.Errorf(
+			"--package não pode ser usado ao adicionar vários plugins de uma vez (%d encontrados)",
+			len(candidates),
+		)
 	}
 
 	changed := 0
@@ -266,7 +307,9 @@ func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, s
 		}
 		existing, _ := s.store.GetPluginSource(installDir)
 		if existing != nil {
-			if err := s.store.UpsertPluginSource(plugin.PluginSource{InstallDir: installDir, LocalPath: c.path}); err != nil {
+			if err := s.store.UpsertPluginSource(
+				plugin.PluginSource{InstallDir: installDir, LocalPath: c.path},
+			); err != nil {
 				return err
 			}
 			changed++
@@ -275,7 +318,9 @@ func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, s
 		if s.dirExists(filepath.Join(s.rt.PluginsDir, installDir)) {
 			installDir = s.uniqueInstallDir(installDir)
 		}
-		if err := s.store.UpsertPluginSource(plugin.PluginSource{InstallDir: installDir, LocalPath: c.path}); err != nil {
+		if err := s.store.UpsertPluginSource(
+			plugin.PluginSource{InstallDir: installDir, LocalPath: c.path},
+		); err != nil {
 			return err
 		}
 		changed++
@@ -285,7 +330,15 @@ func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, s
 		return fmt.Errorf("nenhum pacote registado ou atualizado")
 	}
 
-	report, err := s.syncer.Run(ctx, s.toSyncRuntime(), s.store, s.scanner, s.shell, log, toSyncOptions(syncOpts))
+	report, err := s.syncer.Run(
+		ctx,
+		s.toSyncRuntime(),
+		s.store,
+		s.scanner,
+		s.shell,
+		log,
+		toSyncOptions(syncOpts),
+	)
 	if err != nil {
 		return err
 	}
@@ -295,22 +348,41 @@ func (s *Service) addLocalCollection(ctx context.Context, absPath, pkg string, s
 	return nil
 }
 
-func (s *Service) addLocalSingle(ctx context.Context, absPath, pkg string, syncOpts SyncOptions, log Logger) error {
+func (s *Service) addLocalSingle(
+	ctx context.Context,
+	absPath, pkg string,
+	syncOpts SyncOptions,
+	log Logger,
+) error {
 	installDir := pkg
 	if installDir == "" {
 		installDir = filepath.Base(absPath)
 	}
 	existing, _ := s.store.GetPluginSource(installDir)
 	if existing != nil {
-		if err := s.store.UpsertPluginSource(plugin.PluginSource{InstallDir: installDir, LocalPath: absPath}); err != nil {
+		if err := s.store.UpsertPluginSource(
+			plugin.PluginSource{InstallDir: installDir, LocalPath: absPath},
+		); err != nil {
 			return err
 		}
-		report, err := s.syncer.Run(ctx, s.toSyncRuntime(), s.store, s.scanner, s.shell, log, toSyncOptions(syncOpts))
+		report, err := s.syncer.Run(
+			ctx,
+			s.toSyncRuntime(),
+			s.store,
+			s.scanner,
+			s.shell,
+			log,
+			toSyncOptions(syncOpts),
+		)
 		if err != nil {
 			return err
 		}
 		if !report.AnyChange {
-			_ = log.Info(ctx, "Pacote %q verificado; nenhum comando novo, atualizado ou removido.", installDir)
+			_ = log.Info(
+				ctx,
+				"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+				installDir,
+			)
 			return nil
 		}
 		_ = log.Info(ctx, "Pacote %q atualizado (path local: %s)", installDir, absPath)
@@ -320,15 +392,29 @@ func (s *Service) addLocalSingle(ctx context.Context, absPath, pkg string, syncO
 	if s.dirExists(filepath.Join(s.rt.PluginsDir, installDir)) {
 		installDir = s.uniqueInstallDir(installDir)
 	}
-	if err := s.store.UpsertPluginSource(plugin.PluginSource{InstallDir: installDir, LocalPath: absPath}); err != nil {
+	if err := s.store.UpsertPluginSource(
+		plugin.PluginSource{InstallDir: installDir, LocalPath: absPath},
+	); err != nil {
 		return err
 	}
-	report, err := s.syncer.Run(ctx, s.toSyncRuntime(), s.store, s.scanner, s.shell, log, toSyncOptions(syncOpts))
+	report, err := s.syncer.Run(
+		ctx,
+		s.toSyncRuntime(),
+		s.store,
+		s.scanner,
+		s.shell,
+		log,
+		toSyncOptions(syncOpts),
+	)
 	if err != nil {
 		return err
 	}
 	if !report.AnyChange {
-		_ = log.Info(ctx, "Pacote %q verificado; nenhum comando novo, atualizado ou removido.", installDir)
+		_ = log.Info(
+			ctx,
+			"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+			installDir,
+		)
 		return nil
 	}
 	_ = log.Info(ctx, "Pacote %q registrado localmente em %s", installDir, absPath)
@@ -360,9 +446,5 @@ func (s *Service) toSyncRuntime() Runtime {
 }
 
 func toSyncOptions(opts SyncOptions) SyncerOptions {
-	return SyncerOptions{
-		EmitSuccess: opts.EmitSuccess,
-		NoRemove:    opts.NoRemove,
-		PostSync:    opts.PostSync,
-	}
+	return SyncerOptions(opts)
 }

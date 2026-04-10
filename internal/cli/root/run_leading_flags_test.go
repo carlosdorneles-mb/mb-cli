@@ -82,7 +82,7 @@ func TestRootRun_LeadingEnvInjectsMergedEnv(t *testing.T) {
 	}
 }
 
-func TestRootRun_LeadingEnvGroup(t *testing.T) {
+func TestRootRun_LeadingEnvVault(t *testing.T) {
 	tmp := t.TempDir()
 	cfgDir := filepath.Join(tmp, "mb")
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
@@ -113,7 +113,7 @@ func TestRootRun_LeadingEnvGroup(t *testing.T) {
 	}
 	origOut := os.Stdout
 	os.Stdout = w
-	root.SetArgs([]string{"run", "--env-group", "gprod", "sh", "-c", `printf '%s' "$MB_RUN_GROUP"`})
+	root.SetArgs([]string{"run", "--env-vault", "gprod", "sh", "-c", `printf '%s' "$MB_RUN_GROUP"`})
 	execErr := root.Execute()
 	_ = w.Close()
 	os.Stdout = origOut

@@ -8,20 +8,19 @@ import (
 	"mb/internal/ports"
 )
 
-// Unset removes a key from the env file and keyring metadata for the given group.
-// It returns removed=false when the key was not defined for that group (neither in the
-// env file nor in the group's secret key list).
+// Unset removes a key from the env file and secret metadata for the given vault.
+// It returns removed=false when the key was not defined for that vault.
 func Unset(
 	secrets ports.SecretStore,
 	onePassword ports.OnePasswordEnv,
 	paths Paths,
-	groupFlag, key string,
+	vaultFlag, key string,
 ) (removed bool, err error) {
-	path, err := TargetPath(paths, groupFlag)
+	path, err := TargetPath(paths, vaultFlag)
 	if err != nil {
 		return false, err
 	}
-	kg := KeyringGroup(groupFlag)
+	kg := KeyringGroup(vaultFlag)
 
 	values, err := deps.LoadDefaultEnvValues(path)
 	if err != nil {
@@ -32,8 +31,23 @@ func Unset(
 	if err != nil {
 		return false, err
 	}
-	if _, inFile := values[key]; !inFile && !isSecretKey(secretKeys, key) {
+	opRefs, err := deps.LoadOPSecretRefs(path)
+	if err != nil {
+		return false, err
+	}
+
+	_, inPlain := values[key]
+	inSecrets := isSecretKey(secretKeys, key)
+	_, inOP := opRefs[key]
+	if !inPlain && !inSecrets && !inOP {
 		return false, nil
+	}
+
+	if inOP {
+		if onePassword != nil {
+			_ = onePassword.RemoveSecretField(kg, key)
+		}
+		_ = deps.RemoveOPSecretRef(path, key)
 	}
 
 	for _, sk := range secretKeys {
@@ -54,10 +68,14 @@ func Unset(
 	if err != nil {
 		return false, err
 	}
-	// Grupos explícitos: sem variáveis nem secrets, apagar .env.<grupo> (e .secrets) em vez de
-	// deixar ficheiro vazio. env.defaults mantém-se (Save vazio) para não mudar o layout default.
-	if groupFlag != "" && len(values) == 0 && len(secretKeysAfter) == 0 {
+	opAfter, err := deps.LoadOPSecretRefs(path)
+	if err != nil {
+		return false, err
+	}
+	// Vault explícito: sem variáveis nem segredos, apagar .env.<vault> e sidecars.
+	if vaultFlag != "" && len(values) == 0 && len(secretKeysAfter) == 0 && len(opAfter) == 0 {
 		_ = os.Remove(path + ".secrets")
+		_ = os.Remove(path + opSecretsSuffix)
 		_ = os.Remove(path)
 		return true, nil
 	}

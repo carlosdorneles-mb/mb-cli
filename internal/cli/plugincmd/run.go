@@ -204,11 +204,11 @@ func mergeManifestEnvIntoFileValues(
 	envFilesJSON string,
 	rt *deps.RuntimeConfig,
 ) error {
-	group := plugins.ManifestEnvGroupDefault
-	if rt != nil && strings.TrimSpace(rt.EnvGroup) != "" {
-		group = strings.TrimSpace(rt.EnvGroup)
+	vault := plugins.ManifestEnvVaultDefault
+	if rt != nil && strings.TrimSpace(rt.EnvVault) != "" {
+		vault = strings.TrimSpace(rt.EnvVault)
 	}
-	extra, err := plugins.MergeManifestEnvFiles(pluginDir, envFilesJSON, group)
+	extra, err := plugins.MergeManifestEnvFiles(pluginDir, envFilesJSON, vault)
 	if err != nil {
 		return err
 	}

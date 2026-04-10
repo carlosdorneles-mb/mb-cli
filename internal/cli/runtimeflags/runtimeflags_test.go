@@ -54,11 +54,11 @@ func TestParseLeadingRuntimeFlags_EnvEqualsForm(t *testing.T) {
 func TestParseLeadingRuntimeFlags_DoubleDash(t *testing.T) {
 	t.Parallel()
 	rt := &deps.RuntimeConfig{}
-	rest, err := ParseLeadingRuntimeFlags(rt, []string{"--", "--env-group", "x", "sh"})
+	rest, err := ParseLeadingRuntimeFlags(rt, []string{"--", "--env-vault", "x", "sh"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rest) != 3 || rest[0] != "--env-group" {
+	if len(rest) != 3 || rest[0] != "--env-vault" {
 		t.Fatalf("rest=%v", rest)
 	}
 }
@@ -87,7 +87,7 @@ func TestParseLeadingRuntimeFlags_EnvFileGroup(t *testing.T) {
 	rt := &deps.RuntimeConfig{}
 	rest, err := ParseLeadingRuntimeFlags(
 		rt,
-		[]string{"--env-file=/tmp/x.env", "--env-group=staging", "cmd"},
+		[]string{"--env-file=/tmp/x.env", "--env-vault=staging", "cmd"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -95,8 +95,8 @@ func TestParseLeadingRuntimeFlags_EnvFileGroup(t *testing.T) {
 	if len(rest) != 1 || rest[0] != "cmd" {
 		t.Fatalf("rest=%v", rest)
 	}
-	if rt.EnvFilePath != "/tmp/x.env" || rt.EnvGroup != "staging" {
-		t.Fatalf("env-file=%q group=%q", rt.EnvFilePath, rt.EnvGroup)
+	if rt.EnvFilePath != "/tmp/x.env" || rt.EnvVault != "staging" {
+		t.Fatalf("env-file=%q vault=%q", rt.EnvFilePath, rt.EnvVault)
 	}
 }
 

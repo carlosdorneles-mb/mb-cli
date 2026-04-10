@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
+	appplugins "mb/internal/usecase/plugins"
 )
 
 func TestRunSyncEmptyPluginsDir(t *testing.T) {

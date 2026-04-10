@@ -57,17 +57,17 @@ Para a função `log` e outros helpers, veja a [Referência: Helpers de shell](.
 
 Para a ordem completa de precedência e como usar defaults com `mb envs`, veja [Variáveis de ambiente](./environment-variables.md).
 
-## --env-group
+## --env-vault
 
-**O que faz:** Ao executar plugins, depois de carregar `~/.config/mb/env.defaults`, mescla por cima o arquivo `~/.config/mb/.env.<nome>` (valores do grupo sobrescrevem chaves iguais do default).
+**O que faz:** Ao executar plugins, depois de carregar `~/.config/mb/env.defaults`, mescla por cima o arquivo `~/.config/mb/.env.<nome>` (valores do vault sobrescrevem chaves iguais do default).
 
 **Quando usar:** Para alternar entre ambientes (ex.: `staging`, `prod`) sem trocar o conteúdo de `env.defaults`.
 
 ```bash
-mb --env-group staging tools deploy
+mb --env-vault staging tools deploy
 ```
 
-O nome do grupo segue as mesmas regras que em `mb envs set --group`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
+O nome do vault segue as mesmas regras que em `mb envs set --vault`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
 
 ## --doc
 

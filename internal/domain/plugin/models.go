@@ -30,7 +30,7 @@ type Plugin struct {
 	Deprecated      string
 	PluginDir       string // absolute path to plugin directory (manifest folder); for execution root
 	Hidden          bool
-	EnvFilesJSON    string // manifest env_files as JSON array of {file, group}
+	EnvFilesJSON    string // manifest env_files as JSON array of {file, vault}
 	GroupID         string // help group for nested leaves; empty = default COMANDOS
 }
 

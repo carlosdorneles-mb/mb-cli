@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/deps"
 	"mb/internal/shared/system"
+	appplugins "mb/internal/usecase/plugins"
 )
 
 func newPluginsSyncCmd(deps deps.Dependencies) *cobra.Command {

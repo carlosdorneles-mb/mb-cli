@@ -88,17 +88,17 @@ type Manifest struct {
 	Example         string       `yaml:"example"`    // optional; Cobra Example
 	Deprecated      string       `yaml:"deprecated"` // optional; Cobra Deprecated message
 	Hidden          bool         `yaml:"hidden"`     // optional; omit from mb help (still invokable)
-	EnvFiles        EnvFilesSpec `yaml:"env_files"`  // optional; .env per group (executável only)
+	EnvFiles        EnvFilesSpec `yaml:"env_files"`  // optional; .env per vault (executável only)
 	GroupID         string       `yaml:"group_id"`   // optional; nested leaves only, see groups.yaml
 }
 
-// ManifestEnvGroupDefault is the logical group when env_files entry omits group or --env-group is not set.
-const ManifestEnvGroupDefault = "default"
+// ManifestEnvVaultDefault is the logical vault when env_files omits vault or --env-vault is not set.
+const ManifestEnvVaultDefault = "default"
 
 // EnvFileEntry is one manifest env_files item (paths relative to plugin dir).
 type EnvFileEntry struct {
 	File  string `yaml:"file"  json:"file"`
-	Group string `yaml:"group" json:"group"`
+	Vault string `yaml:"vault" json:"vault"`
 }
 
 // EnvFilesSpec is a list of env file bindings in the manifest.
@@ -106,10 +106,10 @@ type EnvFilesSpec struct {
 	List []EnvFileEntry
 }
 
-// UnmarshalYAML accepts only a sequence of { file, group }.
+// UnmarshalYAML accepts only a sequence of { file, vault }.
 func (e *EnvFilesSpec) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind != yaml.SequenceNode {
-		return fmt.Errorf("env_files must be a list of entries (file, optional group)")
+		return fmt.Errorf("env_files must be a list of entries (file, optional vault)")
 	}
 	e.List = nil
 	return value.Decode(&e.List)
@@ -120,12 +120,12 @@ func (e *EnvFilesSpec) Len() int {
 	return len(e.List)
 }
 
-func (m *Manifest) normalizeEnvFileGroups() {
+func (m *Manifest) normalizeEnvFileVaults() {
 	for i := range m.EnvFiles.List {
-		if strings.TrimSpace(m.EnvFiles.List[i].Group) == "" {
-			m.EnvFiles.List[i].Group = ManifestEnvGroupDefault
+		if strings.TrimSpace(m.EnvFiles.List[i].Vault) == "" {
+			m.EnvFiles.List[i].Vault = ManifestEnvVaultDefault
 		} else {
-			m.EnvFiles.List[i].Group = strings.TrimSpace(m.EnvFiles.List[i].Group)
+			m.EnvFiles.List[i].Vault = strings.TrimSpace(m.EnvFiles.List[i].Vault)
 		}
 	}
 }
@@ -148,7 +148,7 @@ func LoadManifest(path string) (Manifest, []byte, error) {
 	if err := yaml.Unmarshal(raw, &manifest); err != nil {
 		return Manifest{}, nil, err
 	}
-	manifest.normalizeEnvFileGroups()
+	manifest.normalizeEnvFileVaults()
 
 	return manifest, raw, nil
 }

@@ -124,7 +124,9 @@ func (*Syncer) Run(
 		return SyncReport{}, err
 	}
 	for _, g := range mergedHelp {
-		if err := store.UpsertPluginHelpGroup(plugin.PluginHelpGroup{GroupID: g.ID, Title: g.Title}); err != nil {
+		if err := store.UpsertPluginHelpGroup(
+			plugin.PluginHelpGroup{GroupID: g.ID, Title: g.Title},
+		); err != nil {
 			return SyncReport{}, err
 		}
 	}
@@ -159,10 +161,10 @@ func (*Syncer) Run(
 
 type noopLogger struct{}
 
-func (*noopLogger) Info(context.Context, string, ...any) error   { return nil }
-func (*noopLogger) Warn(context.Context, string, ...any) error   { return nil }
-func (*noopLogger) Debug(context.Context, string, ...any) error  { return nil }
-func (*noopLogger) Error(context.Context, string, ...any) error  { return nil }
+func (*noopLogger) Info(context.Context, string, ...any) error  { return nil }
+func (*noopLogger) Warn(context.Context, string, ...any) error  { return nil }
+func (*noopLogger) Debug(context.Context, string, ...any) error { return nil }
+func (*noopLogger) Error(context.Context, string, ...any) error { return nil }
 
 type syncLoggerWrapper struct{ logger Logger }
 
@@ -281,7 +283,13 @@ func normalizeCategoryGroupIDs(
 		}
 		if _, ok := valid[c.GroupID]; !ok {
 			if debug != nil {
-				debug(fmt.Sprintf("plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS", c.Path, c.GroupID))
+				debug(
+					fmt.Sprintf(
+						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
+						c.Path,
+						c.GroupID,
+					),
+				)
 			}
 			c.GroupID = ""
 		}
@@ -304,7 +312,13 @@ func normalizePluginGroupIDs(
 		}
 		if _, ok := valid[p.GroupID]; !ok {
 			if debug != nil {
-				debug(fmt.Sprintf("plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS", p.CommandPath, p.GroupID))
+				debug(
+					fmt.Sprintf(
+						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
+						p.CommandPath,
+						p.GroupID,
+					),
+				)
 			}
 			p.GroupID = ""
 		}
@@ -320,7 +334,12 @@ func checkPluginPathCollisions(pluginsList []plugin.Plugin) error {
 		}
 		if prevDir, ok := seen[key]; ok {
 			if prevDir != p.PluginDir {
-				return fmt.Errorf("conflito de plugins: o caminho de commando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes", key, prevDir, p.PluginDir)
+				return fmt.Errorf(
+					"conflito de plugins: o caminho de commando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes",
+					key,
+					prevDir,
+					p.PluginDir,
+				)
 			}
 			continue
 		}

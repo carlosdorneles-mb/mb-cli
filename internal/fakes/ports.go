@@ -118,22 +118,22 @@ type fakeFileInfo struct {
 	isDir bool
 }
 
-func (fi *fakeFileInfo) Name() string       { return fi.name }
-func (fi *fakeFileInfo) Size() int64        { return 0 }
-func (fi *fakeFileInfo) Mode() fs.FileMode  { return 0o755 }
-func (fi *fakeFileInfo) ModTime() time.Time { return time.Time{} }
-func (fi *fakeFileInfo) IsDir() bool        { return fi.isDir }
-func (fi *fakeFileInfo) Sys() any           { return nil }
+func (fi *fakeFileInfo) Name() string               { return fi.name }
+func (fi *fakeFileInfo) Size() int64                { return 0 }
+func (fi *fakeFileInfo) Mode() fs.FileMode          { return 0o755 }
+func (fi *fakeFileInfo) ModTime() time.Time         { return time.Time{} }
+func (fi *fakeFileInfo) IsDir() bool                { return fi.isDir }
+func (fi *fakeFileInfo) Sys() any                   { return nil }
 func (fi *fakeFileInfo) Info() (fs.FileInfo, error) { return fi, nil }
-func (fi *fakeFileInfo) Type() fs.FileMode  { return 0 }
+func (fi *fakeFileInfo) Type() fs.FileMode          { return 0 }
 
 type fakeDirEntry struct {
 	name  string
 	isDir bool
 }
 
-func (e *fakeDirEntry) Name() string    { return e.name }
-func (e *fakeDirEntry) IsDir() bool     { return e.isDir }
+func (e *fakeDirEntry) Name() string      { return e.name }
+func (e *fakeDirEntry) IsDir() bool       { return e.isDir }
 func (e *fakeDirEntry) Type() fs.FileMode { return 0 }
 func (e *fakeDirEntry) Info() (fs.FileInfo, error) {
 	return &fakeFileInfo{name: e.name, isDir: e.isDir}, nil
@@ -143,15 +143,15 @@ func (e *fakeDirEntry) Info() (fs.FileInfo, error) {
 
 // FakeGit implements ports.GitOperations for testing.
 type FakeGit struct {
-	ParsedURLs    []string
-	ClonedRepos   []string
-	ClonedDests   []string
-	LatestTags    map[string]string // repoURL → tag
-	Versions      map[string]string // dir → version
-	Branches      map[string]string // dir → branch
-	IsGitRepos    map[string]bool   // dir → isRepo
-	CloneErr      error
-	LatestTagErr  error
+	ParsedURLs   []string
+	ClonedRepos  []string
+	ClonedDests  []string
+	LatestTags   map[string]string // repoURL → tag
+	Versions     map[string]string // dir → version
+	Branches     map[string]string // dir → branch
+	IsGitRepos   map[string]bool   // dir → isRepo
+	CloneErr     error
+	LatestTagErr error
 }
 
 func NewFakeGit() *FakeGit {
@@ -172,14 +172,15 @@ func (f *FakeGit) ParseGitURL(raw string) (repoName, normalizedURL string, err e
 	}
 	f.ParsedURLs = append(f.ParsedURLs, raw)
 	parts := strings.Split(raw, "/")
-	name := parts[len(parts)-1]
-	if strings.HasSuffix(name, ".git") {
-		name = strings.TrimSuffix(name, ".git")
-	}
+	name := strings.TrimSuffix(parts[len(parts)-1], ".git")
 	return name, raw, nil
 }
 
-func (f *FakeGit) Clone(ctx context.Context, repoURL, destDir string, opts ports.GitCloneOpts) error {
+func (f *FakeGit) Clone(
+	ctx context.Context,
+	repoURL, destDir string,
+	opts ports.GitCloneOpts,
+) error {
 	f.ClonedRepos = append(f.ClonedRepos, repoURL)
 	f.ClonedDests = append(f.ClonedDests, destDir)
 	return f.CloneErr
@@ -247,11 +248,11 @@ func (f *FakeLayoutValidator) ValidatePluginRoot(dir string) error {
 
 // FakeLogger captures all log calls for assertions.
 type FakeLogger struct {
-	mu      sync.Mutex
-	Infos   []string
-	Warns   []string
-	Debugs  []string
-	Errors  []string
+	mu     sync.Mutex
+	Infos  []string
+	Warns  []string
+	Debugs []string
+	Errors []string
 }
 
 func NewFakeLogger() *FakeLogger {
@@ -311,7 +312,9 @@ func (f *FakePluginScanner) Scan() ([]plugin.Plugin, []plugin.Category, []plugin
 	return f.ScanResult, f.Categories, f.Warnings, f.HelpGroups, f.ScanErr
 }
 
-func (f *FakePluginScanner) ScanDir(localPath, installDir string) ([]plugin.Plugin, []plugin.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
+func (f *FakePluginScanner) ScanDir(
+	localPath, installDir string,
+) ([]plugin.Plugin, []plugin.Category, []plugin.ValidationWarning, [][]plugin.HelpGroupDef, error) {
 	return nil, nil, nil, nil, nil
 }
 

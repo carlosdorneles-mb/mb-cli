@@ -21,10 +21,10 @@ func RegisterRuntimePersistentFlags(fs *pflag.FlagSet, rt *deps.RuntimeConfig) {
 		"Carrega as váriaveis de um arquivo específico. Ex.: .env.local",
 	)
 	fs.StringVar(
-		&rt.EnvGroup,
-		"env-group",
+		&rt.EnvVault,
+		"env-vault",
 		"",
-		"Carrega as váriaveis de um grupo específico. Ex.: staging",
+		"Carrega as variáveis de um vault específico. Ex.: staging",
 	)
 	fs.StringArrayVarP(
 		&rt.InlineEnvValues,
@@ -90,16 +90,16 @@ func ParseLeadingRuntimeFlags(rt *deps.RuntimeConfig, args []string) (rest []str
 				i++
 				break
 			}
-			if arg == "--env-group" {
+			if arg == "--env-vault" {
 				if i+1 >= len(args) {
 					return nil, fmt.Errorf("flag needs an argument: %q", arg)
 				}
-				peel.EnvGroup = args[i+1]
+				peel.EnvVault = args[i+1]
 				i += 2
 				break
 			}
-			if v, ok := strings.CutPrefix(arg, "--env-group="); ok {
-				peel.EnvGroup = v
+			if v, ok := strings.CutPrefix(arg, "--env-vault="); ok {
+				peel.EnvVault = v
 				i++
 				break
 			}
@@ -112,8 +112,8 @@ func ParseLeadingRuntimeFlags(rt *deps.RuntimeConfig, args []string) (rest []str
 	if peel.EnvFilePath != "" {
 		rt.EnvFilePath = peel.EnvFilePath
 	}
-	if peel.EnvGroup != "" {
-		rt.EnvGroup = peel.EnvGroup
+	if peel.EnvVault != "" {
+		rt.EnvVault = peel.EnvVault
 	}
 	rt.InlineEnvValues = append(rt.InlineEnvValues, peel.InlineEnvValues...)
 	return args[i:], nil

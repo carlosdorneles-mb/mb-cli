@@ -7,11 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/deps"
 	mbplugins "mb/internal/infra/plugins"
 	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
+	appplugins "mb/internal/usecase/plugins"
 )
 
 // RunUpdateAll updates all plugins that have a GitURL and no LocalPath, then runs sync.
