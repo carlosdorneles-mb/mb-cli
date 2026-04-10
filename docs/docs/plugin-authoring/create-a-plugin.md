@@ -224,7 +224,7 @@ mb plugins list
 
 ## Repositório com vários comandos
 
-Um único `plugins add` cobre **toda a árvore**; o path no CLI **não** inclui o identificador do pacote. Mais detalhes: [Repositório com vários plugins](./plugin-commands.md#repositório-com-vários-plugins).
+Um único `plugins add` cobre **toda a árvore**; o path no CLI **não** inclui o identificador do pacote. Mais detalhes: [Repositório com vários plugins](../user-guide/plugin-commands.md#repositório-com-vários-plugins).
 
 ## README opcional
 

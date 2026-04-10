@@ -42,17 +42,17 @@ O diretório e os arquivos são criados ou atualizados quando você executa **`m
 
 O MB define variáveis de ambiente com o prefixo **`MB_CTX_`** quando **executa um plugin** (linha de comandos, path no manifest, flags do plugin, irmãos na árvore Cobra, etc.). Essa referência **não** faz parte dos ficheiros `lib/shell`: é comportamento do runtime do CLI.
 
-A documentação completa (tabela, exemplos, limitações e privacidade) está em **[Contexto de invocação de plugins](plugin-invocation-context.md)**. Este ficheiro (`helpers-shell.md`) cobre apenas os **scripts** embebidos, incluindo o helper `context.sh` que lê essas variáveis.
+A documentação completa (tabela, exemplos, limitações e privacidade) está em **[Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md)**. Este ficheiro (`helpers-shell.md`) cobre apenas os **scripts** embebidos, incluindo o helper `context.sh` que lê essas variáveis.
 
 ## Helpers disponíveis
 
 ### context
 
-Funções que leem as variáveis `MB_CTX_*` injetadas pelo MB (carregue `. "$MB_HELPERS_PATH/context.sh"` ou `. "$MB_HELPERS_PATH/all.sh"`). O significado de cada variável está em [Contexto de invocação de plugins](plugin-invocation-context.md).
+Funções que leem as variáveis `MB_CTX_*` injetadas pelo MB (carregue `. "$MB_HELPERS_PATH/context.sh"` ou `. "$MB_HELPERS_PATH/all.sh"`). O significado de cada variável está em [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md).
 
 **`mb_context_dump`**
 
-Imprime no stdout os pares `MB_CTX_*` de contexto conhecidos (uma linha por variável, `NOME=valor`). Útil para depuração ou para copiar o estado num relatório de erro. Para exemplos de valores típicos, veja a página [Contexto de invocação de plugins](plugin-invocation-context.md#exemplo-comando-aninhado-com-flag).
+Imprime no stdout os pares `MB_CTX_*` de contexto conhecidos (uma linha por variável, `NOME=valor`). Útil para depuração ou para copiar o estado num relatório de erro. Para exemplos de valores típicos, veja a página [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md#exemplo-comando-aninhado-com-flag).
 
 **`mb_context_dump_json`**
 

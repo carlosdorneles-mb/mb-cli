@@ -12,7 +12,7 @@ const FeatureList = [
         Plugins viram comandos <code>mb &lt;categoria&gt; &lt;comando&gt;</code> automaticamente.
         Instale por URL Git ou registre um path local para desenvolvimento.
         <br />
-        <Link to="/docs/guide/plugin-commands">Comandos de plugins</Link>
+        <Link to="/docs/user-guide/plugin-commands">Comandos de plugins</Link>
       </>
     ),
   },
@@ -36,9 +36,9 @@ const FeatureList = [
         Variáveis mescladas (sistema, defaults, <code>--env</code>) e injetadas só no processo do plugin.
         Crie plugins com <code>manifest.yaml</code> e scripts ou binários.
         <br />
-        <Link to="/docs/guide/environment-variables">Variáveis de ambiente</Link>
+        <Link to="/docs/user-guide/environment-variables">Variáveis de ambiente</Link>
         {' · '}
-        <Link to="/docs/guide/creating-plugins">Criar um plugin</Link>
+        <Link to="/docs/plugin-authoring/create-a-plugin">Criar um plugin</Link>
       </>
     ),
   },

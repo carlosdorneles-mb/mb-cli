@@ -115,8 +115,8 @@ const config = {
             title: 'Documentação',
             items: [
               { label: 'Introdução', to: '/docs/intro' },
-              { label: 'Começar', to: '/docs/guide/getting-started' },
-              { label: 'Criar um plugin', to: '/docs/guide/creating-plugins' },
+              { label: 'Começar', to: '/docs/getting-started/' },
+              { label: 'Criar um plugin', to: '/docs/plugin-authoring/create-a-plugin' },
             ],
           },
           {
