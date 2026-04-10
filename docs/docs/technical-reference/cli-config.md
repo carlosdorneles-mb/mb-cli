@@ -4,9 +4,19 @@ sidebar_position: 4
 
 # Configuração do CLI
 
-O ficheiro **`~/.config/mb/config.yaml`** guarda opções **do próprio MB CLI**. Na **primeira execução**, se o ficheiro não existir, o MB **cria-o** vazio (`{}` e comentários), **sem** preencher `docs_url` nem `update_repo` — os valores em falta vêm dos defaults do código na mesma.
+O ficheiro **`~/.config/mb/config.yaml`** guarda opções **do próprio MB CLI**. Na **primeira execução**, se o ficheiro não existir, o MB **cria-o** com comentários e linhas em branco, **sem** preencher `docs_url` nem `update_repo` — os valores em falta vêm dos defaults do código na mesma.
 
-Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que servem só para **variáveis de ambiente injetadas** quando executa plugins.
+Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que servem para **variáveis de ambiente** mescladas em **`mb run`** e ao executar plugins.
+
+## O que o `config.yaml` não faz
+
+Só existem duas chaves lidas deste ficheiro (`docs_url` e `update_repo`). **Qualquer outra chave no YAML é ignorada** — por exemplo, `TESTCONFIG: dudu` **não** vira variável de ambiente e **`mb run`** não a verá.
+
+Para variáveis como `TESTCONFIG`, use uma destas opções (ver [Variáveis de ambiente](../guide/environment-variables.md)):
+
+- **`~/.config/mb/env.defaults`** — por exemplo `mb envs set TESTCONFIG dudu`
+- **`./.env`** no diretório de trabalho atual
+- **`mb run --env TESTCONFIG=dudu`** (ou `--env-file`)
 
 ## Chaves suportadas
 

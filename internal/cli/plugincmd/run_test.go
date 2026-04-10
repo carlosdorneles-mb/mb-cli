@@ -40,7 +40,7 @@ func testRootCmdForPluginIntegrationTests(d *deps.Dependencies) *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvFilePath, "env-file", "", "")
 	rootCmd.PersistentFlags().StringVar(&d.Runtime.EnvGroup, "env-group", "", "")
 	rootCmd.PersistentFlags().
-		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável KEY=VALUE")
+		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável na execução do processo atual. Ex.: KEY=VALUE")
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 	rootCmd.AddGroup(&cobra.Group{ID: "plugin_commands", Title: "PLUGINS"})
 	Attach(rootCmd, *d)
