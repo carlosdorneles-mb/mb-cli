@@ -1,174 +1,180 @@
 ---
-sidebar_position: 7
+sidebar_position: 2
 ---
 
 # Helpers para plugins
 
-O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para o **diretório** dos helpers de shell (`~/.config/mb/lib/shell`).
+O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para o diretório dos helpers de shell (ex.: `~/.config/mb/lib/shell` no Linux; `~/Library/Application Support/mb/lib/shell` no macOS).
+
+Os ficheiros são criados/atualizados pelo **`mb plugins sync`**. Se ainda não existirem, execute o sync antes.
+
+## Referência rápida
+
+| Helper | O que faz | Plataforma |
+|--------|-----------|------------|
+| **`log`** | Log com níveis (`info`, `warn`, `error`…) respeitando `-q`/`-v` | Todas |
+| **`context`** | Lê variáveis `MB_CTX_*` da invocação do plugin | Todas |
+| **`string`** | Manipulação de texto (replace, case, trim, bool) | Todas |
+| **`memory`** | Memória chave/valor entre execuções (ficheiros em tmp) | Todas |
+| **`os`** | Detecção de OS e distro Linux | Todas |
+| **`mbcli-yaml`** | Lê/escreve `mbcli.yaml` do projeto | Todas |
+| **`sudo`** | Validação de privilégio (`warn_and_skip_without_sudo`) | Todas |
+| **`ensure`** | Pré-requisitos de CLI (`ensure_yq`, etc.) | Todas |
+| **`shell-rc`** | Manipulação de `.bashrc`/`.zshrc` | Todas |
+| **`kubernetes`** | Operações básicas com `kubectl` | Todas |
+| **`snap`** | Instalar/atualizar apps via Snap Store | Linux |
+| **`homebrew`** | Instalar/atualizar casks e fórmulas | macOS |
+| **`flatpak`** | Instalar/atualizar apps via Flatpak | Linux |
+| **`github`** | Buscar versões, baixar releases do GitHub | Todas |
 
 ## Como carregar
 
-No início do script do plugin (por exemplo em `run.sh`), importe o que precisar:
-
-- **Todos os helpers:** `. "$MB_HELPERS_PATH/all.sh"`
-- **Só o helper de log:** `. "$MB_HELPERS_PATH/log.sh"`
-- **Só o helper de memória:** `. "$MB_HELPERS_PATH/memory.sh"`
-- **Só o helper de string:** `. "$MB_HELPERS_PATH/string.sh"`
-- **Só o helper de Kubernetes:** `. "$MB_HELPERS_PATH/kubernetes.sh"`
-- **Só o helper de OS:** `. "$MB_HELPERS_PATH/os.sh"`
-- **Só o helper de Snap:** `. "$MB_HELPERS_PATH/snap.sh"`
-- **Só o helper de Homebrew:** `. "$MB_HELPERS_PATH/homebrew.sh"`
-- **Só o helper de Flatpak:** `. "$MB_HELPERS_PATH/flatpak.sh"`
-- **Só o helper de GitHub:** `. "$MB_HELPERS_PATH/github.sh"`
-- **Só o helper de sudo:** `. "$MB_HELPERS_PATH/sudo.sh"`
-- **Só o helper ensure (pré-requisitos de CLI):** `. "$MB_HELPERS_PATH/ensure.sh"`
-- **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
-- **Só o helper de contexto (invocação `mb`, pares `MB_CTX_*`):** `. "$MB_HELPERS_PATH/context.sh"`
-- **Só o helper de `mbcli.yaml` (config do projeto):** `. "$MB_HELPERS_PATH/mbcli-yaml.sh"` (requer `ensure.sh` para `ensure_yq`; com `all.sh` já está disponível.) O ficheiro pode declarar **`envs`** com vault de projeto na raiz (escalares) e vaults nomeados (sub-mapas); a mescla no runtime e o **`mb envs list`** seguem [Variáveis de ambiente](../user-guide/environment-variables.md#ordem-de-precedencia).
-
-Exemplo:
+Carregue **todos** de uma vez ou **individualmente**:
 
 ```sh
-#!/bin/sh
+# Todos os helpers (recomendado para plugins complexos)
 . "$MB_HELPERS_PATH/all.sh"
 
-# A partir daqui você pode usar os helpers
-log info "Olá!"
+# Helpers individuais
+. "$MB_HELPERS_PATH/log.sh"
+. "$MB_HELPERS_PATH/os.sh"
 ```
 
-O diretório e os arquivos são criados ou atualizados quando você executa **`mb plugins sync`** (ou ao adicionar/atualizar plugins, que disparam o sync). Em **cada** sync, o MB **reescreve** todos os `*.sh` embebidos no binário para `lib/shell` e remove ficheiros `*.sh` antigos que já não façam parte do embed (por exemplo após renomear ou remover um helper). O ficheiro `.checksum` nesse diretório reflete o hash agregado atual dos helpers embebidos. Se os helpers ainda não existirem, execute `mb plugins sync` antes de usá-los nos seus plugins.
+## Core
 
-## Variáveis `MB_CTX_*` (contexto da invocação)
+### log
 
-O MB define variáveis de ambiente com o prefixo **`MB_CTX_`** quando **executa um plugin** (linha de comandos, path no manifest, flags do plugin, irmãos na árvore Cobra, etc.). Essa referência **não** faz parte dos ficheiros `lib/shell`: é comportamento do runtime do CLI.
+Log com níveis respeitando `MB_QUIET` e `MB_VERBOSE` (flags `-q` e `-v`). Usa `gum log -l` internamente.
 
-A documentação completa (tabela, exemplos, limitações e privacidade) está em **[Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md)**. Este ficheiro (`helpers-shell.md`) cobre apenas os **scripts** embebidos, incluindo o helper `context.sh` que lê essas variáveis.
+**Uso:** `log <level> <mensagem...>`
 
-## Helpers disponíveis
+**Níveis:** `none`, `debug`, `info`, `warn`, `error`, `fatal`, `output`, `print`
+
+| Condição | Comportamento |
+|----------|---------------|
+| `MB_QUIET=1` | Só `error` e `fatal` |
+| `MB_VERBOSE=1` | Todos os níveis, incluindo `debug` |
+| Normal | `info`, `warn`, `error`, `fatal`, `output`, `print` (sem `debug`) |
+| `MB_LOG_OUTPUT` set | Todas as chamadas vão ao gum com nível `none` (saída "pura") |
+
+```sh
+log info "Processando..."
+log debug "Detalhe interno: $var"
+log warn "Aviso"
+log error "Algo falhou"
+log print "=> Passo visível sem prefixo de nível"
+```
 
 ### context
 
-Funções que leem as variáveis `MB_CTX_*` injetadas pelo MB (carregue `. "$MB_HELPERS_PATH/context.sh"` ou `. "$MB_HELPERS_PATH/all.sh"`). O significado de cada variável está em [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md).
+Funções que leem as variáveis `MB_CTX_*` injetadas pelo runtime do CLI. O significado de cada variável está em [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md).
 
-**`mb_context_dump`**
+**Funções principais:**
 
-Imprime no stdout os pares `MB_CTX_*` de contexto conhecidos (uma linha por variável, `NOME=valor`). Útil para depuração ou para copiar o estado num relatório de erro. Para exemplos de valores típicos, veja a página [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md#exemplo-comando-aninhado-com-flag).
-
-**`mb_context_dump_json`**
-
-Imprime **um único objeto JSON** no stdout com os mesmos dados (chaves em *snake_case*: `invocation`, `config_dir`, `command_path`, `command_name`, `parent_command_path`, `cobr_command_path`, `plugin_flags` como array de strings, `peer_commands`, `child_commands`, `hidden_child_commands`, `child_command_aliases`). Útil para enviar contexto a outra ferramenta ou para logs estruturados.
-
-Usa **`jq`** quando está no `PATH`; caso contrário tenta **`python3`** com o módulo `json`. Se nenhum existir, escreve uma mensagem em stderr e devolve código de saída **1**.
-
-```sh
-json="$(mb_context_dump_json)" || exit 1
-curl -sS -X POST -H 'Content-Type: application/json' -d "$json" https://example.com/hook
-```
-
-**`mb_peer_commands_lines`**
-
-Lê `MB_CTX_PEER_COMMANDS` e imprime um nome de comando irmão por linha. Se `jq` estiver no `PATH`, usa-o para analisar o JSON; caso contrário, usa um analisador simples (adequado a nomes sem caracteres especiais problemáticos).
-
-Exemplo: percorrer irmãos e mostrar uma mensagem por comando (por exemplo para validar pré-requisitos ou listar alternativas). Carrega `all.sh` para ter `log` e `context`:
+| Função | O que faz |
+|--------|-----------|
+| `mb_context_dump` | Imprime pares `MB_CTX_*` (uma linha por variável) |
+| `mb_context_dump_json` | Imite um objeto JSON com todo o contexto (usa `jq` ou `python3`) |
+| `mb_peer_commands_lines` | Lista comandos irmãos (um por linha) |
+| `mb_child_commands_lines` / `mb_hidden_child_commands_lines` | Lista comandos filhos visíveis/ocultos |
+| `mb_ctx_has_plugin_flag <flag>` | Exit 0 se flag está em `MB_CTX_PLUGIN_FLAGS` |
+| `mb_ctx_peer_contains <nome>` | Exit 0 se `<nome>` é comando irmão |
+| `mb_ctx_child_contains` / `mb_ctx_hidden_child_contains` | Idem para filhos visíveis/ocultos |
+| `mb_ctx_peer_count` / `mb_ctx_child_count` / `mb_ctx_hidden_child_count` | Imprime contagem (inteiro) |
+| `mb_ctx_parent_is <path>` | Exit 0 se parent command path é exatamente `<path>` |
+| `mb_ctx_command_path_is <path>` | Exit 0 se command path é exatamente `<path>` |
+| `mb_ctx_path_depth` | Imprime número de segmentos do command path |
+| `mb_ctx_cache_db` | Imprime caminho do `cache.db` |
 
 ```sh
-#!/usr/bin/env bash
+# Depuração rápida
+. "$MB_HELPERS_PATH/context.sh"
+mb_context_dump
+
+# Iterar sobre comandos irmãos
 . "$MB_HELPERS_PATH/all.sh"
-
 while IFS= read -r peer; do
   [[ -z "$peer" ]] && continue
   log info "Outro comando neste grupo: $peer"
 done < <(mb_peer_commands_lines)
 ```
 
-**`mb_child_commands_lines`** / **`mb_hidden_child_commands_lines`**
+### string
 
-Lê `MB_CTX_CHILD_COMMANDS` ou `MB_CTX_HIDDEN_CHILD_COMMANDS` (JSON array) e imprime um nome por linha — mesma lógica `jq`/fallback que `mb_peer_commands_lines`.
+Manipulação de texto em shell.
 
-**`MB_CTX_CHILD_COMMAND_ALIASES`** — JSON array de `{"name","aliases"}`; para filtrar no script use `jq` sobre a variável ou `mb_context_dump_json` e o campo `child_command_aliases`.
-
-Exemplo só para depuração rápida no terminal:
-
-```sh
-. "$MB_HELPERS_PATH/context.sh"
-mb_context_dump
-```
-
-Se quiser enviar cada linha para o helper `log` (por exemplo nível `debug`), com `log` já carregado (via `all.sh`):
-
-```sh
-. "$MB_HELPERS_PATH/all.sh"
-while IFS= read -r line; do log debug "$line"; done < <(mb_context_dump)
-```
-
-Outras funções (todas em `context.sh`):
-
-**`mb_ctx_has_plugin_flag`** — `mb_ctx_has_plugin_flag <nome-longo>`: código de saída **0** se `<nome-longo>` estiver em `MB_CTX_PLUGIN_FLAGS` (comparação exata com cada palavra).
+| Função | Descrição |
+|--------|-----------|
+| `str_replace <input> <search> <replace>` | Substitui todas as ocorrências |
+| `str_to_upper <texto>` / `str_to_lower <texto>` | Converte case |
+| `str_trim <texto>` | Remove espaços no início e fim |
+| `str_contains <texto> <substring>` | Exit 0 se contém |
+| `str_starts_with <texto> <prefixo>` | Exit 0 se começa com |
+| `str_parse_comma_separated <nome_array>` | Divide elementos com vírgula no array |
+| `str_join_to_comma_separated <nome_array>` | Junta elementos com vírgula |
+| `str_to_bool <valor>` | Exit 0 para `true`, `1`, `on`, `yes` |
 
 ```sh
-if mb_ctx_has_plugin_flag install; then
-  : # utilizador passou a flag de manifest mapeada para "install"
+. "$MB_HELPERS_PATH/string.sh"
+
+tag=$(str_to_lower "$(str_trim "  My-App  ")")
+if str_starts_with "$tag" "my"; then
+  log info "Tag começa com 'my'"
+fi
+
+if str_to_bool "${DRY_RUN:-false}"; then
+  log warn "Dry-run ativo"
 fi
 ```
 
-**`mb_ctx_peer_contains`** — `mb_ctx_peer_contains <nome>`: saída **0** se `<nome>` for um dos comandos irmãos listados em `MB_CTX_PEER_COMMANDS`.
+### memory
 
-**`mb_ctx_child_contains`** / **`mb_ctx_hidden_child_contains`** — igual a `mb_ctx_peer_contains`, mas para `MB_CTX_CHILD_COMMANDS` e `MB_CTX_HIDDEN_CHILD_COMMANDS`.
+Memória chave/valor entre execuções. Dados guardados em `${TMPDIR:-/tmp}/mb/memory/<namespace>/<key>`.
 
-**`mb_ctx_peer_count`** — imprime o número de comandos irmãos (inteiro, uma linha).
+| Função | Descrição |
+|--------|-----------|
+| `mem_set <namespace> <key> <valor...>` | Cria ou atualiza |
+| `mem_get <namespace> <key> [default]` | Lê (ou retorna default) |
+| `mem_has <namespace> <key>` | Exit 0 se existe |
+| `mem_unset <namespace> <key>` | Remove |
+| `mem_clear_ns <namespace>` | Limpa todo o namespace |
 
-**`mb_ctx_child_count`** / **`mb_ctx_hidden_child_count`** — número de filhos visíveis ou ocultos (uma linha, inteiro).
+> Dados em tmp podem ser removidos pelo sistema (reboot/limpeza).
 
-**`mb_ctx_cache_db`** — imprime `${MB_CTX_CONFIG_DIR}/cache.db`; saída **1** se `MB_CTX_CONFIG_DIR` estiver vazio.
+```sh
+. "$MB_HELPERS_PATH/memory.sh"
 
-**`mb_ctx_parent_is`** — `mb_ctx_parent_is <path>`: saída **0** se `MB_CTX_PARENT_COMMAND_PATH` for exatamente `<path>` (ex.: `mb_ctx_parent_is tools`).
+if ! mem_has "tools.deploy" "cluster"; then
+  cluster="$(gum input --placeholder "Nome do cluster")"
+  mem_set "tools.deploy" "cluster" "$cluster"
+fi
 
-**`mb_ctx_command_path_is`** — `mb_ctx_command_path_is <path>`: saída **0** se `MB_CTX_COMMAND_PATH` for exatamente `<path>` (ex.: `tools/vscode`).
+cluster="$(mem_get "tools.deploy" "cluster" "dev")"
+log info "Usando cluster: $cluster"
+```
 
-**`mb_ctx_path_depth`** — imprime o número de segmentos de `MB_CTX_COMMAND_PATH` (`hello` → `1`, `tools/vscode` → `2`, vazio → `0`).
+## Configuração de projeto
 
-### mbcli-yaml (`mbcli.yaml` no projeto)
+### mbcli-yaml
 
-Funções para ler e alterar o ficheiro **`mbcli.yaml`** na raiz do projeto (configuração versionada no repositório), **distinto** de `~/.config/mb`. Dependem de **`yq`** (Mike Farah v4); use `ensure_yq` antes de chamar se carregar só este helper, ou carregue `all.sh`.
+Lê e altera o ficheiro **`mbcli.yaml`** na raiz do projeto. Depende de **`yq`** (Mike Farah v4); use `ensure_yq` ou carregue `all.sh`.
 
-**Caminho do ficheiro**
-
-| Variável | Uso |
-|----------|-----|
-| `MBCLI_YAML_PATH` | Se definida, caminho completo ao YAML (absoluto ou relativo ao `PWD` do plugin). Tem prioridade. |
-| `MBCLI_PROJECT_ROOT` | Directório do projeto; o ficheiro é `$MBCLI_PROJECT_ROOT/mbcli.yaml`. |
-| *(omissão)* | `${MBCLI_PROJECT_ROOT:-.}/mbcli.yaml` com `.` = `PWD`. O runtime do `mb` pode vir a definir `MBCLI_PROJECT_ROOT` (ex.: raiz Git); até lá o plugin pode exportá-la. |
-
-O processo Go do MB CLI (execução de **plugins** e comando **`mb run`**) também lê o mapa de topo **`envs`** neste ficheiro e mescla-o no ambiente do subprocesso (mesma resolução de caminho). Ordem em relação a `env.defaults`, `./.env`, `--env-file`, etc.: [Variáveis de ambiente — ordem de precedência](../user-guide/environment-variables.md#ordem-de-precedencia).
-
-**Políticas**
+**Resolução do caminho:** `MBCLI_YAML_PATH` → `${MBCLI_PROJECT_ROOT}/mbcli.yaml` → `${PWD}/mbcli.yaml`.
 
 | Variável | Valores | Efeito |
 |----------|---------|--------|
-| `MBCLI_YAML_ON_MISSING` | `error` (omissão) ou `ignore` | Com **`error`**, `get`/`set`/`del`/`ensure` falham (exit ≠ 0) ou não toleram ausência conforme abaixo. Com **`ignore`**, `get` com ficheiro ausente devolve exit 0 e stdout vazio; `set`/`del` sem ficheiro são no-op (exit 0), salvo criação automática. |
-| `MBCLI_YAML_AUTOCREATE` | `0` (omissão) ou `1` | Com **`1`**, `set` e `ensure` podem criar o ficheiro (`{}`) e directórios pais se o YAML ainda não existir. |
+| `MBCLI_YAML_ON_MISSING` | `error` (default) / `ignore` | Com `ignore`, `get` sem ficheiro retorna exit 0 e stdout vazio |
+| `MBCLI_YAML_AUTOCREATE` | `0` (default) / `1` | Com `1`, `set` e `ensure` criam o ficheiro (`{}`) se não existir |
 
-**Matriz resumida**
-
-- **Get** e ficheiro ausente: `error` → exit 1; `ignore` → exit 0, sem saída.
-- **Set** e ficheiro ausente: `AUTOCREATE=1` → cria `{}` e aplica; `AUTOCREATE=0` com `error` → exit 1; `AUTOCREATE=0` com `ignore` → no-op exit 0.
-- **Del** e ficheiro ausente: igual a **Get** (com `ignore`, exit 0).
-- **Ensure** e ficheiro ausente: com `AUTOCREATE=1` cria; com `AUTOCREATE=0` e `ignore` → exit 0; com `error` → exit 1.
-
-**Funções**
-
-**`mbcli_yaml_path`** — imprime o caminho resolvido do `mbcli.yaml` (útil para depuração).
-
-**`mbcli_yaml_ensure`** — garante que o ficheiro existe quando `MBCLI_YAML_AUTOCREATE=1`; caso contrário aplica as regras de `MBCLI_YAML_ON_MISSING`.
-
-**`mbcli_yaml_get <expressão_yq>`** — avalia a expressão com `yq eval -o=json` sobre o ficheiro. O resultado vai para stdout (JSON).
-
-**`mbcli_yaml_set <caminho_yq> <valor...>`** — atribui o valor (string) ao caminho com `yq` e `strenv` (compatível com versões do Mike Farah `yq` sem `--arg`). O `<caminho_yq>` deve começar por `.` e não pode conter metacaracteres perigosos (`;`, `` ` ``, `$(`, etc.). Espaços no valor são permitidos após o primeiro argumento de caminho; o carácter ASCII NUL não é suportado no valor.
-
-**`mbcli_yaml_del <caminho_yq>`** — remove o nó com `del(<caminho>)`; mesmas regras de validação do caminho que em `set`.
+| Função | Descrição |
+|--------|-----------|
+| `mbcli_yaml_path` | Imprime caminho resolvido do YAML |
+| `mbcli_yaml_ensure` | Garante que o ficheiro existe (com `AUTOCREATE=1`) |
+| `mbcli_yaml_get <expressão_yq>` | Avalia expressão e imprime JSON |
+| `mbcli_yaml_set <caminho_yq> <valor...>` | Atribui valor ao caminho (usa `strenv`) |
+| `mbcli_yaml_del <caminho_yq>` | Remove o nó |
 
 ```sh
-#!/usr/bin/env bash
 . "$MB_HELPERS_PATH/all.sh"
 
 export MBCLI_PROJECT_ROOT="${MBCLI_PROJECT_ROOT:-$PWD}"
@@ -181,446 +187,150 @@ ver="$(mbcli_yaml_get '.example.version' | jq -r .)"
 log info "Versão em mbcli.yaml: $ver"
 ```
 
-### log
+O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso. Veja [Variáveis de ambiente](../user-guide/environment-variables.md).
 
-Log que respeita `MB_QUIET` e `MB_VERBOSE` (flags `-q` e `-v` do CLI). Usa `gum log -l` por baixo.
-
-**Uso:** `log <level> <mensagem...>`
-
-**Níveis:** `none`, `debug`, `info`, `warn`, `error`, `fatal`, `output`, `print`
-
-- **`output`** e **`print`** — Mesmo efeito para o **gum**: a mensagem é registada com apresentação `none` (sem prefixo de nível estilizado). Útil para linhas de progresso ou saída “pura”. O filtro **`MB_QUIET`** continua a usar o nível declarado (`output` / `print` não são `error` nem `fatal`, logo são suprimidos em quiet).
-
-**Comportamento:**
-
-- **`MB_QUIET=1`** — Só exibe mensagens com nível `error` e `fatal`.
-- **`MB_VERBOSE=1`** — Exibe todos os níveis, incluindo `debug`.
-- **Caso contrário** — Exibe `info`, `warn`, `error`, `fatal`, `output`, `print`; o nível `debug` é omitido.
-- **`MB_LOG_OUTPUT`** — Se estiver definida (qualquer valor não vazio), **todas** as chamadas `log` passam ao gum com nível de apresentação `none` (equivalente a `output`/`print` no destino), mantendo os filtros acima com base no nível **declarado** na chamada.
-
-Exemplos:
-
-```sh
-log info "Processando..."
-log debug "Detalhe interno: $var"
-log warn "Aviso"
-log error "Algo falhou"
-log print "=> Passo visível sem prefixo de nível"
-log output "Mesmo estilo de apresentação que print"
-```
-
-### memory
-
-Helper de memória simples (chave/valor) para scripts de plugin.
-
-Ele salva dados em arquivos no diretório temporário do sistema (`${TMPDIR:-/tmp}/mb/memory`) usando a estrutura `namespace/key`. Isso permite reaproveitar respostas curtas do usuário em execuções futuras do mesmo plugin.
-
-Como funciona:
-
-- Cada valor fica em um arquivo: `${TMPDIR:-/tmp}/mb/memory/<namespace>/<key>`.
-- O valor é sobrescrito quando você chama `mem_set` novamente para a mesma chave.
-- A escrita é feita com arquivo temporário + `mv` (atômica) para reduzir risco de arquivo parcial.
-- `namespace` e `key` aceitam somente letras, números, `.`, `_` e `-`.
-- Por estar em `tmp`, o conteúdo pode ser removido pelo sistema (reboot/limpeza automática).
-
-**Uso:**
-
-- `mem_set <namespace> <key> <valor...>`
-- `mem_get <namespace> <key> [default]`
-- `mem_has <namespace> <key>`
-- `mem_unset <namespace> <key>`
-- `mem_clear_ns <namespace>`
-
-**Comandos disponíveis:**
-
-- `mem_set`: cria ou atualiza um valor.
-	Ex.: `mem_set tools.deploy cluster prod`
-- `mem_get`: lê um valor; se não existir, retorna o `default` (ou vazio).
-	Ex.: `cluster="$(mem_get tools.deploy cluster dev)"`
-- `mem_has`: verifica se a chave existe (ideal para `if`).
-	Ex.: `if mem_has tools.deploy cluster; then ... fi`
-- `mem_unset`: remove uma chave específica.
-	Ex.: `mem_unset tools.deploy cluster`
-- `mem_clear_ns`: remove todas as chaves de um namespace.
-	Ex.: `mem_clear_ns tools.deploy`
-
-Retornos:
-
-- `0`: sucesso.
-- `1`: ausência de chave em `mem_has` ou falha de I/O.
-- `2`: `namespace`/`key` inválidos.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/memory.sh"
-
-if ! mem_has "tools.deploy" "cluster"; then
-	cluster="$(gum input --placeholder "Nome do cluster")"
-	mem_set "tools.deploy" "cluster" "$cluster"
-fi
-
-cluster="$(mem_get "tools.deploy" "cluster" "dev")"
-log info "Usando cluster: $cluster"
-```
-
-Observações:
-
-- Esses dados ficam em `tmp` e podem ser removidos pelo sistema (por exemplo, em reboot ou limpeza automática).
-- `namespace` e `key` aceitam somente letras, números, `.`, `_` e `-`.
-
-### string
-
-Helper de utilitários para manipulação de texto em scripts shell. Cobre substituição, conversão de case, trim, testes de conteúdo, manipulação de arrays CSV e conversão de booleano.
-
-**Funções disponíveis:**
-
-- `str_replace <input> <search> <replace>` — substitui todas as ocorrências de `search` por `replace` em `input` e imprime o resultado.
-- `str_to_upper <texto>` — imprime o texto convertido para maiúsculas.
-- `str_to_lower <texto>` — imprime o texto convertido para minúsculas.
-- `str_trim <texto>` — imprime o texto sem espaços no início e no fim.
-- `str_contains <texto> <substring>` — retorna `0` se `texto` contém `substring`, `1` caso contrário.
-- `str_starts_with <texto> <prefixo>` — retorna `0` se `texto` começa com `prefixo`, `1` caso contrário.
-- `str_parse_comma_separated <nome_array>` — percorre o array referenciado e divide cada elemento que contenha vírgula em elementos separados (modifica o array in-place).
-- `str_join_to_comma_separated <nome_array>` — junta todos os elementos do array em um único elemento separado por vírgula (modifica o array in-place).
-- `str_to_bool <valor>` — retorna `0` para valores verdadeiros (`true`, `1`, `on`, `yes`) e `1` para os demais.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/string.sh"
-
-# Substituição e conversão
-tag=$(str_to_lower "$(str_trim "  My-App  ")")
-log info "Tag: $tag"  # my-app
-
-# Testes condicionais
-if str_starts_with "$tag" "my"; then
-  log info "Tag começa com 'my'"
-fi
-
-# Booleano a partir de variável de ambiente
-if str_to_bool "${DRY_RUN:-false}"; then
-  log warn "Dry-run ativo, nenhuma alteração será feita"
-fi
-```
-
-### kubernetes
-
-Helper para operações básicas com `kubectl`: verificar se está instalado, checar existência de namespace e inspecionar o contexto ativo. Carrega `log.sh` automaticamente ao ser importado.
-
-> **Requisito:** `kubectl` precisa estar instalado e configurado no `PATH`. Caso contrário, as funções logam um erro e, se `exit_on_error` for passado, encerram o script com `exit 1`.
-
-**Funções disponíveis:**
-
-- `kb_check_installed [exit_on_error]` — verifica se `kubectl` está disponível no `PATH`. Retorna `0` se encontrado, `1` se não. Com `exit_on_error`, encerra o script se não estiver instalado.
-- `kb_check_namespace_exists <namespace> [exit_on_error]` — verifica se o namespace existe no cluster do contexto atual. Retorna `0` se existir, `1` se não. Com `exit_on_error`, encerra o script se não existir.
-- `kb_get_current_context` — imprime o nome do contexto kubectl ativo (`kubectl config current-context`).
-- `kb_print_current_context` — imprime o contexto atual no console com uma mensagem legível.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/kubernetes.sh"
-
-# Garante que kubectl existe e que o namespace alvo também
-kb_check_installed "exit_on_error"
-kb_check_namespace_exists "production" "exit_on_error"
-
-# Informa o contexto em uso antes de aplicar mudanças
-kb_print_current_context
-kubectl apply -f manifests/
-```
+## Utilitários
 
 ### os
 
-Helper para detecção de sistema operacional e distribuição Linux em scripts shell. Permite adaptar comportamentos de instalação e configuração ao ambiente do usuário.
+Detecção de sistema operacional e distribuição Linux.
 
-**Funções disponíveis:**
-
-- `get_simple_os` — imprime `linux`, `mac` ou `unknown`.
-- `is_mac` — retorna `0` se estiver no macOS, `1` caso contrário.
-- `is_linux` — retorna `0` se estiver no Linux, `1` caso contrário.
-- `is_linux_debian` — retorna `0` em distros Debian-based (Ubuntu, Mint, Pop, etc.).
-- `is_linux_redhat` — retorna `0` em distros RedHat-based (Fedora, RHEL, CentOS, Rocky, etc.).
-- `is_linux_arch` — retorna `0` em distros Arch-based (Manjaro, EndeavourOS, etc.).
-- `get_debian_pkg_manager` — imprime `apt-get` ou `apt`.
-- `get_redhat_pkg_manager` — imprime `dnf` ou `yum`.
-- `get_arch_pkg_manager` — imprime `pacman` ou `unknown`.
-- `get_distro_id` — imprime o `$ID` de `/etc/os-release` (ex.: `ubuntu`, `fedora`, `arch`).
-
-Exemplo:
+| Função | Descrição |
+|--------|-----------|
+| `get_simple_os` | `linux`, `mac` ou `unknown` |
+| `is_mac` / `is_linux` | Exit 0 se for o OS |
+| `is_linux_debian` / `is_linux_redhat` / `is_linux_arch` | Exit 0 se distro |
+| `get_debian_pkg_manager` | `apt-get` ou `apt` |
+| `get_redhat_pkg_manager` | `dnf` ou `yum` |
+| `get_arch_pkg_manager` | `pacman` ou `unknown` |
+| `get_distro_id` | `$ID` de `/etc/os-release` |
 
 ```sh
 . "$MB_HELPERS_PATH/os.sh"
 
-os=$(get_simple_os)
-log info "Sistema operacional: $os"
-
 if is_linux_debian; then
-  pkg=$(get_debian_pkg_manager)
-  sudo "$pkg" install -y curl
-elif is_linux_redhat; then
-  pkg=$(get_redhat_pkg_manager)
-  sudo "$pkg" install -y curl
+  sudo "$(get_debian_pkg_manager)" install -y curl
 elif is_mac; then
   brew install curl
 fi
 ```
 
-### snap
-
-Helper para instalar, atualizar, remover e consultar aplicações via Snap Store. Compatível com sistemas Linux onde o `snapd` está disponível e o comando `snap` está no `PATH`. Carrega `log.sh` automaticamente ao ser importado. As mensagens respeitam `MB_QUIET` e `MB_VERBOSE` (como no helper de log).
-
-> **Requisitos:** `snap` instalado para leituras e checagens. **Instalação** (`snap install`), **atualização** (`snap refresh`) e **remoção** (`snap remove --purge`) são executadas com **`sudo`** — o usuário precisa poder elevar privilégio quando o sistema pedir.
-
-**Funções disponíveis:**
-
-- `snap_is_available` — retorna `0` se o executável `snap` existe no `PATH`.
-- `snap_refresh_metadata` — executa `snap refresh --list` para atualizar a lista de revisões disponíveis; falhas são ignoradas (log em `debug`). Retorna `0` sempre. Se o Snap não existir, não faz nada útil e ainda assim retorna `0`.
-- `snap_is_installed <app_name>` — retorna `0` se o pacote aparece em `snap list` (nome na primeira coluna).
-- `snap_get_installed_version <app_name>` — imprime a revisão/versão (segunda coluna de `snap list <app>`) ou `unknown`; não falha o script (stdout apenas).
-- `snap_get_latest_version <app_name>` — lê a versão publicada na linha `latest/stable:` da saída de `snap info`; imprime a versão ou `unknown`. Código de saída `1` se o nome for inválido, o Snap não existir ou a linha não for encontrada.
-- `snap_install <app_name> [friendly_name] [channel] [classic]` — instala com `sudo snap install`; se já estiver instalado, loga e retorna `0`. Argumento `classic`: use a string `true` para passar `--classic`; qualquer outro valor omite. Canal padrão: `stable`.
-- `snap_update <app_name> [friendly_name] [channel]` — compara versão instalada com a obtida por `snap_get_latest_version`; se já forem iguais, só informa; senão executa `sudo snap refresh` no canal indicado (padrão `stable`).
-- `snap_uninstall <app_name> [friendly_name]` — se não estiver instalado, retorna `0` (log `debug`); caso contrário executa `sudo snap remove --purge`.
-- `snap_info <app_name>` — repassa a saída bruta de `snap info` para a stdout.
-- `snap_list_installed` — executa `snap list` na stdout; retorna `1` se o comando `snap` não existir.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/snap.sh"
-
-if ! snap_is_installed "podman-desktop"; then
-  snap_install "podman-desktop" "Podman Desktop"
-else
-  snap_update "podman-desktop" "Podman Desktop"
-fi
-```
-
-### homebrew
-
-Helper para instalar, atualizar, remover e consultar casks e fórmulas via Homebrew no macOS. Carrega `log.sh` automaticamente ao ser importado.
-
-> **Requisito:** `brew` precisa estar instalado. Para casks, as funções usam `brew install --cask`; para fórmulas, `brew install`.
-
-**Funções de cask:**
-
-- `homebrew_is_available` — retorna `0` se o `brew` está instalado.
-- `homebrew_update_metadata` — executa `brew update` para atualizar os formulae.
-- `homebrew_is_installed <cask_name>` — retorna `0` se o cask está instalado.
-- `homebrew_get_installed_version <cask_name>` — imprime a versão instalada ou `unknown`.
-- `homebrew_get_latest_version <cask_name>` — imprime a versão mais recente disponível ou `unknown`.
-- `homebrew_install <cask_name> [friendly_name]` — instala o cask.
-- `homebrew_update <cask_name> [friendly_name]` — atualiza o cask.
-- `homebrew_uninstall <cask_name> [friendly_name]` — remove o cask (com `--zap`).
-
-**Funções de fórmula:**
-
-- `homebrew_is_installed_formula <formula_name>` — retorna `0` se a fórmula está instalada.
-- `homebrew_get_installed_version_formula <formula_name>` — imprime a versão instalada ou `unknown`.
-- `homebrew_get_latest_version_formula <formula_name>` — imprime a versão mais recente ou `unknown`.
-- `homebrew_install_formula <formula_name> [friendly_name]` — instala a fórmula.
-- `homebrew_update_formula <formula_name> [friendly_name]` — atualiza a fórmula.
-- `homebrew_uninstall_formula <formula_name> [friendly_name]` — remove a fórmula.
-- `homebrew_link_formula <formula_name> [force]` — cria os links simbólicos para os binários da fórmula.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/homebrew.sh"
-
-homebrew_install "visual-studio-code" "VS Code"
-homebrew_install_formula "libpq" "PostgreSQL client"
-homebrew_link_formula "libpq" "true"
-```
-
-### flatpak
-
-Helper para instalar, atualizar, remover e consultar aplicações via Flatpak a partir do Flathub. Compatível com sistemas Linux onde o `flatpak` está disponível. Carrega `log.sh` automaticamente ao ser importado.
-
-> **Requisito:** `flatpak` precisa estar instalado. A função `flatpak_ensure_flathub` configure o repositório Flathub automaticamente se não estiver presente.
-
-**Funções disponíveis:**
-
-- `flatpak_is_available` — retorna `0` se o `flatpak` está instalado.
-- `flatpak_ensure_flathub` — garante que o repositório Flathub está configurado (nível `--user`).
-- `flatpak_update_metadata` — atualiza os metadados do Flathub (não crítico; retorna `0` sempre).
-- `flatpak_is_installed <app_id>` — retorna `0` se a aplicação está instalada.
-- `flatpak_get_installed_version <app_id>` — imprime a versão instalada ou `unknown`.
-- `flatpak_get_latest_version <app_id>` — imprime a versão mais recente via Flathub API ou `unknown`.
-- `flatpak_install <app_id> [friendly_name]` — instala a aplicação de Flathub.
-- `flatpak_update <app_id> [friendly_name]` — atualiza a aplicação.
-- `flatpak_uninstall <app_id> [friendly_name]` — remove a aplicação e seus dados.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/flatpak.sh"
-
-flatpak_ensure_flathub
-if ! flatpak_is_installed "io.podman_desktop.PodmanDesktop"; then
-  flatpak_install "io.podman_desktop.PodmanDesktop" "Podman Desktop"
-else
-  flatpak_update "io.podman_desktop.PodmanDesktop" "Podman Desktop"
-fi
-```
-
-### github
-
-Helper para buscar versões, baixar e instalar releases do GitHub. Compatível com Linux e macOS. Carrega `log.sh` automaticamente ao ser importado.
-
-> **Dependências:** `curl` (obrigatório), `jq` (opcional, usado em `github_get_version_from_raw`), `tar` (para `github_extract_tarball`). Variáveis opcionais: `GITHUB_API_MAX_TIME` (padrão: `10`) e `GITHUB_API_CONNECT_TIMEOUT` (padrão: `5`).
-
-**Funções disponíveis:**
-
-- `github_get_latest_version <owner/repo> [strip_prefix]` — imprime o tag da última release. Com `strip_prefix=true`, remove o prefixo `v`.
-- `github_get_version_from_raw <owner/repo> [branch] <file_path> [json_field]` — imprime um campo de versão de um arquivo JSON raw no repositório.
-- `github_get_latest_version_with_fallback <owner/repo> [branch] [file_path] [json_field]` — tenta a API primeiro; em fallback, usa o raw. Imprime `versão|método` (ex.: `1.0.0|api`).
-- `github_detect_os_arch [format]` — imprime `os:arch` do sistema atual (ex.: `linux:x64`, `macos:arm64`).
-- `github_build_download_url <owner/repo> <version> <os> <arch> <file_pattern>` — monta a URL substituindo `{version}`, `{os}` e `{arch}` no padrão.
-- `github_download_release <url> <output_file> [description]` — baixa um arquivo de release.
-- `github_verify_checksum <file> <checksum_file_or_hash> [algorithm]` — verifica checksum (`sha256`, `sha512` ou `md5`).
-- `github_download_and_verify <owner/repo> <version> <url> <output_file> <checksum_filename> [algorithm]` — baixa e verifica usando a convenção de releases do GitHub.
-- `github_extract_tarball <tar_file> [extract_dir]` — extrai um `.tar.gz` e imprime o diretório extraído.
-- `github_install_binary <extracted_dir> <binary_name> <install_dir>` — localiza e instala o binário do arquivo extraído.
-- `github_install_release <owner/repo> <version> <binary_name> <install_dir> <file_pattern> [checksum_pattern] [algorithm]` — pipeline completo: detecta OS/arch, baixa, verifica e instala.
-
-Exemplo:
-
-```sh
-. "$MB_HELPERS_PATH/github.sh"
-
-version=$(github_get_latest_version "cli/cli" "true")
-os_arch=$(github_detect_os_arch)
-os_name="${os_arch%:*}"
-arch="${os_arch#*:}"
-
-url=$(github_build_download_url "cli/cli" "v${version}" "$os_name" "$arch" "gh_{version}_{os}_{arch}.tar.gz")
-github_download_and_verify "cli/cli" "v${version}" "$url" "/tmp/gh.tar.gz" "gh_${version}_checksums.txt"
-dir=$(github_extract_tarball "/tmp/gh.tar.gz")
-github_install_binary "$dir" "gh" "/usr/local/bin"
-```
-
 ### sudo
 
-Helper para validação e solicitação de privilégios de superusuário em scripts shell. Carrega `log.sh` automaticamente ao ser importado (exige `MB_HELPERS_PATH` definido, como nos demais helpers).
+Validação de privilégio para operações que precisam de `sudo`.
 
-**Privilégio efetivo** (critério usado por `is_root` e `check_sudo`): o processo roda como **root** (`EUID` 0, com fallback para `id -u`) **ou** o `sudo` aceita um comando **sem prompt interativo** (`sudo -n true`), por exemplo com credencial ainda em cache ou entrada `NOPASSWD` no `sudoers`. Isso **não** pede senha no terminal.
-
-> **Requisito:** para `required_sudo` e para operações que dependem de elevação interativa, o `sudo` precisa estar disponível no sistema.
-
-**Funções disponíveis:**
-
-- `is_root` — retorna `0` se houver privilégio efetivo (root ou `sudo -n`). Não escreve logs e **não** solicita senha.
-- `warn_and_skip_without_sudo` — se `is_root` passar, retorna `0`. Caso contrário regista `log warn` em **PT-BR** (mensagem formal para instalação/atualização de pacotes do sistema) e devolve **`MB_EXIT_UPDATE_SKIPPED_SUDO`** ou **86** por omissão (`"${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"`). Destinado a `install_linux` / `update_linux` / `uninstall_linux` em plugins alinhados com `mb tools --update-all`. Uso: `warn_and_skip_without_sudo || return $?` ou `warn_and_skip_without_sudo "Nome da ferramenta" || return $?`. Convenção **86** / **87** e batch: [Criar um plugin — códigos e sudo](../plugin-authoring/create-a-plugin.md#plugin-exit-codes-sudo).
-- `check_sudo` — aplica o mesmo teste que `is_root`. Se falhar, registra `log warn` em stderr e retorna `1`.
-  - **Sem argumentos:** mensagem padrão orientando autenticar ou executar com `sudo`.
-  - **`check_sudo "texto"`:** usa o texto como mensagem do warning.
-- `required_sudo` — garante credencial para o restante do script:
-  1. Se `check_sudo` passar, retorna `0` imediatamente.
-  2. Com **`--optional`:** executa `sudo -v` (pode pedir senha). Se falhar, emite warning de que funcionalidades podem ficar limitadas e retorna `0` (**não** encerra o script).
-  3. **Sem `--optional`:** chama `check_sudo` (warning), depois `sudo -v`; se falhar, `log error` e **`exit 1`**.
-  - **`required_sudo --optional "contexto"`:** o texto entra na mensagem de aviso quando o script segue sem sudo.
-
-**Uso:**
-
-```text
-warn_and_skip_without_sudo || return $?
-
-check_sudo
-check_sudo "esta operação precisa de sudo para gravar em /etc"
-
-required_sudo
-required_sudo --optional
-required_sudo --optional "atualização de pacotes"
-```
-
-Exemplo (sudo obrigatório):
+| Função | Descrição |
+|--------|-----------|
+| `is_root` | Exit 0 se EUID=0 ou `sudo -n` sem prompt |
+| `warn_and_skip_without_sudo [nome]` | Aviso PT-BR no stderr + exit 86 se sem root/sudo non-root |
+| `check_sudo [msg]` | Igual a `is_root`; em falha, log warn e exit 1 |
+| `required_sudo [--optional] [ctx]` | Executa `sudo -v`; com `--optional` segue sem abortar |
 
 ```sh
-. "$MB_HELPERS_PATH/sudo.sh"
+# Uso típico no início de install_linux / update_linux:
+warn_and_skip_without_sudo "Redis CLI" || return $?
 
-# Garante autenticação sudo antes de operações privilegiadas
+# Garantir privilégio (pode pedir senha):
 required_sudo
-
-apt-get update
-apt-get install -y jq
 ```
 
-Exemplo (sudo opcional):
-
-```sh
-. "$MB_HELPERS_PATH/sudo.sh"
-
-required_sudo --optional "instalação de dependências"
-# Segue com ou sem sudo; trate erros de permissão nas operações seguintes se necessário
-```
+Código 86 = `MB_EXIT_UPDATE_SKIPPED_SUDO`: sem privilégio para apt/dnf/etc. No batch `--update-all`, não é falha; o pai avisa para repetir com `sudo`.
 
 ### ensure
 
-Verifica se comandos externos usados pelo script estão no `PATH`. Carrega **`log.sh`** automaticamente (define `MB_HELPERS_PATH` para o diretório do helper se a variável estiver vazia, como nos demais ficheiros em `lib/shell`).
+Pré-requisitos de CLI. Cada função loga erro e faz `exit 1` se o comando não estiver no PATH.
 
-Se o comando exigido **não** existir, regista **`log error`** com mensagem em PT-BR e link de instalação, depois **`exit 1`**. Respeita `MB_QUIET` / `MB_VERBOSE` via [`log`](#log).
-
-**Funções disponíveis:**
-
-| Função | Comando esperado | Mensagem orienta para |
-|--------|-------------------|------------------------|
-| `ensure_npx` | `npx` | Node.js (npm/npx): https://nodejs.org/ |
-| `ensure_jq` | `jq` | https://stedolan.github.io/jq/ |
-| `ensure_yq` | `yq` | https://github.com/mikefarah/yq |
-| `ensure_kubectl` | `kubectl` | https://kubernetes.io/docs/tasks/tools/install-kubectl/ |
-| `ensure_gum` | `gum` | https://github.com/charmbracelet/gum |
-
-**Uso:** chamar no início do fluxo do script (por exemplo após `. "$MB_HELPERS_PATH/all.sh"`, que já inclui `ensure.sh`).
-
-```sh
-. "$MB_HELPERS_PATH/ensure.sh"
-
-ensure_npx
-ensure_jq
-ensure_yq
-ensure_kubectl
-ensure_gum
-```
-
-**Nota:** `ensure_gum` usa `log error`, que por sua vez invoca `gum log`. Se o `gum` não estiver instalado, essa chamada pode falhar antes de mostrar a mensagem formatada; nesse caso o utilizador vê o erro do shell ao executar `gum`. Em contexto MB, o `gum` costuma estar disponível quando o CLI corre os plugins.
+| Função | O que verifica |
+|--------|---------------|
+| `ensure_npx` | `npx` (Node.js) |
+| `ensure_jq` | `jq` |
+| `ensure_yq` | `yq` (Mike Farah v4) |
+| `ensure_gum` | `gum` |
+| `ensure_kubectl` | `kubectl` |
 
 ### shell-rc
 
-Funções para **blocos delimitados** em `~/.bashrc` e `~/.zshrc`, pensadas para plugins que precisam de linhas de init no shell (por exemplo NVM, pyenv, GVM). O ficheiro é instalado em `lib/shell` com os demais helpers e é carregado por `all.sh`; também pode importar-se sozinho com `. "$MB_HELPERS_PATH/shell-rc.sh"`.
+Manipulação de ficheiros de configuração do shell (`.bashrc` / `.zshrc`). Blocos idempotentes com marcadores.
 
-**Comportamento geral:**
+| Função | Descrição |
+|--------|-----------|
+| `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` | Acrescenta bloco se marcadores ainda não existem |
+| `shell_rc_remove_block MARKER_BEGIN MARKER_END` | Remove bloco entre marcadores |
 
-- Só altera ficheiros que **já existem** (`~/.bashrc` e `~/.zshrc`). **Não cria** esses ficheiros.
-- **Idempotência em `shell_rc_ensure_block`:** se a linha exata `MARKER_BEGIN` já existir no ficheiro, esse ficheiro é ignorado (nada é duplicado).
-- Os marcadores devem ser **linhas completas** e **exatamente iguais** ao passado à função (o `awk` em `shell_rc_remove_block` compara linha a linha com `$0 == b` e `$0 == e`).
+## Package managers
 
-**Funções disponíveis:**
+### snap (Linux)
 
-- `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` — anexa ao fim de cada rc existente, para cada um em que `MARKER_BEGIN` ainda não apareça: uma linha em branco, depois `MARKER_BEGIN`, o texto multi-linha `BODY`, e `MARKER_END`. Retorna `1` se `MARKER_BEGIN` ou `MARKER_END` estiver vazio, ou se a escrita falhar.
-- `shell_rc_remove_block MARKER_BEGIN MARKER_END` — em cada rc existente que contenha `MARKER_BEGIN`, remove todas as linhas desde `MARKER_BEGIN` até `MARKER_END` **inclusive**. Retorna `1` se marcadores vazios ou se `awk`/`mv` falhar.
+Instalar, atualizar e remover apps via Snap Store. Requer `sudo` para instalação/atualização/remoção.
 
-**Convenção sugerida para plugins** (alinhada ao repositório `mb-cli-plugins`):
+| Função | Descrição |
+|--------|-----------|
+| `snap_is_available` | Exit 0 se `snap` no PATH |
+| `snap_is_installed <app>` | Exit 0 se aparece em `snap list` |
+| `snap_get_installed_version <app>` | Versão instalada ou `unknown` |
+| `snap_get_latest_version <app>` | Versão publicada ou `unknown` |
+| `snap_install <app> [friendly] [channel] [classic]` | Instala (com `--classic` se classic=`true`) |
+| `snap_update <app> [friendly] [channel]` | Atualiza se versão diferente |
+| `snap_uninstall <app> [friendly]` | Remove com `--purge` |
+| `snap_refresh_metadata` | `snap refresh --list` (non-fatal) |
+| `snap_info <app>` / `snap_list_installed` | Info bruta / lista todos |
 
-- Linha inicial: `# mb-cli-plugins:<slug>:begin`
-- Linha final: `# mb-cli-plugins:<slug>:end`
+### homebrew (macOS)
 
-No **install**, chamar `shell_rc_ensure_block` após uma instalação bem-sucedida; no **uninstall**, após confirmação do utilizador, chamar `shell_rc_remove_block` antes de remover diretórios quando fizer sentido. Documentar no `README.md` do plugin que o conteúdo entre os marcadores é gerido pelo plugin.
+Casks e fórmulas via Homebrew.
 
-Exemplo:
+| Função | Descrição |
+|--------|-----------|
+| `homebrew_is_available` | Exit 0 se `brew` no PATH |
+| `homebrew_is_installed <cask>` / `homebrew_is_installed_formula <formula>` | Verifica instalação |
+| `homebrew_get_installed_version <cask>` / `homebrew_get_installed_version_formula <formula>` | Versão ou `unknown` |
+| `homebrew_get_latest_version <cask>` / `homebrew_get_latest_version_formula <formula>` | Última versão ou `unknown` |
+| `homebrew_install <cask> [friendly]` / `homebrew_install_formula <formula> [friendly]` | Instala |
+| `homebrew_update <cask> [friendly]` / `homebrew_update_formula <formula> [friendly]` | Atualiza |
+| `homebrew_uninstall <cask> [friendly]` / `homebrew_uninstall_formula <formula> [friendly]` | Remove (`--zap` para casks) |
+| `homebrew_link_formula <formula> [force]` | Cria links simbólicos |
 
-```sh
-. "$MB_HELPERS_PATH/shell-rc.sh"
+### flatpak (Linux)
 
-slug="mytool"
-begin="# mb-cli-plugins:${slug}:begin"
-end="# mb-cli-plugins:${slug}:end"
-body='export PATH="$HOME/.mytool/bin:$PATH"'
+Instalar e gerenciar apps via Flatpak/Flathub.
 
-shell_rc_ensure_block "$begin" "$end" "$body"
-# ...
-shell_rc_remove_block "$begin" "$end"
-```
+| Função | Descrição |
+|--------|-----------|
+| `flatpak_is_available` | Exit 0 se `flatpak` no PATH |
+| `flatpak_ensure_flathub` | Garante repositório Flathub configurado |
+| `flatpak_is_installed <app_id>` | Exit 0 se instalado |
+| `flatpak_get_installed_version <app_id>` / `flatpak_get_latest_version <app_id>` | Versão ou `unknown` |
+| `flatpak_install <app_id> [friendly]` | Instala do Flathub |
+| `flatpak_update <app_id> [friendly]` | Atualiza |
+| `flatpak_uninstall <app_id> [friendly]` | Remove com dados |
+
+## Integrações externas
+
+### kubernetes
+
+Operações básicas com `kubectl`. Carrega `log.sh` automaticamente.
+
+| Função | Descrição |
+|--------|-----------|
+| `kb_check_installed [exit_on_error]` | Exit 0 se `kubectl` no PATH |
+| `kb_check_namespace_exists <ns> [exit_on_error]` | Exit 0 se namespace existe |
+| `kb_get_current_context` | Nome do contexto ativo |
+| `kb_print_current_context` | Imprime contexto legível |
+
+### github
+
+Buscar versões, baixar e instalar releases do GitHub. Carrega `log.sh` automaticamente.
+
+Dependências: `curl` (obrigatório), `jq` (opcional), `tar` (para extração).
+
+| Função | Descrição |
+|--------|-----------|
+| `github_get_latest_version <owner/repo> [strip_prefix]` | Tag da última release |
+| `github_get_latest_version_with_fallback <o/r> [branch] [path] [field]` | API → raw fallback |
+| `github_detect_os_arch [format]` | `os:arch` do sistema |
+| `github_build_download_url <o/r> <ver> <os> <arch> <pattern>` | Monta URL com substituições |
+| `github_download_release <url> <output> [desc]` | Baixa com progresso |
+| `github_download_and_verify <o/r> <ver> <url> <out> <cksum> [alg]` | Baixa + verifica checksum |
+| `github_extract_tarball <tar> [dir]` | Extrai e imprime diretório |
+| `github_install_binary <dir> <name> <install_dir>` | Localiza e instala binário |
+| `github_install_release <o/r> <ver> <name> <dir> <pattern> [cksum] [alg]` | Pipeline completo |

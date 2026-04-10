@@ -94,5 +94,5 @@ mb <categoria> <comando> [flags]
 - [Configuração do CLI](./technical-reference/cli-config.md) — `config.yaml` e configurações globais
 - [Criar um plugin](./plugin-authoring/create-a-plugin.md) — passo a passo com manifest e scripts
 - [Helpers de shell](./plugin-authoring/shell-helpers.md) — funções utilitárias para plugins
-- [Referência de comandos](./technical-reference/reference.md) — tabela de comandos e flags
+- [Flags globais](./user-guide/global-flags.md) — `-v`, `-q`, `--env`, `--doc`
 - [Versionamento e release](./technical-reference/versioning-and-release.md) — versões e publicação

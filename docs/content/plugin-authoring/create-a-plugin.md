@@ -1,86 +1,63 @@
 ---
-sidebar_position: 2
+sidebar_position: 1
 ---
 
 # Criar um plugin
 
-Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, registo e execução.
+Guia passo a passo para montar um pacote de plugins do MB CLI.
 
-- **Referência técnica** (scanner, cache, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
-- **Uso no dia a dia** (`mb plugins`, help, completion): [Comandos de plugins](../user-guide/plugin-commands.md)
-- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-plugins-examples` e depois `mb plugins sync`
+- **Referência técnica** (scanner, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
+- **Helpers de shell** (log, memória, k8s, etc.): [Helpers para plugins](./shell-helpers.md)
+- **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins)
 
-## Checklist rápido
+## 1. Estrutura de pastas
 
-1. Árvore de pastas com `manifest.yaml` em cada nível necessário (categorias + folhas).
-2. Folha executável: `command` + `entrypoint` (ou só `flags` para modo flags-only).
-3. Registar: `mb plugins add …` (local ou Git) **ou** copiar para `~/.config/mb/plugins/<pacote>/`.
-4. **`mb plugins sync`** (automático após `plugins add`; obrigatório se alterou ficheiros à mão).
-5. Testar: `mb plugins list` e o comando na CLI.
+Cada plugin é uma árvore de diretórios com ficheiros `manifest.yaml`. A estrutura de pastas define os subcomandos:
 
-## Digest no cache (`config_hash`)
+```
+meu-pacote/
+├── manifest.yaml              # Categoria raiz (ex.: mb tools)
+├── vscode/
+│   ├── manifest.yaml          # mb tools vscode (folha executável)
+│   └── run.sh
+└── podman/
+    ├── manifest.yaml          # mb tools podman (folha executável)
+    └── run.sh
+```
 
-O MB usa um **hash SHA-256** para saber se um comando mudou desde o último sync. Esse hash é gravado na coluna `config_hash` do SQLite e recalculado a cada `mb plugins sync`.
+- **Cada pasta** pode ter um `manifest.yaml`.
+- **Pasta sem `entrypoint` nem `flags`** = categoria (subcomando intermédio).
+- **Pasta com `entrypoint`** ou só `flags` = folha executável (comando final).
+- O nome do subcomando vem do campo **`command`** do manifest; se omitido, usa o **nome da pasta**.
 
-**O que entra no hash** (apenas ficheiros explicitamente referenciados no manifest):
+Exemplo: `tools/hello/manifest.yaml` com `command: hello` → **`mb tools hello`**.
 
-- O conteúdo do próprio `manifest.yaml`
-- O ficheiro `entrypoint` (se definido)
-- Cada `entrypoint` listado em `flags`
-- Cada ficheiro em `env_files`
-- O ficheiro `readme` (se o campo existir)
+## 2. `manifest.yaml` — Referência de campos
 
-> O MB **não** varre toda a pasta — só os ficheiros acima são considerados.
+### Campos principais
 
-**O que isso significa na prática:**
+| Campo | Tipo | Obrigatório? | Descrição |
+|-------|------|--------------|-----------|
+| `command` | string | **Sim** (folhas) | Nome do subcomando na CLI. Se omitido, usa o nome da pasta. |
+| `entrypoint` | string | Sim (folha com script) | Ficheiro executável relativo à pasta do manifest. Se terminar em `.sh`, executa com **bash**; caso contrário, trata como binário. |
+| `description` | string | Não | Texto curto no `--help` e listagens. |
+| `long_description` | string | Não | Texto longo no `--help` (multi-linha; usar `\|` ou `>` no YAML). |
+| `readme` | string | Não | Ficheiro Markdown na mesma pasta; ativa `--readme` / `-r` no comando. |
+| `hidden` | bool | Não | `true`: omite do `mb help` (comando continua invocável). |
 
-- Alterar um script referenciado (ex.: `run.sh`) faz o hash mudar → o comando aparece como *atualizado* no próximo sync.
-- Alterar um ficheiro na pasta que **não** esteja listado no manifest → o hash **não** muda.
-- Ao **atualizar o MB CLI** para uma versão que mudou o algoritmo do hash, o primeiro sync pode marcar todos os comandos como atualizados uma vez — comportamento esperado enquanto o cache se recalibra.
+### Flags e argumentos
 
-## Onde colocar o pacote
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `use` | string | Sufixo da linha de uso. Ex.: `"<name>"` (obrigatório), `"[env]"` (opcional). |
+| `args` | int | Nº de argumentos posicionais **obrigatórios** (`0` = sem validação). |
+| `aliases` | `[]string` | Nomes alternativos para o comando. Funciona em **folhas** e **categorias**. |
+| `example` | string | Texto de exemplo no `--help`. |
+| `deprecated` | string | Mensagem ao executar (aviso de obsoleto; o comando ainda corre). |
 
-| Forma | O que acontece |
-|-------|----------------|
-| **Local** — `mb plugins add <path>` ou `mb plugins add .` | O path fica em `plugin_sources.local_path`. **Nada é copiado** para a pasta de plugins. O sync lê esse diretório. |
-| **Remoto** — `mb plugins add <url-git>` | Clone para `PluginsDir/<pacote>` (`--package` define o identificador do pacote; `--tag` fixa uma tag). |
-| **Manual** — criar/copiar pastas em `~/.config/mb/plugins/<pacote>/` (Linux) | Depois **`mb plugins sync`** para atualizar o cache. |
+### Flags do comando (`flags`)
 
-## Árvore de pastas e caminho no CLI
-
-A **raiz da fonte** é: cada subpasta imediata de `PluginsDir`, **ou** o diretório registado como `local_path`.
-
-- Em cada nível, o segmento do comando vem de **`command`** no `manifest.yaml` da pasta, se existir; senão do **nome da pasta**.
-- Na **folha** (plugin executável), o último segmento do path interno é o **nome da pasta**; o nome do subcomando Cobra vem do **`command`** do manifest (obrigatório com `entrypoint` ou `flags`).
-
-Exemplos:
-
-- `tools/hello/manifest.yaml` com `command: hello` → **`mb tools hello`**
-- `infra/ci/deploy/` (folha) → **`mb infra ci deploy`**
-
-Se **duas fontes** distintas expuserem o mesmo **`command_path`**, o **`mb plugins sync`** **falha** até remover ou ajustar uma delas.
-
-## Tipos de `manifest.yaml`
-
-### Categoria (sem folha executável)
-
-Sem `entrypoint` e sem lista `flags`. Define um subcomando intermédio (descrição, opcionalmente `readme` e flag `-r`).
-
-Campos úteis: `command`, `description`, `long_description`, `readme`, `hidden`, **`aliases`** (nomes alternativos para esse segmento na CLI, como em folhas — ex.: `aliases: [sk]` no manifest da pasta `skills` permite `mb ai sk` além de `mb ai skills`).  
-Para **help agrupado** em comandos aninhados, pode usar **`group_id`** (só faz efeito quando o path tem `/`); ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
-
-### Folha com `entrypoint`
-
-- **`command`** — obrigatório.
-- **`entrypoint`** — ficheiro relativo à pasta do manifest; tem de **existir** e ficar **dentro** do plugin. Se terminar em **`.sh`**, o MB executa com **bash**; caso contrário trata como binário.
-
-Pode combinar **`entrypoint`** raiz com **`flags`**: sem flag corre o entrypoint padrão; com flag corre o script dessa flag.
-
-### Folha só com `flags` (flags-only)
-
-Sem `entrypoint` no nível raiz. Lista **`flags`** (ver exemplo abaixo). Se o utilizador invocar o comando **sem nenhuma flag**, o CLI mostra o help e **não** executa script.
-
-Exemplo mínimo flags-only:
+Quando a folha **não tem `entrypoint`** no nível raiz, use `flags` para definir sub-ações:
 
 ```yaml
 command: do
@@ -89,56 +66,29 @@ flags:
   - name: deploy
     description: Faz o deploy
     entrypoint: deploy.sh
+    envs:
+      - MODE=production
     commands:
       long: deploy
       short: d
 ```
 
-Exemplo completo: [examples/plugins/tools/do](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins/tools/do).
+| Campo (FlagEntry) | Tipo | Descrição |
+|-------------------|------|-----------|
+| `name` | string | Identificador da flag (obrigatório). |
+| `description` | string | Texto no `--help` da flag. |
+| `entrypoint` | string | Script executado quando a flag é usada. |
+| `envs` | `[]string` | Pares `KEY=VALUE` injetados só quando a flag é ativa. |
+| `commands.long` | string | Flag longa (ex.: `--deploy`). Se omitido, usa `name`. |
+| `commands.short` | string | Flag curta (ex.: `-d`). Opcional. |
 
-## Campos opcionais (resumo)
+Se o utilizador invocar o comando **sem nenhuma flag**, o CLI mostra o help e **não** executa nenhum script.
 
-### Texto e visibilidade
-
-| Campo | Função |
-|-------|--------|
-| `description` | Short do Cobra (listagens e resumo do `--help`). |
-| `long_description` | Long do Cobra (multi-linha; usar `\|` ou `>` no YAML). |
-| `readme` | Ativa `--readme` / `-r` no comando folha (Markdown no terminal). |
-| `hidden` | `true`: não aparece nos helps; comando continua invocável. |
-
-### Uso, args e aliases (Cobra)
-
-| Campo | Função |
-|-------|--------|
-| `use` | Sufixo da linha de uso (prefixado pelo nome do comando). Ex.: `"<name>"` obrigatório, `"[env]"` opcional. |
-| `args` | Número de argumentos posicionais **obrigatórios** passados ao script (`0` = sem validação). |
-| `aliases` | Lista de nomes alternativos para o mesmo comando. Aplica-se a **folhas** e a **categorias** (manifest só com `description` / `readme`, sem `entrypoint` nem `flags`). |
-| `example` | Texto de exemplo no help. |
-| `deprecated` | Mensagem ao **executar** (aviso de obsoleto; o comando ainda corre). |
-
-Manifesto de exemplo com vários destes campos:
-
-```yaml
-command: meu-comando
-description: "Descrição curta"
-long_description: |
-  Texto longo no help.
-entrypoint: run.sh
-use: "<name>"
-args: 1
-aliases:
-  - x
-example: |
-  mb tools meu-comando foo
-hidden: false
-```
-
-As **flags globais** (`-v`, `-q`, `--env-file`, `-e`) são sempre consumidas pelo CLI. O que o script recebe em `$1`, `$2`, … e o comportamento com flags desconhecidas: [Execução: flags e argumentos](../technical-reference/plugins.md#execução-flags-e-argumentos).
+> **Combinação `entrypoint` + `flags`**: pode ter ambos. Sem flag → corre o entrypoint raiz; com flag → corre o script dessa flag.
 
 ### `env_files` (opcional)
 
-Ficheiros `.env` **dentro da pasta do plugin**, mesclados na execução conforme **`--env-vault`**:
+Ficheiros `.env` **dentro da pasta do plugin**, mesclados na execução conforme `--env-vault`:
 
 ```yaml
 env_files:
@@ -147,89 +97,231 @@ env_files:
     vault: local
 ```
 
-Manifestos só de **categoria** ignoram `env_files`. Ordem de precedência do ambiente: [Variáveis de ambiente](../user-guide/environment-variables.md).
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `file` | string | Path relativo à pasta do plugin. |
+| `vault` | string | Nome do vault (default: `default` se omitido). |
 
-### Grupos no help (`groups.yaml` e `group_id`)
+Manifestos só de **categoria** ignoram `env_files`.
 
-Para secções personalizadas no help de comandos **aninhados** (ex. «INFRAESTRUTURA»):
+### `group_id` (grupos de help)
 
-1. Defina grupos em ficheiros **`groups.yaml`** (vários por pacote; registo **global** no sync, **último vence** se o mesmo `id` repetir).
-2. Nos manifests de folhas ou categorias aninhadas, use **`group_id:`** com um `id` registado.
+Para secções personalizadas no `--help` de comandos **aninhados** (ex.: «INFRAESTRUTURA»):
 
-Comandos **top-level** sob `mb` ignoram `group_id` para secção (ficam em COMANDOS DE PLUGINS). Detalhes, regex de `id` e debug com **`mb -v`**: [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
-
-## Script ou binário
-
-```bash
-#!/bin/sh
-echo "Plugin rodando!"
+```yaml
+command: deploy
+group_id: infra
 ```
 
-Torne executável: `chmod +x run.sh`.
+O `group_id` deve corresponder a um `id` definido num ficheiro **`groups.yaml`** do mesmo pacote. Comandos **top-level** (logo abaixo de `mb`) ignoram `group_id`. Veja [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
 
-**Helpers MB** (após `mb plugins sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](./shell-helpers.md). **gum** é opcional nos scripts.
+## 3. Exemplos práticos
 
-### Códigos de saída e sudo (batch update-all) {#plugin-exit-codes-sudo}
+### Categoria simples
 
-Alguns pacotes (ex.: ferramentas com `install.sh` / `update.sh` via `apt` ou `dnf`) seguem uma **convenção de códigos** alinhada ao script `update-all` dos plugins:
-
-| Código | Variável de ambiente | Significado |
-|--------|----------------------|-------------|
-| **86** | `MB_EXIT_UPDATE_SKIPPED_SUDO` | Não há privilégio efetivo para gestores de pacote (sem root nem `sudo -n`). **Não** é falha dura no batch: o pai pode avisar para repetir com `sudo`. |
-| **87** | `MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED` | Ferramenta ainda não instalada ao atualizar; **ignorado** no batch. |
-
-O `update-all.sh` do pacote exporta `MB_EXIT_UPDATE_SKIPPED_SUDO` e `MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED` antes de invocar cada `update.sh`. Em **invocação direta** (`mb tools … --install` / `--update` / `--uninstall`), use sempre `return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"` (e `:-87` onde aplicável) para manter o default quando o export não existe.
-
-Para **86**, o helper **`warn_and_skip_without_sudo`** em `sudo.sh` (carregado via `all.sh`) regista um aviso em **PT-BR** no stderr e devolve o código **86**. Uso típico no início de `install_linux` / `update_linux` / `uninstall_linux`:
-
-```bash
-warn_and_skip_without_sudo || return $?
+```yaml
+# infra/manifest.yaml
+command: infra
+description: Comandos de infraestrutura
 ```
 
-Texto adicional opcional: `warn_and_skip_without_sudo "Nome da ferramenta" || return $?`.
+### Folha com script
 
-**Nota:** o MB pode ainda mostrar um bloco **ERRO** com `exit status 86` quando o processo termina com esse código; o utilizador vê antes o **WARN** do script. Detalhe de execução: [Plugins — códigos de saída](../technical-reference/plugins.md#plugin-shell-exit-codes-convention).
+```yaml
+# infra/deploy/manifest.yaml
+command: deploy
+description: Faz o deploy da aplicação
+long_description: |
+  Executa o pipeline de deploy no ambiente atual.
+  Usa as variáveis DEPLOY_ENV e DEPLOY_TARGET.
+entrypoint: deploy.sh
+use: "[environment]"
+args: 0
+aliases:
+  - d
+example: |
+  mb infra deploy production
+  mb infra deploy staging --env DEPLOY_TARGET=us-east
+```
 
-## Registar e sincronizar
+```bash
+#!/bin/bash
+. "$MB_HELPERS_PATH/all.sh"
 
-### Um pacote com `manifest.yaml` na raiz
+env="${1:-production}"
+log info "Deploying to $env..."
+# ... lógica do deploy
+```
+
+### Folha só com flags
+
+```yaml
+# tools/do/manifest.yaml
+command: do
+description: Ações utilitárias
+flags:
+  - name: install
+    description: Instala a ferramenta
+    entrypoint: install.sh
+    commands:
+      long: install
+      short: i
+  - name: update
+    description: Atualiza a ferramenta
+    entrypoint: update.sh
+    commands:
+      long: update
+      short: u
+  - name: uninstall
+    description: Remove a ferramenta
+    entrypoint: uninstall.sh
+    commands:
+      long: uninstall
+      short: x
+```
+
+### Plugin com `env_files`
+
+```yaml
+# api/serve/manifest.yaml
+command: serve
+description: Inicia o servidor API
+entrypoint: run.sh
+env_files:
+  - file: .env
+  - file: .env.production
+    vault: production
+  - file: .env.staging
+    vault: staging
+```
+
+## 4. Registar e testar
+
+### Local (sem copiar ficheiros)
 
 ```bash
 mb plugins add /caminho/para/meu-pacote --package meu-plugin
 # ou, a partir da raiz do pacote:
+cd /caminho/para/meu-pacote
 mb plugins add .
 ```
 
-O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb plugins sync`** (disparado pelo add) pode mostrar **avisos** e **ignorar** manifests inválidos. Corrija avisos e volte a sincronizar.
+O sync é automático. Verifique:
 
-**Mesmo pacote outra vez:** `mb plugins add` com o mesmo identificador de pacote **substitui** a instalação anterior (clone remoto de novo por cima do diretório em `PluginsDir`, ou atualização do path local). O sync compara o hash do `manifest.yaml` por comando e regista na consola comandos **novos**, **atualizados** ou **removidos** do pacote.
+```bash
+mb plugins list
+mb help                # ou mb help <categoria>
+mb <categoria> <comando>
+```
 
-### Vários plugins numa pasta (modo coleção)
-
-A pasta **não** tem `manifest.yaml` na raiz. Cada **subdiretório direto** que tenha `manifest.yaml` é candidato; o MB valida cada um no add (entrada inválida → aviso e ignora). **Não** use **`--package`** se forem encontrados **vários** candidatos.
-
-### Remoto
+### Remoto (Git)
 
 ```bash
 mb plugins add https://github.com/org/repo
-mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-pacote
+mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-plugin
 ```
 
-### Manual em `PluginsDir`
+### Manual (copiar para o diretório de plugins)
 
 ```bash
+# Linux
+cp -r meu-pacote ~/.config/mb/plugins/
+
+# macOS
+cp -r meu-pacote ~/Library/Application\ Support/mb/plugins/
+
 mb plugins sync
-mb plugins list
 ```
 
-## Repositório com vários comandos
+## 5. Escrever o script {#5-escrever-o-script}
 
-Um único `plugins add` cobre **toda a árvore**; o path no CLI **não** inclui o identificador do pacote. Mais detalhes: [Repositório com vários plugins](../user-guide/plugin-commands.md#repositório-com-vários-plugins).
+### Receber argumentos
 
-## README opcional
+O script recebe argumentos posicionais em `$1`, `$2`, etc.:
 
-Com `readme: README.md` na mesma pasta que o manifest da folha, o utilizador pode usar **`--readme`** para ver o Markdown no terminal.
+```bash
+#!/bin/bash
+. "$MB_HELPERS_PATH/all.sh"
 
----
+name="${1:-world}"
+log info "Hello, $name!"
+```
 
-Para comandos `mb plugins` (list, remove, update) e indicação **(local)** no help, veja [Comandos de plugins](../user-guide/plugin-commands.md).
+### Variáveis de ambiente
+
+O plugin recebe variáveis mescladas (sistema, defaults, vault, `--env`). Veja [Variáveis de ambiente](../user-guide/environment-variables.md) para a ordem de precedência.
+
+Além disso, variáveis de contexto são injetadas (`MB_CTX_*`): path do comando, comando pai, irmãos, filhos, etc. Veja [Contexto de invocação](../technical-reference/plugin-invocation-context.md).
+
+### Usar helpers
+
+```bash
+#!/bin/bash
+. "$MB_HELPERS_PATH/all.sh"
+
+# Log
+log info "Iniciando..."
+log debug "Detalhe: $VAR"
+
+# Detecção de OS
+if is_mac; then
+  brew install curl
+elif is_linux_debian; then
+  sudo apt-get install -y curl
+fi
+
+# Memória entre execuções
+if ! mem_has "myplugin" "last_run"; then
+  mem_set "myplugin" "last_run" "$(date)"
+fi
+```
+
+Lista completa: [Helpers para plugins](./shell-helpers.md).
+
+### Códigos de saída
+
+Para plugins com `install.sh` / `update.sh` que podem precisar de `sudo`:
+
+| Código | Significado |
+|--------|-------------|
+| **86** | Sem privilégio para gestores de pacote (não é falha no batch `--update-all`). |
+| **87** | Ferramenta não instalada ao atualizar (ignorado no batch). |
+
+Use `return "${MB_EXIT_UPDATE_SKIPPED_SUDO:-86}"` para manter compatibilidade:
+
+```bash
+warn_and_skip_without_sudo "Minha Ferramenta" || return $?
+```
+
+## 6. README opcional
+
+Coloque um `README.md` na mesma pasta do manifest da folha:
+
+```yaml
+command: deploy
+entrypoint: deploy.sh
+readme: README.md
+```
+
+O utilizador pode ver o Markdown no terminal:
+
+```bash
+mb infra deploy --readme
+```
+
+## Resumo rápido
+
+| Passo | O quê |
+|-------|-------|
+| 1 | Criar pastas + `manifest.yaml` em cada nível |
+| 2 | Folha: `command` + `entrypoint` (ou só `flags`) |
+| 3 | `mb plugins add <path ou URL> [--package nome]` |
+| 4 | `mb plugins sync` (automático após `add`) |
+| 5 | Testar: `mb plugins list`, `mb help`, `mb <cat> <cmd>` |
+
+## Próximos passos
+
+- [Helpers de shell](./shell-helpers.md) — log, memória, OS, k8s, snap, homebrew…
+- [Comandos de plugins](../user-guide/plugin-commands.md) — `mb plugins list`, `remove`, `update`
+- [Variáveis de ambiente](../user-guide/environment-variables.md) — vaults, secrets, precedência
+- [Plugins (referência técnica)](../technical-reference/plugins.md) — scanner, cache, sync em detalhe

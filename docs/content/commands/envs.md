@@ -4,101 +4,99 @@ sidebar_position: 1
 
 # `mb envs`
 
-Gerencia variáveis de ambiente globais que são injetadas em plugins e no comando `mb run`.
+Gerencia variáveis de ambiente globais injetadas em plugins e no comando `mb run`.
 
-Para entender como as variáveis são mescladas e a ordem de precedência, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+Para entender ordem de precedência, vaults de projeto e quando usar cada abordagem, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
 
 ## Subcomandos
 
 ### `mb envs list`
 
-Lista variáveis do vault padrão ou de um vault específico.
+Lista variáveis de um vault.
 
 ```bash
 mb envs list
 mb envs list --vault staging
 mb envs list --show-secrets
+mb envs list --vault project        # só a raiz de envs no mbcli.yaml
+mb envs list --vault project/staging # só o sub-mapa envs.staging
 ```
 
-**Output:** tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** e **ARMAZENAMENTO** (`local`, `keyring`, `1password`, **`projeto`** para entradas em **`mbcli.yaml` → `envs`**).
+**Output:** tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** e **ARMAZENAMENTO** (`local`, `keyring`, `1password`, `projeto` para `mbcli.yaml`).
 
 | Flag | Descrição |
 | ---- | --------- |
-| `--vault <nome>` | Vault em **`~/.config/mb/.env.<nome>`** mais overlay **`mbcli.yaml`** com o mesmo nome (ex.: `staging`). Use **`project`** para a raiz de **`envs`** no YAML, ou **`project/<nome>`** para **apenas** o sub-mapa **`envs.<nome>`** (sem misturar a raiz). Ver [Variáveis de ambiente](../user-guide/environment-variables.md). |
+| `--vault <nome>` | Vault em disco `.env.<nome>` no diretório de configuração (ex.: `~/.config/mb/.env.staging` no Linux) com overlay do `mbcli.yaml`. Use `project` para a raiz de `envs` no YAML, ou `project/<nome>` para apenas o sub-mapa (sem misturar a raiz) |
 | `--show-secrets` | Mostra valores reais em vez de `***` |
 | `--json` / `-J` | Emite `{"CHAVE":"valor", ...}` |
-| `--text` / `-T` | Emite `CHAVE=valor` por linha (sem vault) |
+| `--text` / `-T` | Emite `CHAVE=valor` por linha (sem coluna de vault) |
 
 > `--json` e `--text` são mutuamente exclusivos.
 
 ### `mb envs set`
 
-Define ou atualiza variáveis no vault padrão ou num vault específico.
+Define ou atualiza variáveis.
 
 ```bash
 mb envs set API_KEY=xyz
 mb envs set A=1 B=2 C=3 --vault staging
 mb envs set DB_PASS=segredo --secret
 mb envs set TOKEN=abc --secret-op
+mb envs set A=1 B=2 C=3 --secret      # múltiplas chaves de uma vez
 ```
 
 | Flag | Descrição |
 |---|---|
-| `--vault <nome>` | Grava em `.env.<nome>` em vez do padrão |
-| `--secret` | Guarda no keyring do sistema |
-| `--secret-op` | Guarda no 1Password (requer `op` no PATH) |
-| `--yes` | Confirma sem prompt para `--secret-op` (útil em CI) |
+| `--vault <nome>` | Grava em `.env.<nome>` em vez do padrão. Não aceita `project` nem prefixo `project/` (reservados) |
+| `--secret` | Guarda no keyring do sistema (lista `.secrets`) |
+| `--secret-op` | Guarda no 1Password (referência em `*.opsecrets`, requer `op`) |
+| `--yes` | Confirma sem prompt para `--secret-op` (CI) |
 
-> `--secret` e `--secret-op` são mutuamente exclusivos. O nome do vault aceita letras, números, `.`, `_` e `-`, exceto **`project`** e nomes com prefixo **`project/`** (reservados para o YAML do projeto).
+> `--secret` e `--secret-op` são mutuamente exclusivos. Sem flags de store, a variável `MB_ENVS_SECRET_STORE` (`plain` / `keyring` / `op`) no ambiente define o destino.
 
 ### `mb envs unset`
 
-Remove uma ou mais chaves do vault.
+Remove uma ou mais chaves.
 
 ```bash
 mb envs unset API_KEY
 mb envs unset A B C --vault staging
 ```
 
-Se a chave não existir, o comando termina com sucesso (código 0). Se não restar conteúdo num vault explícito, o ficheiro `.env.<vault>` e associados (`.secrets`, `.opsecrets`) são apagados. O `env.defaults` nunca é apagado.
+Se a chave não existir, exit code 0. Se não restar conteúdo num vault explícito, os ficheiros `.env.<vault>`, `.secrets` e `.opsecrets` são apagados. `env.defaults` nunca é removido.
 
 ### `mb envs vaults`
 
-Lista vaults disponíveis, caminho do ficheiro e **número de variáveis** (o mesmo universo de chaves que `mb envs list --vault` mostraria para esse vault).
+Lista vaults disponíveis, caminho e número de variáveis.
 
 ```bash
 mb envs vaults
 mb envs vaults --json
 ```
 
-**Output:** tabela **VAULT** / **ARQUIVO** / **ENVS**. O vault **`default`** aponta para **`env.defaults`**. Vaults **`project`** e **`project/<nome>`** referem-se ao **`mbcli.yaml`** (várias linhas podem partilhar o mesmo caminho de ficheiro). Ficheiros **`~/.config/mb/.env.project`** não são listados (nome reservado).
+**Output:** tabela **VAULT** / **ARQUIVO** / **ENVS**. Inclui `default`, vaults em disco `.env.<nome>` no diretório de configuração (ex.: `~/.config/mb/.env.staging` no Linux), e linhas `project` / `project/<nome>` quando `mbcli.yaml` tem `envs`. O ficheiro `.env.project` é ignorado (nome reservado).
 
-**`--json` / `-J`:** array `[{"vault","path","env_count"},...]`.
+**JSON:** `[{"vault","path","env_count"},...]`
 
 ## Integração com 1Password (`--secret-op`) {#envs-1password-secret-op}
 
-O MB pode guardar valores sensíveis no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no **PATH**). O fluxo é distinto de `--secret`: o **valor** fica num item no cofre 1Password; a **referência** `op://` é gravada no ficheiro `*.opsecrets` — **não** no keyring.
+O MB guarda valores no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no PATH). O **valor** fica no cofre; a **referência `op://`** é gravada em `*.opsecrets` — **não** no keyring.
 
 ### Requisitos
 
-- **`op` instalado e sessão ativa** — inicie sessão com a CLI conforme a documentação da 1Password (`op signin`, etc.). Sem `op` disponível, o MB sugere instalar com `mb tools 1password-cli`.
-- As flags `--secret` e `--secret-op` são **mutuamente exclusivas**.
+- `op` instalado e sessão ativa (`op signin`)
+- `--secret` e `--secret-op` são mutuamente exclusivos
 
-### Como funciona
+### Comportamento
 
-O MB cria ou reutiliza um item do tipo **senha** no 1Password por vault lógico, com título `mb-cli env / default` (vault padrão) ou `mb-cli env / <nome-do-vault>` (com `--vault`), e grava o valor num campo reservado ao MB. A referência `op://...` fica em `env.defaults.opsecrets` ou `.env.<vault>.opsecrets`.
+O MB cria ou reutiliza um item do tipo **senha** com título `mb-cli env / default` ou `mb-cli env / <vault>` por vault lógico. A referência `op://` fica em `env.defaults.opsecrets` ou `.env.<vault>.opsecrets`.
 
-### Listagem e execução
+Na listagem com `--show-secrets`, referências `op://` são resolvidas com `op read`. Se a sessão 1Password não estiver ativa, o comando falha com mensagem clara.
 
-- Com `mb envs list --show-secrets`, referências `op://` são **resolvidas** com `op read` (é preciso sessão 1Password válida).
-- Ao mesclar o ambiente para **plugins** ou `mb run`, entradas em `*.opsecrets` e valores `op://` ainda no keyring são resolvidos via `op`. Se a integração não estiver disponível, o comando falha com mensagem clara.
-
-### Remover
-
-`mb envs unset` (com o mesmo `--vault`, se aplicável) remove a chave dos ficheiros, de `.secrets`, de `*.opsecrets`, do keyring e do item 1Password.
+`mb envs unset` (com o mesmo `--vault`) remove a chave dos ficheiros, `.secrets`, `*.opsecrets`, keyring e item 1Password.
 
 ## Ver também
 
-- [Variáveis de ambiente](../user-guide/environment-variables.md) — Ordem de precedência, conceito e uso prático
-- [`mb run`](../commands/run.md) — Executar comandos com ambiente mesclado
+- [Variáveis de ambiente](../user-guide/environment-variables.md) — Precedência, vaults de projeto, quando usar o quê
+- [`mb run`](../commands/run.md) — Executar programas com ambiente mesclado
 - [Comandos de plugins](../user-guide/plugin-commands.md) — Como plugins herdam o ambiente

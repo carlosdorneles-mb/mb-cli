@@ -13,7 +13,7 @@ O MB usa um diretório de plugins derivado de `os.UserConfigDir()`:
 - **Linux**: `~/.config/mb/plugins`
 - **macOS**: `~/Library/Application Support/mb/plugins`
 
-O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo `ConfigDir` que `~/.config/mb` no Linux), **não** dentro da pasta de plugins.
+O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo diretório de configuração; ex.: `~/.config/mb/cache.db` no Linux), **não** dentro da pasta de plugins.
 
 **Plugins locais:** com `mb plugins add <path|.>` o path fica em `plugin_sources.local_path`; nada é copiado para `PluginsDir`. No sync, esse path é escaneado como uma fonte extra.
 
@@ -146,7 +146,7 @@ Plugins que participam em batches como **`mb tools --update-all`** (ou equivalen
 - **86** (`MB_EXIT_UPDATE_SKIPPED_SUDO`) — sem `sudo` não interativo / root para operações de pacote; o batch trata como “saltado”, não como erro fatal.
 - **87** (`MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED`) — nada a atualizar porque a ferramenta não está instalada; ignorado no batch.
 
-O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `~/.config/mb/lib/shell/sudo.sh`, sincronizado com `mb plugins sync`). Ver [Guia: criar um plugin — códigos e sudo](../plugin-authoring/create-a-plugin.md#plugin-exit-codes-sudo).
+O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `sudo.sh` no diretório de helpers, sincronizado com `mb plugins sync`). Ver [Códigos de saída no guia](../plugin-authoring/create-a-plugin.md#5-escrever-o-script).
 
 ## Execução: flags e argumentos
 

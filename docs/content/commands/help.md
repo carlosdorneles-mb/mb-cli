@@ -67,4 +67,4 @@ Para abrir a documentação online no navegador:
 mb --doc
 ```
 
-O URL base configura-se em `~/.config/mb/config.yaml` com a chave `docs_url`.
+O URL base configura-se em `config.yaml` no diretório de configuração do MB (ex.: `~/.config/mb/config.yaml` no Linux) com a chave `docs_url`.

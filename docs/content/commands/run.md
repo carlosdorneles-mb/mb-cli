@@ -81,8 +81,8 @@ mb run -- processador -e input.txt
 O subprocesso recebe o ambiente mesclado nesta ordem (da menor para a maior precedência):
 
 1. Variáveis do sistema (`os.Environ()`)
-2. `env.defaults` (`~/.config/mb/env.defaults`)
-3. Vault com `--env-vault` (`~/.config/mb/.env.<nome>`)
+2. `env.defaults` (diretório de configuração do MB, ex.: `~/.config/mb/env.defaults` no Linux)
+3. Vault com `--env-vault` (`.env.<nome>` no mesmo diretório)
 4. `.env` no diretório atual (cwd)
 5. `--env-file <path>`
 6. `--env KEY=VALUE` (maior precedência)
@@ -93,7 +93,7 @@ Além das variáveis definidas pelo usuário, o subprocesso recebe:
 |---|---|
 | `MB_VERBOSE` | `1` se `-v` foi usada |
 | `MB_QUIET` | `1` se `-q` foi usada |
-| `MB_HELPERS_PATH` | `~/.config/mb/lib/shell` |
+| `MB_HELPERS_PATH` | Diretório de helpers de shell (ex.: `~/.config/mb/lib/shell` no Linux) |
 | `GUM_*` | Variáveis de tema (cores do MB) |
 
 Para mais detalhes sobre ambiente e precedência, veja [Variáveis de ambiente](../user-guide/environment-variables.md).

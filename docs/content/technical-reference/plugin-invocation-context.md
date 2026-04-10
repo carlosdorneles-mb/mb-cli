@@ -15,7 +15,7 @@ Esta página é a **referência das variáveis** definidas pelo runtime do CLI. 
 | Variável | Descrição |
 |----------|-----------|
 | `MB_CTX_INVOCATION` | Linha de argumentos vista pelo processo do `mb`: junção de `argv` com espaços (o primeiro elemento pode ser o caminho absoluto ao binário). |
-| `MB_CTX_CONFIG_DIR` | Diretório de configuração do MB (por exemplo `~/.config/mb`), útil para localizar `cache.db` ou outros ficheiros. |
+| `MB_CTX_CONFIG_DIR` | Diretório de configuração do MB (ex.: `~/.config/mb` no Linux; `~/Library/Application Support/mb` no macOS), útil para localizar `cache.db` ou outros ficheiros. |
 | `MB_CTX_COMMAND_PATH` | Caminho lógico do comando no manifest / cache (ex.: `tools`, `tools/vscode`). |
 | `MB_CTX_COMMAND_NAME` | Último segmento de `MB_CTX_COMMAND_PATH` (ex.: `vscode`). |
 | `MB_CTX_PARENT_COMMAND_PATH` | Caminho do “pai” no manifest (tudo antes do último `/`); vazio se a folha está na raiz (ex.: só `hello`). |

@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Configuração do CLI
 
-O ficheiro **`~/.config/mb/config.yaml`** guarda opções **do próprio MB CLI**. Na **primeira execução**, se o ficheiro não existir, o MB **cria-o** com comentários e linhas em branco, **sem** preencher `docs_url` nem `update_repo` — os valores em falta vêm dos defaults do código na mesma.
+O ficheiro **`config.yaml`** no diretório de configuração do MB (ex.: `~/.config/mb/config.yaml` no Linux; `~/Library/Application Support/mb/config.yaml` no macOS) guarda opções **do próprio MB CLI**. Na **primeira execução**, se o ficheiro não existir, o MB **cria-o** com comentários e linhas em branco, **sem** preencher `docs_url` nem `update_repo` — os valores em falta vêm dos defaults do código na mesma.
 
 Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que servem para **variáveis de ambiente** mescladas em **`mb run`** e ao executar plugins.
 
@@ -14,7 +14,7 @@ Só existem duas chaves lidas deste ficheiro (`docs_url` e `update_repo`). **Qua
 
 Para variáveis como `TESTCONFIG`, use uma destas opções (ver [Variáveis de ambiente](../user-guide/environment-variables.md)):
 
-- **`~/.config/mb/env.defaults`** — por exemplo `mb envs set TESTCONFIG dudu`
+- **`env.defaults`** no diretório de configuração do MB (ex.: `~/.config/mb/env.defaults` no Linux) — por exemplo `mb envs set TESTCONFIG dudu`
 - **`./.env`** no diretório de trabalho atual
 - **`mb run --env TESTCONFIG=dudu`** (ou `--env-file`)
 
@@ -34,7 +34,7 @@ Para variáveis como `TESTCONFIG`, use uma destas opções (ver [Variáveis de a
 ## Exemplo
 
 ```yaml
-# ~/.config/mb/config.yaml
+# config.yaml (diretório de configuração do MB)
 docs_url: https://carlosdorneles-mb.github.io/mb-cli/
 # Opcional: fork para update do CLI
 # update_repo: minha-org/meu-fork-mb

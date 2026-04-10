@@ -53,7 +53,6 @@ const sidebars = {
         'technical-reference/plugins',
         'technical-reference/plugin-invocation-context',
         'technical-reference/cli-config',
-        'technical-reference/reference',
         'technical-reference/versioning-and-release',
       ],
     },

@@ -48,7 +48,7 @@ func NewRootCmd(
 	var openDoc bool
 	rootCmd := &cobra.Command{
 		Use:   "mb",
-		Short: "MB CLI - Uma CLI, infinitas possibilidades",
+		Short: "MB CLI é uma ferramenta CLI que transforma plugins em comandos dinâmicos, com cache, injeção segura de variáveis de ambiente e helpers de shell poderosos.",
 		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			if !openDoc {
 				return nil

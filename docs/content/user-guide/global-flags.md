@@ -45,7 +45,7 @@ mb -q tools meu-comando
 
 Em plugins escritos em shell, você pode ler `MB_VERBOSE` e `MB_QUIET` para decidir se imprime mensagens e em qual nível. Assim o plugin respeita a preferência do usuário ao usar `-v` ou `-q`.
 
-O CLI disponibiliza **helpers de shell** (por exemplo a função `log`) e define no ambiente do plugin a variável **`MB_HELPERS_PATH`** (diretório `~/.config/mb/lib/shell`). Os arquivos nesse diretório são criados e atualizados ao rodar **`mb plugins sync`**. Para usá-los nos plugins, no início do script faça: `. "$MB_HELPERS_PATH/all.sh"` (todos) ou `. "$MB_HELPERS_PATH/log.sh"` (só log). Depois você pode chamar `log info "mensagem"`, `log debug "detalhe"`, etc. Veja a [Referência: Helpers de shell](../plugin-authoring/shell-helpers.md) para a lista de helpers e como carregar.
+O CLI disponibiliza **helpers de shell** (por exemplo a função `log`) e define no ambiente do plugin a variável **`MB_HELPERS_PATH`** (diretório `lib/shell` no diretório de configuração, ex.: `~/.config/mb/lib/shell` no Linux). Os arquivos nesse diretório são criados e atualizados ao rodar **`mb plugins sync`**. Para usá-los nos plugins, no início do script faça: `. "$MB_HELPERS_PATH/all.sh"` (todos) ou `. "$MB_HELPERS_PATH/log.sh"` (só log). Depois você pode chamar `log info "mensagem"`, `log debug "detalhe"`, etc. Veja a [Referência: Helpers de shell](../plugin-authoring/shell-helpers.md) para a lista de helpers e como carregar.
 
 - **`MB_QUIET=1`** — O usuário pediu saída mínima. Evite chamar `gum log` para mensagens informativas; só mostre erros se fizer sentido.
 - **`MB_VERBOSE=1`** — O usuário pediu mais detalhes. Você pode incluir logs em nível debug ou mensagens de diagnóstico.
@@ -61,7 +61,7 @@ Para a ordem completa de precedência e como usar defaults com `mb envs`, veja [
 
 ## --env-vault
 
-**O que faz:** Ao executar plugins, depois de carregar `~/.config/mb/env.defaults`, mescla por cima o arquivo `~/.config/mb/.env.<nome>` (valores do vault sobrescrevem chaves iguais do default).
+**O que faz:** Ao executar plugins, depois de carregar `env.defaults`, mescla por cima o arquivo `.env.<nome>` no diretório de configuração (valores do vault sobrescrevem chaves iguais do default).
 
 **Quando usar:** Para alternar entre ambientes (ex.: `staging`, `prod`) sem trocar o conteúdo de `env.defaults`.
 
@@ -107,7 +107,7 @@ Para mais detalhes sobre o comando `mb help`, veja [`mb help`](../commands/help.
 
 ## --doc
 
-**O que faz:** Abre no navegador a URL de documentação configurada (por omissão o site público do projeto). O URL base define-se em **`~/.config/mb/config.yaml`** com a chave **`docs_url`**. Encerra o CLI com código `0`.
+**O que faz:** Abre no navegador a URL de documentação configurada (por omissão o site público do projeto). O URL base define-se em **`config.yaml`** no diretório de configuração do MB com a chave **`docs_url`**. Encerra o CLI com código `0`.
 
 **Uso:** Só no comando raiz, **antes** de qualquer subcomando — por exemplo `mb --doc`. Não é herdada por `mb plugins list` etc.
 
