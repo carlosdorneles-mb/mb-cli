@@ -9,7 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/cli/runtimeflags"
 	"mb/internal/deps"
+	"mb/internal/shared/env"
 )
 
 // NewRunCmd returns `mb run`, which executes a subprocess with the same merged environment as plugins.
@@ -20,6 +22,10 @@ func NewRunCmd(d deps.Dependencies) *cobra.Command {
 		Long: `Repassa o comando e os argumentos ao executável (PATH ou caminho), com o mesmo ambiente
 mesclado dos plugins (env.defaults, --env-group, ./.env no diretório atual, --env-file, --env, etc.).
 
+As flags globais do MB (-e/--env, --env-file, --env-group, -v/--verbose, -q/--quiet) podem ir antes
+de mb (ex.: mb --env-group st run cmd) ou logo após run (ex.: mb run --env-group st cmd), sempre
+antes do nome do executável. Flags do programa filho ficam depois do nome (ex.: mb run grep -r).
+
 Para ajuda deste comando use: mb help run`,
 		DisableFlagParsing: true,
 		Args:               cobra.MinimumNArgs(1),
@@ -28,11 +34,23 @@ Para ajuda deste comando use: mb help run`,
 			if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 				return cmd.Help()
 			}
+			rest, err := runtimeflags.ParseLeadingRuntimeFlags(d.Runtime, args)
+			if err != nil {
+				return err
+			}
+			if len(rest) < 1 {
+				return fmt.Errorf(
+					"indique o comando a executar após as flags do MB (ex.: mb run echo oi)",
+				)
+			}
+			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
+				return err
+			}
 			merged, err := deps.BuildMergedOSEnviron(d, nil)
 			if err != nil {
 				return err
 			}
-			name := args[0]
+			name := rest[0]
 			bin, err := exec.LookPath(name)
 			if err != nil {
 				return fmt.Errorf("comando não encontrado %q: %w", name, err)
@@ -43,7 +61,7 @@ Para ajuda deste comando use: mb help run`,
 				ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 				defer cancel()
 			}
-			c := exec.CommandContext(ctx, bin, args[1:]...)
+			c := exec.CommandContext(ctx, bin, rest[1:]...)
 			c.Env = merged
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout

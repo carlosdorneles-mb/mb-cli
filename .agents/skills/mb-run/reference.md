@@ -4,7 +4,14 @@
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `run.go` | `NewRunCmd` — `DisableFlagParsing`, `MinimumNArgs(1)`, `BuildMergedOSEnviron(d, nil)`, `exec.LookPath`, `exec.CommandContext`, stdio herdados, `os.Exit` no exit code do filho, `SetHelpFunc` delegando no root |
+| `run.go` | `NewRunCmd` — `DisableFlagParsing`, `runtimeflags.ParseLeadingRuntimeFlags` + `env.ParseInlinePairs`, `MinimumNArgs(1)`, `BuildMergedOSEnviron(d, nil)`, `exec.LookPath`, `exec.CommandContext`, stdio herdados, `os.Exit` no exit code do filho, `SetHelpFunc` delegando no root |
+
+## `internal/cli/runtimeflags`
+
+| Ficheiro | Responsabilidade |
+|----------|------------------|
+| `runtimeflags.go` | `RegisterRuntimePersistentFlags` (root + mesma semântica), `ParseLeadingRuntimeFlags` (prefixo após `run`) |
+| `runtimeflags_test.go` | Casos de peel e merge |
 | `run_test.go` | Args obrigatórios, `true`, comando inexistente, injeção de `./.env` no cwd |
 
 ## `internal/deps`
@@ -25,4 +32,4 @@
 
 | Ficheiro | Responsabilidade |
 |----------|------------------|
-| `command.go` | Regista `run.NewRunCmd(d)` no root com `GroupID` de comandos |
+| `command.go` | `RegisterRuntimePersistentFlags` nas `PersistentFlags`; regista `run.NewRunCmd(d)` com `GroupID` de comandos |

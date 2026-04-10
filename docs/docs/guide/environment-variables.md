@@ -111,11 +111,14 @@ mb run python script.py
 mb run uv sync
 ```
 
-As flags globais do `mb` (`--env`, `--env-file`, `--env-group`, etc.) vêm **antes** de `run`. Exemplo:
+As flags globais do `mb` (`-e` / `--env`, `--env-file`, `--env-group`, `-v` / `--verbose`, `-q` / `--quiet`) podem ir **antes** de `run` **ou** **logo após** `run`, sempre **antes do nome do executável**. O que vier depois do primeiro argumento posicional é repassado ao programa filho (ex.: `mb run grep -r padrão .`). Exemplos:
 
 ```bash
 mb --env-file .env.local run uv sync
+mb run --env-group staging -e FOO=bar python script.py
 ```
+
+Depois de `--` no `mb run`, nada é interpretado como flag do MB (útil se o filho precisar de argumentos que começam por `-`).
 
 O subprocesso herda stdin, stdout e stderr do terminal. O **código de saída** do programa filho é propagado (não fica sempre `1` em caso de falha). Para ajuda do subcomando use **`mb help run`** (com `mb run --help`, o `--help` pode ser repassado ao programa executado).
 

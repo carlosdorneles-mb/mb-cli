@@ -14,7 +14,7 @@ description: >-
 
 - Implementar ou corrigir **`mb run`** ou o fluxo de **ambiente** partilhado com plugins.
 - Explicar diferenças entre **`mb run`** e execução de **plugin** (sem `env_files` do manifest).
-- Ajustar **`DisableFlagParsing`**, ajuda (`mb help run`), timeout, ou propagação de código de saída.
+- Ajustar **`DisableFlagParsing`**, **`runtimeflags.ParseLeadingRuntimeFlags`**, ajuda (`mb help run`), timeout, ou propagação de código de saída.
 
 ## Comportamento (superfície)
 
@@ -22,7 +22,7 @@ description: >-
 |--------|---------|
 | Uso | `mb run <comando> [args...]` — o primeiro argumento é resolvido com **`exec.LookPath`** (PATH ou caminho absoluto) |
 | Ambiente | **`deps.BuildMergedOSEnviron(d, nil)`** — igual aos plugins para camadas de ficheiro + inline, **sem** overlay de `env_files` do manifest (`overlay == nil`) |
-| Flags globais do `mb` | **Antes** de `run` — ex.: `mb --env-file .env.local run uv sync`. Com **`DisableFlagParsing: true`** no subcomando `run`, o Cobra **não** interpreta flags após `run`; passam todos ao programa filho |
+| Flags globais do `mb` | **Antes** de `run`, ou **prefixo logo após** `run` (antes do executável): `-e`/`--env`, `--env-file`, `--env-group`, `-v`/`--verbose`, `-q`/`--quiet` — via **`runtimeflags.ParseLeadingRuntimeFlags`** em conjunto com o que o root já parseou. Com **`DisableFlagParsing: true`**, o Cobra **não** parseia; o `run` descasca só esse prefixo e o resto vai ao filho (ex.: `mb run grep -r`) |
 | Ajuda | **`mb help run`** — `mb run --help` pode ser entregue ao executável filho (documentado no Long) |
 | Timeout | Se **`Runtime.PluginTimeout > 0`**, o contexto do **`exec.CommandContext`** tem deadline (mesma config que plugins) |
 | Código de saída | Em **`exec.ExitError`**, o processo termina com **`os.Exit(código)`** para propagar o exit code do filho |
@@ -35,6 +35,8 @@ Para a **ordem completa** de variáveis (`env.defaults`, `--env-group`, `./.env`
 | Área | Caminho |
 |------|---------|
 | Comando | `internal/cli/run/run.go` — `NewRunCmd` |
+| Flags globais partilhadas | `internal/cli/runtimeflags/runtimeflags.go` — `RegisterRuntimePersistentFlags`, `ParseLeadingRuntimeFlags` |
+| Root | `internal/cli/root/command.go` — chama `RegisterRuntimePersistentFlags` nas `PersistentFlags` |
 | Merge de ambiente | `internal/deps/execenv.go` — `BuildMergedOSEnviron`, `BuildMergedOSEnvironWithExtraInline` |
 | Camadas de ficheiro / secrets | `internal/deps/envdefaults.go` — `BuildEnvFileValues` |
 
@@ -48,7 +50,7 @@ Detalhe por ficheiro: [reference.md](reference.md).
 
 ## Armadilhas
 
-- Esperar **`mb run --env X=1`** a funcionar — flags após `run` vão para o **filho**; variáveis têm de ir em **`mb --env ... run ...`**.
+- Esquecer que só o **prefixo** após `run` é MB — **`mb run cmd --env X=1`** envia `--env` ao **filho**; usar **`mb run -e X=1 cmd`** ou **`mb --env X=1 run cmd`**.
 - Confundir **`mb run myplugin`** com **`mb categoria comando`** — `run` é só executável no PATH, não resolve comandos do cache SQLite.
 
 ## Documentação no repositório
@@ -60,7 +62,7 @@ Detalhe por ficheiro: [reference.md](reference.md).
 ## Verificação
 
 ```bash
-go test ./internal/cli/run/... ./internal/deps/... -count=1
+go test ./internal/cli/run/... ./internal/cli/runtimeflags/... ./internal/cli/root/... ./internal/deps/... -count=1
 ```
 
 Ao alterar merge de ambiente partilhado, validar também **`cli/plugincmd`** e testes em **`internal/deps`**.

@@ -13,6 +13,7 @@ import (
 	"mb/internal/cli/plugincmd"
 	"mb/internal/cli/plugins"
 	"mb/internal/cli/run"
+	"mb/internal/cli/runtimeflags"
 	"mb/internal/cli/update"
 	"mb/internal/deps"
 	"mb/internal/infra/browser"
@@ -66,16 +67,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 		},
 		SilenceUsage: true,
 	}
-	rootCmd.PersistentFlags().
-		BoolVarP(&d.Runtime.Verbose, "verbose", "v", false, "Ativa logs verbosos")
-	rootCmd.PersistentFlags().
-		BoolVarP(&d.Runtime.Quiet, "quiet", "q", false, "Não exibir nenhuma mensagem")
-	rootCmd.PersistentFlags().
-		StringVar(&d.Runtime.EnvFilePath, "env-file", "", "Carrega as váriaveis de um arquivo específico. Ex.: .env.local")
-	rootCmd.PersistentFlags().
-		StringVar(&d.Runtime.EnvGroup, "env-group", "", "Carrega as váriaveis de um grupo específico. Ex.: staging")
-	rootCmd.PersistentFlags().
-		StringArrayVarP(&d.Runtime.InlineEnvValues, "env", "e", nil, "Define variável na execução do processo atual. Ex.: KEY=VALUE")
+	runtimeflags.RegisterRuntimePersistentFlags(rootCmd.PersistentFlags(), d.Runtime)
 	rootCmd.Flags().BoolVar(&openDoc, "doc", false, "Abre a documentação no navegador")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
