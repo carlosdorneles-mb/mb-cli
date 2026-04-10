@@ -1,52 +1,273 @@
-# Pacotes `internal/`
+# Internal — Arquitetura do mb-cli
 
-Mapa rápido para onde colocar código novo. Estrutura orientada a FX (bootstrap → module → cli; domain, ports, app, infra, shared).
+Este diretório contém todo o código interno da CLI. Nenhuma dependência externa deve importar pacotes de `internal/`.
 
-## Mapa atual (pós-reorganização)
+## Visão Geral da Arquitetura
 
-| Camada   | Pacote / path                         | Responsabilidade                                                                 |
-| -------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| Bootstrap | `bootstrap`                           | `fx.New`, Options agregando todos os módulos, `Populate(&rootCmd)`.               |
-| Module  | `module/runtime`                      | Paths, RuntimeConfig, NewAppConfig (providers FX).                               |
-|         | `module/cache`                        | newStore, registerStoreLifecycle (SQLite).                                        |
-|         | `module/plugins`, `module/executor`   | Scanner, Executor (providers FX).                                                |
-|         | `module/deps`                         | DepsModule: `SecretStore`, RuntimeConfig, AppConfig, Store, Scanner, Executor.   |
-|         | `module/cli`                           | CLIModule: Provide(root.NewRootCmd).                                             |
-| CLI     | `cli/root`                             | Raiz Cobra (`NewRootCmd`), completion tests.                                     |
-|         | `cli/plugins`, `cli/envs`, `cli/update` | Subcomandos `mb plugins`, `mb envs`, `mb update` (e `mb completion` no root).  |
-|         | `cli/plugincmd`                        | Comandos dinâmicos a partir do cache (`Attach`); injeta `ports.ScriptExecutor`.     |
-| App     | `app/plugins`                          | Casos de uso de plugins: `RunSync`, add/remove/update, sync — `domain`, `ports`, `shared` (sem `infra`). |
-|         | `app/envs`                             | Casos de uso `mb envs` (set/unset/list) via `ports.SecretStore` e helpers em `deps` para ficheiros. |
-|         | `app/update`                           | Orquestração de `mb update` (fases plugins, `mb tools --update-all`, CLI, `mb machine update`); usa `deps` e `infra` onde o fluxo exige (`selfupdate`). A atualização de SO é feita pelo plugin shell `machine/update`, não em Go. |
-| Ports   | `ports`                                | `PluginCLIStore`, `PluginCacheStore`, `PluginScanner`, `SecretStore`, `ShellHelperInstaller`, `GitOperations`, `Filesystem`, `PluginLayoutValidator`, `ScriptExecutor`, … |
-| Domain  | `domain/plugin`                        | DTOs do cache (`Plugin`, `Category`, …), `ValidationWarning`, `HelpGroupDef`, merge/validação de groups. |
-| Infra   | `infra/sqlite`                         | Store SQLite; implementa `ports.PluginCacheStore`; aliases para tipos do domínio. |
-|         | `infra/plugins`                        | Manifest, scanner, Git (`GitService`, `LayoutValidator` → portas).                 |
-|         | `infra/fs`                             | `fs.OS` → `ports.Filesystem`.                                                    |
-|         | `infra/executor`                       | Execução segura de scripts; implementa `ports.ScriptExecutor`.                     |
-|         | `infra/browser`, `infra/selfupdate`    | Abertura de URL, atualização binária.                                            |
-|         | `infra/shellhelpers`                   | Helpers shell embed + `Installer` → `ports.ShellHelperInstaller`.                 |
-|         | `infra/keyring`                        | Keyring do SO + `SystemKeyring` → `ports.SecretStore`.                            |
-| Shared  | `shared/ui`, `shared/system`           | Temas (Fang/Gum), banner, mensagens; Gum/Glamour, Markdown.                       |
-|         | `shared/safepath`, `shared/version`    | Validação de paths, versão de build.                                             |
-|         | `shared/env`, `shared/envgroup`       | Merge de variáveis de ambiente, grupos.                                          |
-|         | `shared/config`                        | AppConfig, Load, DefaultDocsURL.                                                  |
-| Deps    | `deps`                                 | Paths padrão, RuntimeConfig, `Dependencies` (portas: `PluginCLIStore`, `PluginScanner`, `ScriptExecutor`, `SecretStore`). |
+O projeto segue os princípios de **Clean Architecture** e **Hexagonal Architecture** (Ports & Adapters), com injeção de dependência via [`go.uber.org/fx`](https://pkg.go.dev/go.uber.org/fx).
 
-## Ordem de dependência (evitar ciclos)
+```
+internal/
+├── bootstrap/          # Composição raiz — monta a FX App e o Root Command
+├── cli/                # Camada de Apresentação (Cobra apenas)
+│   ├── root/           #   Root command e flags globais (--verbose, --quiet, --env)
+│   ├── envs/           #   Comandos: mb envs list, set, unset, groups, path
+│   ├── plugins/        #   Comandos: mb plugins add, list, remove, update, sync
+│   ├── plugincmd/      #   Comandos dinâmicos gerados por plugins instalados
+│   ├── completion/     #   Autocomplete shell (install, uninstall, generate)
+│   ├── run/            #   mb run <processo>
+│   ├── update/         #   mb update (self-update e tools update)
+│   └── runtimeflags/   #   Flags de runtime injetadas nos plugins
+├── usecase/            # Casos de Uso / Regras de Aplicação
+│   ├── addplugin/      #   Service para instalar plugins (remote/local)
+│   ├── envs/           #   Lógica de coleta e merge de variáveis de ambiente
+│   ├── plugins/        #   Sync, remove, update de plugins
+│   └── update/         #   Orquestração de self-update e tools update
+├── domain/             # Modelos de Domínio e Regras de Negócio Puras
+│   └── plugin/         #   Plugin, PluginSource, Category, HelpGroup, scan rules
+├── infra/              # Implementações Concretas (Adapters)
+│   ├── browser/        #   Abrir URLs no navegador
+│   ├── executor/       #   ScriptExecutor (roda plugins via bash/binário)
+│   ├── fs/             #   Filesystem real (os.MkdirAll, os.Stat, ...)
+│   ├── keyring/        #   SecretStore via go-keyring (macOS Keychain, libsecret)
+│   ├── opcli/          #   Integração com 1Password CLI (env vars de secrets)
+│   ├── plugins/        #   Git operations, scanner de manifest.yaml, hash de config
+│   ├── selfupdate/     #   Self-update via GitHub Releases
+│   ├── shellhelpers/   #   Scripts utilitários embarcados (instalação no shell)
+│   └── sqlite/         #   Persistência SQLite (plugins, sources, categories, help groups)
+├── ports/              # Interfaces (Contratos) — o centro da Clean Architecture
+│   ├── exec.go         #   ScriptExecutor
+│   ├── fs.go           #   Filesystem
+│   ├── git.go          #   GitOperations
+│   ├── layout.go       #   PluginLayoutValidator
+│   ├── onepassword.go  #   OnePasswordEnv
+│   ├── pluginstore.go  #   PluginCacheStore, PluginCLIStore, PluginScanner
+│   ├── secret.go       #   SecretStore
+│   └── sync.go         #   PluginSyncStore, ShellHelperInstaller
+├── deps/               # Configuração de Runtime (paths, flags resolvidas)
+├── module/             # Módulos Fx — wire de dependência
+│   ├── cache/          #   SQLite store + lifecycle (close on shutdown)
+│   ├── cli/            #   Root command (recebe deps + portas de infra)
+│   ├── deps/           #   SecretStore, OnePasswordEnv, Dependencies
+│   ├── executor/       #   ScriptExecutor (plugin runner)
+│   ├── infra/          #   Implementações reais: OS, Git, ShellInstaller, LayoutValidator
+│   ├── plugins/        #   PluginScanner
+│   └── runtime/        #   Paths (ConfigDir, PluginsDir, CacheDBPath) + AppConfig
+├── shared/             # Utilitários Transversais
+│   ├── config/         #   Carregamento e validação de config.yaml
+│   ├── env/            #   Merge de variáveis de ambiente (defaults + group + inline)
+│   ├── envgroup/       #   Grupos de ambiente (.env.staging, .env.production)
+│   ├── safepath/       #   Validação segura de paths (previne path traversal)
+│   ├── system/         #   Logger (gum log), gum table, gum input, gum confirm
+│   ├── ui/             #   Tema, banner, erros em PT, glamour theme
+│   └── version/        #   Version injection via ldflags
+└── fakes/              # Test Doubles — mocks para testes unitários
+    └── ports.go        #   FakeFS, FakeGit, FakeLogger, FakeShellInstaller, ...
+```
 
-- **`domain/plugin`**: só stdlib + libs puras (ex.: YAML para parse de groups).
-- **`ports`**: depende de `domain/plugin` (tipos nos contratos).
-- **`app/plugins`**: depende de `domain`, `ports`, `shared` — **não** de `infra/*`.
-- **`app/envs`**: `ports`, `deps` (I/O de env/secret keys).
-- **`app/update`**: `deps`, `shared`, `infra/selfupdate`, `infra/shellhelpers` (orquestração do comando update).
-- **`infra/*`**: implementa `ports` e usa `domain` + `sqlite`/FS/rede.
-- **`cli/*`**: Cobra; monta `app/plugins.PluginRuntime` e passa implementações concretas; `Dependencies` expõe interfaces de `ports` (SQLite/Scanner/Executor preenchem `PluginCLIStore`, `PluginScanner`, `ScriptExecutor`).
-- **`module/*`**, **`bootstrap`**: composição FX.
+## Camadas e Responsabilidades
 
-## Terminal / TUI
+### 1. `cli/` — Apresentação (Cobra)
 
-- **`shared/ui`** — Temas (Fang/Gum), banner, mensagens de erro/sucesso em PT.
-- **`shared/system`** — Gum (inputs), Glamour (render de Markdown no README dos plugins).
+**Responsabilidade**: Parse de argumentos, bind de flags, chamada ao usecase, exibição do resultado.
 
-Regra: preferir `ui` para aparência e cópia; usar `system` quando for necessário chamar Gum/Glamour ou renderizar Markdown de arquivo.
+**Regra**: O `RunE` de cada comando deve ter **no máximo 5-10 linhas**. Toda lógica de negócio fica no usecase.
+
+```go
+// Exemplo: thin controller
+func (c *cobra.Command) RunE: func(cmd *cobra.Command, args []string) error {
+    log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+    return svc.Add(cmd.Context(), addplugin.Request{
+        Source:   args[0],
+        Package:  pkg,
+        Tag:      tag,
+        NoRemove: noRemove,
+    }, log)
+}
+```
+
+### 2. `usecase/` — Casos de Uso
+
+**Responsabilidade**: Orquestrar entidades e portas para executar uma regra de negócio.
+
+**Regra**: Depende apenas de **interfaces** (`ports/`), nunca de implementações concretas.
+
+```go
+type Service struct {
+    rt      Runtime
+    store   ports.PluginCacheStore   // interface
+    scanner ports.PluginScanner     // interface
+    fsys    ports.Filesystem        // interface
+    git     ports.GitOperations     // interface
+    // ...
+}
+
+func (s *Service) Add(ctx context.Context, req Request, log Logger) error {
+    // lógica de negócio — sem Cobra, sem os.MkdirAll, sem git clone direto
+}
+```
+
+### 3. `domain/` — Modelos de Domínio
+
+**Responsabilidade**: Entidades e regras de negócio puras. Sem dependências externas.
+
+```go
+type Plugin struct {
+    CommandName  string
+    CommandPath  string
+    Description  string
+    Entrypoint   string
+    PluginDir    string
+    ConfigHash   string
+    GroupID      string
+    // ...
+}
+```
+
+### 4. `infra/` — Implementações Concretas (Adapters)
+
+**Responsabilidade**: Implementar as interfaces definidas em `ports/` usando bibliotecas reais (SQLite, os/exec, git, etc.).
+
+```go
+// OS implement ports.Filesystem usando o sistema de arquivos real.
+type OS struct{}
+
+func (OS) RemoveAll(path string) error { return os.RemoveAll(path) }
+func (OS) MkdirAll(path string, perm fs.FileMode) error { return os.MkdirAll(path, perm) }
+```
+
+### 5. `ports/` — Interfaces (Contratos)
+
+**Responsabilidade**: Definir contratos que o usecase espera. São a fronteira entre domínio e infra.
+
+```go
+type Filesystem interface {
+    RemoveAll(path string) error
+    MkdirAll(path string, perm fs.FileMode) error
+    Stat(name string) (fs.FileInfo, error)
+    IsNotExist(err error) bool
+    ReadDir(name string) ([]fs.DirEntry, error)
+    Getwd() (string, error)
+}
+```
+
+### 6. `module/` — Wire de Dependência (Fx)
+
+**Responsabilidade**: Conectar interfaces às suas implementações usando `go.uber.org/fx`.
+
+```go
+// InfraModule fornece implementações reais para as portas de infraestrutura.
+var InfraModule = fx.Module("infra",
+    fx.Provide(
+        func() ports.Filesystem { return mbfs.OS{} },
+        func() ports.GitOperations { return plugins.GitService{} },
+        func() ports.ShellHelperInstaller { return shellhelpers.Installer{} },
+        func() ports.PluginLayoutValidator { return plugins.LayoutValidator{} },
+    ),
+)
+```
+
+### 7. `fakes/` — Test Doubles
+
+**Responsabilidade**: Implementações de teste das interfaces de `ports/`, para uso em testes unitários.
+
+```go
+func TestAddPluginService_InvalidPath(t *testing.T) {
+    fsys := fakes.NewFakeFS()
+    git := fakes.NewFakeGit()
+    logger := fakes.NewFakeLogger()
+    // ...
+    err := svc.Add(t.Context(), addplugin.Request{Source: "/nonexistent"}, logger)
+    // assert error
+}
+```
+
+## Fluxo de Injeção de Dependência
+
+```text
+main.go
+  └── bootstrap.Bootstrap()
+        └── fx.New(
+              PathsModule        → resolve ConfigDir, PluginsDir, CacheDBPath
+              CacheModule        → SQLite Store (com lifecycle close)
+              PluginsModule      → PluginScanner
+              ExecutorModule     → ScriptExecutor
+              DepsModule         → SecretStore, OnePasswordEnv, Dependencies
+              InfraModule        → OS, GitService, ShellInstaller, LayoutValidator
+              CLIModule          → Root Command (recebe deps + portas de infra)
+            )
+        └── fx.Populate(&rootCmd)
+```
+
+O `NewRootCmd` recebe `deps.Dependencies` + as 4 interfaces de infra (`Filesystem`, `GitOperations`, `ShellHelperInstaller`, `PluginLayoutValidator`) e constrói internamente os services de usecase. O Fx resolve tudo automaticamente.
+
+## Como Adicionar um Novo Usecase
+
+1. **Criar o serviço** em `internal/usecase/<nome>/service.go`:
+
+   ```go
+   package meuusecase
+
+   type Service struct {
+       store ports.PluginCacheStore
+       fsys  ports.Filesystem
+       // apenas interfaces!
+   }
+
+   func New(store ports.PluginCacheStore, fsys ports.Filesystem) *Service {
+       return &Service{store: store, fsys: fsys}
+   }
+
+   func (s *Service) Execute(ctx context.Context, req Request, log Logger) error {
+       // lógica de negócio
+   }
+   ```
+
+2. **Construir no `root/command.go`** — adicione as interfaces necessárias na assinatura do `NewRootCmd` e construa o serviço internamente:
+
+   ```go
+   func NewRootCmd(
+       d deps.Dependencies,
+       fsys ports.Filesystem,
+       git  ports.GitOperations,
+       // ... adicione novas interfaces aqui
+   ) RootCommand {
+       meuSvc := meuusecase.New(d.Store, fsys)
+       // ...
+   }
+   ```
+
+3. **Passar o serviço para o sub-comando**:
+
+   ```go
+   meuCmd := meupacote.NewCmd(meuSvc, d)
+   rootCmd.AddCommand(meuCmd)
+   ```
+
+4. **Reduzir o `RunE`** do Cobra a 3-5 linhas chamando `svc.Execute(...)`.
+
+5. **Criar testes** usando `internal/fakes/`:
+
+   ```go
+   func TestMeuUsecase_Cenario(t *testing.T) {
+       fsys := fakes.NewFakeFS()
+       store := &fakeStore{...}
+       logger := fakes.NewFakeLogger()
+       svc := meuusecase.New(store, fsys)
+       err := svc.Execute(t.Context(), Request{...}, logger)
+       // assertions
+   }
+   ```
+
+## Diretrizes
+
+| Princípio | Descrição |
+|-----------|-----------|
+| **Dependência aponta para dentro** | `cli` → `usecase` → `ports` ← `infra` |
+| **Interfaces no centro** | `ports/` define contratos; `infra/` implementa |
+| **Cobra é thin** | `RunE` parse args, chama usecase, exibe resultado |
+| **Logger por chamada** | Logger é passado por parâmetro, não injetado no constructor |
+| **Testes com fakes** | `internal/fakes/` para testes unitários; SQLite real para integração |
+| **Sem variáveis globais** | Tudo injetado via Fx ou parâmetro |
+| **Sem `init()` para DI** | Fx resolve o grafo de dependência automaticamente |
+| **Sem módulos Fx por usecase** | Modules Fx são para infraestrutura; usecases são construídos no `root/command.go` |

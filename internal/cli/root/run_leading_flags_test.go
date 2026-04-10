@@ -55,7 +55,8 @@ func TestRootRun_LeadingEnvInjectsMergedEnv(t *testing.T) {
 		Paths: deps.Paths{ConfigDir: cfgDir, DefaultEnvPath: def},
 	}
 	d := testRootDepsRunFlags(t, cfgDir, rt)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	r, w, err := os.Pipe()
@@ -64,7 +65,7 @@ func TestRootRun_LeadingEnvInjectsMergedEnv(t *testing.T) {
 	}
 	origOut := os.Stdout
 	os.Stdout = w
-	root.SetArgs([]string{"run", "-e", "MB_RUN_LEAD=ok", "sh", "-c", `echo -n "$MB_RUN_LEAD"`})
+	root.SetArgs([]string{"run", "-e", "MB_RUN_LEAD=ok", "sh", "-c", `printf '%s' "$MB_RUN_LEAD"`})
 	execErr := root.Execute()
 	_ = w.Close()
 	os.Stdout = origOut
@@ -102,7 +103,8 @@ func TestRootRun_LeadingEnvGroup(t *testing.T) {
 		Paths: deps.Paths{ConfigDir: cfgDir, DefaultEnvPath: def},
 	}
 	d := testRootDepsRunFlags(t, cfgDir, rt)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	r, w, err := os.Pipe()
@@ -111,7 +113,7 @@ func TestRootRun_LeadingEnvGroup(t *testing.T) {
 	}
 	origOut := os.Stdout
 	os.Stdout = w
-	root.SetArgs([]string{"run", "--env-group", "gprod", "sh", "-c", `echo -n "$MB_RUN_GROUP"`})
+	root.SetArgs([]string{"run", "--env-group", "gprod", "sh", "-c", `printf '%s' "$MB_RUN_GROUP"`})
 	execErr := root.Execute()
 	_ = w.Close()
 	os.Stdout = origOut
@@ -142,7 +144,8 @@ func TestRootRun_CombineRootAndRunEnvFlags(t *testing.T) {
 		Paths: deps.Paths{ConfigDir: cfgDir, DefaultEnvPath: def},
 	}
 	d := testRootDepsRunFlags(t, cfgDir, rt)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	r, w, err := os.Pipe()
@@ -151,7 +154,7 @@ func TestRootRun_CombineRootAndRunEnvFlags(t *testing.T) {
 	}
 	origOut := os.Stdout
 	os.Stdout = w
-	root.SetArgs([]string{"-e", "A=1", "run", "-e", "B=2", "sh", "-c", `echo -n "$A$B"`})
+	root.SetArgs([]string{"-e", "A=1", "run", "-e", "B=2", "sh", "-c", `printf '%s' "$A$B"`})
 	execErr := root.Execute()
 	_ = w.Close()
 	os.Stdout = origOut
@@ -182,7 +185,8 @@ func TestRootRun_GrepStyleFlagsAfterCommand(t *testing.T) {
 		Paths: deps.Paths{ConfigDir: cfgDir, DefaultEnvPath: def},
 	}
 	d := testRootDepsRunFlags(t, cfgDir, rt)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	r, w, err := os.Pipe()

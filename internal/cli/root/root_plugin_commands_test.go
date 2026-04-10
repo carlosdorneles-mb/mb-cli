@@ -55,7 +55,8 @@ func TestRootCmdAttachIncludesPluginTools(t *testing.T) {
 		nil,
 		nil,
 	)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 
 	var found bool
 	for _, c := range root.Commands() {
@@ -113,7 +114,8 @@ func TestRootCmdLocalPluginCommandShortContainsLocal(t *testing.T) {
 		nil,
 		nil,
 	)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 
 	var toolsCmd *cobra.Command
 	for _, c := range root.Commands() {

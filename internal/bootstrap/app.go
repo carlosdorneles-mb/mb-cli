@@ -8,6 +8,7 @@ import (
 	"mb/internal/module/cli"
 	"mb/internal/module/deps"
 	"mb/internal/module/executor"
+	"mb/internal/module/infra"
 	"mb/internal/module/plugins"
 	runtimemod "mb/internal/module/runtime"
 )
@@ -24,6 +25,7 @@ func Bootstrap() (*fx.App, root.RootCommand, error) {
 			plugins.PluginsModule,
 			executor.ExecutorModule,
 			deps.DepsModule,
+			infra.InfraModule,
 			cli.CLIModule,
 		),
 		fx.Populate(&rootCmd),

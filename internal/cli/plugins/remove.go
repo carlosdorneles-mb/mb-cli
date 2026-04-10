@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appplugins "mb/internal/app/plugins"
+	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/deps"
 	mbfs "mb/internal/infra/fs"
 	"mb/internal/infra/shellhelpers"

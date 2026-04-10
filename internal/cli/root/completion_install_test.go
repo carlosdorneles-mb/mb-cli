@@ -42,7 +42,8 @@ func TestCompletionInstall_yesWritesBashrc(t *testing.T) {
 		nil,
 		nil,
 	)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetIn(strings.NewReader(""))
@@ -89,7 +90,8 @@ func TestCompletionInstall_nonTTYRequiresYes(t *testing.T) {
 		nil,
 		nil,
 	)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetIn(strings.NewReader(""))
@@ -128,7 +130,8 @@ func TestCompletionUninstall_yesRemovesBlock(t *testing.T) {
 		nil,
 		nil,
 	)
-	root := NewRootCmd(d)
+	fsys, git, shell, layout := testRootInfraPorts(t)
+	root := NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetIn(strings.NewReader(""))
@@ -137,7 +140,8 @@ func TestCompletionUninstall_yesRemovesBlock(t *testing.T) {
 		t.Fatalf("install: %v", err)
 	}
 
-	root = NewRootCmd(d)
+	fsys, git, shell, layout = testRootInfraPorts(t)
+	root = NewRootCmd(d, fsys, git, shell, layout)
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
 	root.SetIn(strings.NewReader(""))

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	appplugins "mb/internal/app/plugins"
+	appplugins "mb/internal/usecase/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/system"
 )

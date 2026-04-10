@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appupdate "mb/internal/app/update"
+	appupdate "mb/internal/usecase/update"
 	"mb/internal/cli/plugins"
 	"mb/internal/deps"
 	"mb/internal/ports"

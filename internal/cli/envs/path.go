@@ -3,7 +3,7 @@ package envs
 import (
 	"sort"
 
-	appenvs "mb/internal/app/envs"
+	appenvs "mb/internal/usecase/envs"
 	"mb/internal/deps"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appenvs "mb/internal/app/envs"
+	appenvs "mb/internal/usecase/envs"
 	"mb/internal/deps"
 	"mb/internal/shared/system"
 )

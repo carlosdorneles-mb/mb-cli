@@ -17,10 +17,12 @@ import (
 	"mb/internal/cli/update"
 	"mb/internal/deps"
 	"mb/internal/infra/browser"
+	"mb/internal/ports"
 	"mb/internal/shared/config"
 	"mb/internal/shared/env"
 	"mb/internal/shared/ui"
 	"mb/internal/shared/version"
+	"mb/internal/usecase/addplugin"
 )
 
 type RootCommand = *cobra.Command
@@ -33,7 +35,14 @@ func docsURLForRuntime(d deps.Dependencies) string {
 	return config.DefaultDocsURL
 }
 
-func NewRootCmd(d deps.Dependencies) RootCommand {
+func NewRootCmd(
+	d deps.Dependencies,
+	fsys ports.Filesystem,
+	git ports.GitOperations,
+	shell ports.ShellHelperInstaller,
+	layout ports.PluginLayoutValidator,
+) RootCommand {
+	addPluginSvc := buildAddPluginService(d, fsys, git, shell, layout)
 	var openDoc bool
 	rootCmd := &cobra.Command{
 		Use:   "mb",
@@ -83,7 +92,7 @@ func NewRootCmd(d deps.Dependencies) RootCommand {
 	runCmd.GroupID = "commands"
 	rootCmd.AddCommand(runCmd)
 
-	pluginsCmd := plugins.NewPluginsCmd(d)
+	pluginsCmd := plugins.NewPluginsCmd(addPluginSvc, d)
 	pluginsCmd.GroupID = "commands"
 	rootCmd.AddCommand(pluginsCmd)
 
@@ -204,4 +213,27 @@ Em ambientes não interativos é obrigatório --yes (ou use --dry-run para pré-
 			f.Usage = "Desativa as descrições no autocompletar"
 		}
 	}
+}
+
+func buildAddPluginService(
+	d deps.Dependencies,
+	fsys ports.Filesystem,
+	git ports.GitOperations,
+	shell ports.ShellHelperInstaller,
+	layout ports.PluginLayoutValidator,
+) *addplugin.Service {
+	syncer := addplugin.NewSyncer()
+	return addplugin.New(
+		addplugin.Runtime{
+			ConfigDir:  d.Runtime.ConfigDir,
+			PluginsDir: d.Runtime.PluginsDir,
+		},
+		d.Store,
+		d.Scanner,
+		fsys,
+		git,
+		shell,
+		layout,
+		syncer,
+	)
 }

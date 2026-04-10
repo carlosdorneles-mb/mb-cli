@@ -4,9 +4,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	"mb/internal/usecase/addplugin"
 )
 
-func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
+func NewPluginsCmd(svc *addplugin.Service, deps deps.Dependencies) *cobra.Command {
 	pluginsCmd := &cobra.Command{
 		Use:     "plugins",
 		Aliases: []string{"plugin", "p", "extensions", "e"},
@@ -14,7 +15,7 @@ func NewPluginsCmd(deps deps.Dependencies) *cobra.Command {
 	}
 	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	addCmd := newPluginsAddCmd(deps)
+	addCmd := newPluginsAddCmd(svc, deps)
 	addCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(addCmd)
 	listCmd := newPluginsListCmd(deps)

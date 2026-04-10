@@ -13,6 +13,7 @@ import (
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
 	"mb/internal/shared/config"
+	"mb/internal/usecase/addplugin"
 )
 
 // testPluginsDeps returns dependencies with isolated temp dirs (cache, plugins, config).
@@ -74,9 +75,17 @@ func writeMinimalRunnablePluginNamed(t *testing.T, dir, command string) {
 	}
 }
 
+// testAddPluginService creates a minimal AddPlugin service for tests.
+func testAddPluginService(t *testing.T) *addplugin.Service {
+	t.Helper()
+	svc, _ := testAddService(t)
+	return svc
+}
+
 func TestNewPluginsCmd(t *testing.T) {
 	d := testPluginsDeps(t)
-	cmd := NewPluginsCmd(d)
+	svc := testAddPluginService(t)
+	cmd := NewPluginsCmd(svc, d)
 
 	if cmd.Use != "plugins" {
 		t.Errorf("Use = %q, want plugins", cmd.Use)
@@ -104,7 +113,8 @@ func TestNewPluginsCmd(t *testing.T) {
 
 func TestPluginsSyncRuns(t *testing.T) {
 	d := testPluginsDeps(t)
-	cmd := NewPluginsCmd(d)
+	svc := testAddPluginService(t)
+	cmd := NewPluginsCmd(svc, d)
 	var syncCmd *cobra.Command
 	for _, c := range cmd.Commands() {
 		if c.Name() == "sync" {

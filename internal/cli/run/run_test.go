@@ -99,7 +99,7 @@ func TestNewRunCmd_InjectsCwdDotenv(t *testing.T) {
 	root.AddCommand(NewRunCmd(d))
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs([]string{"run", "sh", "-c", "echo -n \"$MB_RUN_INJECT\""})
+	root.SetArgs([]string{"run", "sh", "-c", `printf '%s' "$MB_RUN_INJECT"`})
 
 	r, w, err := os.Pipe()
 	if err != nil {
