@@ -145,8 +145,3 @@ echo "API_KEY está definida? ${API_KEY:-não}"
 Se você definiu `API_KEY` com `mb envs set API_KEY=seu-valor` ou com `--env API_KEY=abc`, o plugin verá o valor ao ser executado.
 
 Para detalhes de implementação (onde no código o merge é feito e como é passado ao processo do plugin), veja a [Referência técnica](../technical-reference/plugins.md).
-
-## Paths e grupos de vault
-
-- **`mb envs path`** — Mostra o caminho completo do ficheiro de ambiente padrão (`env.defaults`). Útil para confirmar qual ficheiro está a ser lido ou para copiar/backup.
-- **`mb envs groups`** — Lista os grupos de ambiente disponíveis como tabela (nome do vault + caminho do ficheiro). Equivalente a `mb envs vaults`. Use **`--json`** para saída em JSON.

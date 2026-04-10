@@ -18,15 +18,25 @@ O **MB CLI** é uma ferramenta de linha de comando para **estender o que você p
 **Guia (uso do dia a dia)**
 
 - [Começar](./getting-started/) — pré-requisitos, instalação e primeiros passos
-- [Comandos de plugins](./user-guide/plugin-commands.md) — como descobrir e executar comandos de plugins
-- [Criar um plugin](./plugin-authoring/create-a-plugin.md) — passo a passo com manifest e scripts
-- [Flags globais](./user-guide/global-flags.md) — `--verbose`, `--quiet`, `--env`
 - [Variáveis de ambiente](./user-guide/environment-variables.md) — ordem de precedência e como usar
+- [Comandos de plugins](./user-guide/plugin-commands.md) — como descobrir e executar comandos de plugins
+- [Flags globais](./user-guide/global-flags.md) — `--verbose`, `--quiet`, `--env`
 - [Segurança](./user-guide/security.md) — de onde vem o código que roda e boas práticas
+
+**Comandos do CLI** (referência de uso)
+
+- [`mb envs`](./commands/envs.md) — listar, definir e remover variáveis de ambiente
+- [`mb plugins`](./commands/plugins.md) — adicionar, listar, remover, atualizar e sincronizar
+- [`mb run`](./commands/run.md) — executar qualquer programa com o ambiente mesclado
+- [`mb update`](./commands/update.md) — atualizar plugins, CLI, ferramentas e sistema
+- [`mb completion`](./commands/completion.md) — instalar e gerenciar autocompletar
+- [`mb help`](./commands/help.md) — ajuda sobre qualquer comando
 
 **Referência técnica** (implementação, cache, fluxos internos)
 
 - [Arquitetura](./technical-reference/architecture.md) — como o CLI monta comandos, cache e execução
 - [Plugins](./technical-reference/plugins.md) — descoberta de plugins, sync e execução em detalhe
+- [Criar um plugin](./plugin-authoring/create-a-plugin.md) — passo a passo com manifest e scripts
+- [Helpers de shell](./plugin-authoring/shell-helpers.md) — funções utilitárias para plugins
 - [Referência de comandos](./technical-reference/reference.md) — tabela de comandos e flags
 - [Versionamento e release](./technical-reference/versioning-and-release.md) — versões e publicação do projeto

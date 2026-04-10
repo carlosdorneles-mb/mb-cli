@@ -1,0 +1,9 @@
+{
+  "label": "Comandos do CLI",
+  "position": 3,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Referência de uso para cada comando interno do MB CLI."
+  }
+}

@@ -202,7 +202,7 @@ mb plugins add .
 
 O MB **não** valida o manifest na hora do `add` como no modo coleção; o **`mb plugins sync`** (disparado pelo add) pode mostrar **avisos** e **ignorar** manifests inválidos. Corrija avisos e volte a sincronizar.
 
-**Mesmo pacote outra vez:** `mb plugins add` com o mesmo identificador de pacote **substitui** a instalação anterior (clone remoto de novo por cima do diretório em `PluginsDir`, ou atualização do path local). O sync compara o hash do `manifest.yaml` por comando e regista na consola comandos **novos**, **atualizados** ou **removidos** do pacote. Com **`mb plugins sync --no-remove`** (ou **`mb plugins add ... --no-remove`**), comandos que deixaram de existir na árvore **mantêm-se** no cache (entrada órfã; o executável pode já não existir).
+**Mesmo pacote outra vez:** `mb plugins add` com o mesmo identificador de pacote **substitui** a instalação anterior (clone remoto de novo por cima do diretório em `PluginsDir`, ou atualização do path local). O sync compara o hash do `manifest.yaml` por comando e regista na consola comandos **novos**, **atualizados** ou **removidos** do pacote.
 
 ### Vários plugins numa pasta (modo coleção)
 

@@ -6,7 +6,9 @@ sidebar_position: 4
 
 O MB CLI oferece algumas flags que valem para qualquer comando e afetam o nível de saída e o ambiente. **`-v` e `-q` podem ser usados em qualquer posição:** antes ou depois do subcomando (por exemplo `mb -v tools hello` ou `mb tools hello -v`). Em ambos os casos o plugin recebe `MB_VERBOSE`/`MB_QUIET` conforme a flag.
 
-## --verbose / -v
+## Verbose e Quiet
+
+### --verbose / -v
 
 **O que faz:** Ativa saída mais verbosa. O CLI pode exibir mensagens adicionais de diagnóstico ou logs que ajudam a entender o que está acontecendo.
 
@@ -22,7 +24,7 @@ mb --verbose plugins sync
 mb -v tools meu-comando
 ```
 
-## --quiet / -q
+### --quiet / -q
 
 **O que faz:** Reduz ou suprime mensagens informativas. O CLI evita imprimir avisos ou mensagens de progresso que não sejam estritamente necessárias.
 
@@ -39,7 +41,7 @@ mb -q update --only-cli --check-only   # só código de saída (ex.: 2 = há atu
 mb -q tools meu-comando
 ```
 
-## Uso em plugins de shell
+### Uso em plugins de shell
 
 Em plugins escritos em shell, você pode ler `MB_VERBOSE` e `MB_QUIET` para decidir se imprime mensagens e em qual nível. Assim o plugin respeita a preferência do usuário ao usar `-v` ou `-q`.
 
@@ -68,6 +70,40 @@ mb --env-vault staging tools deploy
 ```
 
 O nome do vault segue as mesmas regras que em `mb envs set --vault`. Detalhes em [Variáveis de ambiente](./environment-variables.md).
+
+## --help / -h
+
+**O que faz:** Exibe a ajuda do comando atual, incluindo descrição, sintaxe, flags disponíveis e subcomandos.
+
+**Uso:** A flag `-h` / `--help` está disponível em **todos os comandos e subcomandos**, incluindo os gerados dinamicamente a partir de plugins instalados.
+
+```bash
+mb --help                       # ajuda geral (igual a mb)
+mb envs --help                  # ajuda do subcomando envs
+mb plugins add --help           # ajuda do subcomando add
+mb plugins add -h               # mesmo efeito com a forma curta
+```
+
+### Equivalência com `mb help`
+
+O mesmo efeito pode ser obtido com o comando `mb help`:
+
+| Forma | Resultado |
+|---|---|
+| `mb help <cmd>` | Ajuda formatada do comando |
+| `mb <cmd> --help` | Ajuda inline do comando |
+| `mb <cmd> -h` | Ajuda inline do comando (forma curta) |
+
+Para comandos aninhados:
+
+```bash
+mb help plugins add             # ajuda do subcomando add
+mb plugins add --help           # mesmo resultado
+```
+
+> **Nota:** Para `mb run`, prefira `mb help run` em vez de `mb run --help`, pois o `--help` pode ser repassado ao programa filho.
+
+Para mais detalhes sobre o comando `mb help`, veja [`mb help`](../commands/help.md).
 
 ## --doc
 

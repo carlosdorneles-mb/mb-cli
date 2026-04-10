@@ -1,0 +1,113 @@
+---
+sidebar_position: 3
+---
+
+# `mb run`
+
+Executa qualquer programa **com o mesmo ambiente mesclado dos plugins**. Este é o principal objetivo do comando: **injetar variáveis de ambiente, secrets e configurações do CLI** no processo filho, sem que o programa precise saber nada sobre o MB.
+
+## Por que usar `mb run`?
+
+Em vez de configurar variáveis de ambiente manualmente a cada execução, o `mb run` mescla automaticamente:
+
+- **`env.defaults`** — variáveis persistentes definidas com `mb envs set`
+- **Vaults** — overlays com `--env-vault` (ex: staging, prod)
+- **Secrets** — valores do keyring e 1Password (resolvidos automaticamente)
+- **Flags inline** — `--env KEY=VALUE` e `--env-file` na linha de comando
+- **`.env` do cwd** — arquivo no diretório atual (se existir)
+
+Tudo isso vai para o ambiente do subprocesso. O programa executado não precisa fazer nada especial — recebe as variáveis como se tivessem sido exportadas no shell.
+
+## Uso básico
+
+```bash
+mb run python script.py          # script recebe API_KEY, DB_HOST, etc.
+mb run uv sync                   # uv recebe o ambiente completo
+mb run ./meu-script.sh           # script herda secrets e vaults
+```
+
+## Precedência de flags globais
+
+As flags do MB podem ir **antes** de `run` ou **logo após** `run`. O que importa é que fiquem **antes do nome do executável**:
+
+```bash
+# Flags antes do run
+mb --env-vault staging -e FOO=bar run python script.py
+
+# Flags depois do run, mas antes do executável (mesmo efeito)
+mb run --env-vault staging -e FOO=bar python script.py
+```
+
+**A regra é:** tudo antes do executável → flags do MB. Tudo depois do executável → argumentos do filho.
+
+```bash
+mb run --env KEY=val python script.py    # --env vai para o MB, script.py vai para o python
+mb run python --env KEY=val script.py    # --env vai para o python (pode não funcionar)
+```
+
+## Argumentos do programa filho
+
+O que vier **depois do nome do executável** é repassado como argumento ao programa:
+
+```bash
+mb run grep -r padrão .          # -r e "." vão para o grep
+mb run pytest -v tests/          # -v e tests/ vão para o pytest
+```
+
+### E se o programa filho precisar de flags que começam com `-`?
+
+O MB CLI tenta interpretar flags que começam com `-` **antes** do nome do executável. Se o seu programa filho precisa receber algo como `-v` ou `--verbose` que **também** é uma flag do MB, use `--` para dizer ao MB "pare de interpretar flags, repassa tudo a seguir":
+
+```bash
+# Sem --: o MB pode confundir as flags do filho com as dele
+mb run meu-script --verbose       # --verbose pode ser consumido pelo MB
+
+# Com --: tudo depois de -- vai literalmente para o programa filho
+mb run -- meu-script --verbose    # --verbose vai para meu-script, não para o MB
+```
+
+**Exemplo prático:** um script que aceita `-e` (que também é flag do MB):
+
+```bash
+# O MB tenta consumir -e como --env → erro ou comportamento inesperado
+mb run processador -e input.txt
+
+# Com --: -e vai para o processador
+mb run -- processador -e input.txt
+```
+
+## Ambiente injetado (ordem de precedência)
+
+O subprocesso recebe o ambiente mesclado nesta ordem (da menor para a maior precedência):
+
+1. Variáveis do sistema (`os.Environ()`)
+2. `env.defaults` (`~/.config/mb/env.defaults`)
+3. Vault com `--env-vault` (`~/.config/mb/.env.<nome>`)
+4. `.env` no diretório atual (cwd)
+5. `--env-file <path>`
+6. `--env KEY=VALUE` (maior precedência)
+
+Além das variáveis definidas pelo usuário, o subprocesso recebe:
+
+| Variável | Valor |
+|---|---|
+| `MB_VERBOSE` | `1` se `-v` foi usada |
+| `MB_QUIET` | `1` se `-q` foi usada |
+| `MB_HELPERS_PATH` | `~/.config/mb/lib/shell` |
+| `GUM_*` | Variáveis de tema (cores do MB) |
+
+Para mais detalhes sobre ambiente e precedência, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+
+## Stdin, stdout, stderr e código de saída
+
+O subprocesso herda stdin, stdout e stderr do terminal. O **código de saída** do programa filho é propagado (não fica sempre `1` em caso de falha).
+
+## Ajuda
+
+Para ajuda deste comando use:
+
+```bash
+mb help run
+```
+
+> Evite `mb run --help`, pois o `--help` pode ser repassado ao programa filho.

@@ -29,11 +29,15 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Criar Plugins',
-      collapsed: true,
+      label: 'Comandos do CLI',
+      collapsed: false,
       items: [
-        'plugin-authoring/create-a-plugin',
-        'plugin-authoring/shell-helpers',
+        'commands/envs',
+        'commands/plugins',
+        'commands/run',
+        'commands/update',
+        'commands/completion',
+        'commands/help',
       ],
     },
     {
@@ -48,6 +52,15 @@ const sidebars = {
         'technical-reference/cli-config',
         'technical-reference/reference',
         'technical-reference/versioning-and-release',
+        {
+          type: 'category',
+          label: 'Criar Plugins',
+          collapsed: true,
+          items: [
+            'plugin-authoring/create-a-plugin',
+            'plugin-authoring/shell-helpers',
+          ],
+        },
       ],
     },
   ],
