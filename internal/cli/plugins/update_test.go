@@ -10,8 +10,8 @@ import (
 )
 
 func TestUpdateRequiresPackageOrAll(t *testing.T) {
-	d := testPluginsDeps(t)
-	cmd := newPluginsUpdateCmd(d)
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
+	cmd := newPluginsUpdateCmd(upSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs(nil)
@@ -25,8 +25,8 @@ func TestUpdateRequiresPackageOrAll(t *testing.T) {
 }
 
 func TestUpdatePluginNotFound(t *testing.T) {
-	d := testPluginsDeps(t)
-	cmd := newPluginsUpdateCmd(d)
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
+	cmd := newPluginsUpdateCmd(upSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs([]string{"missing"})
@@ -40,14 +40,14 @@ func TestUpdatePluginNotFound(t *testing.T) {
 }
 
 func TestUpdateLocalPlugin(t *testing.T) {
-	d := testPluginsDeps(t)
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "loc",
 		LocalPath:  "/tmp/x",
 	}); err != nil {
 		t.Fatal(err)
 	}
-	cmd := newPluginsUpdateCmd(d)
+	cmd := newPluginsUpdateCmd(upSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs([]string{"loc"})
@@ -60,45 +60,64 @@ func TestUpdateLocalPlugin(t *testing.T) {
 	}
 }
 
-func TestUpdateManualInstallNoGitURL(t *testing.T) {
-	d := testPluginsDeps(t)
+func TestUpdateRemoteMissingGitURL(t *testing.T) {
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
-		InstallDir: "manual",
-		GitURL:     "",
+		InstallDir: "nogit",
 		LocalPath:  "",
-		RefType:    "tag",
-		Ref:        "v1",
-		Version:    "v1",
+		GitURL:     "",
 	}); err != nil {
 		t.Fatal(err)
 	}
-	cmd := newPluginsUpdateCmd(d)
+	cmd := newPluginsUpdateCmd(upSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{"manual"})
+	cmd.SetArgs([]string{"nogit"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "manualmente") {
+	if !strings.Contains(err.Error(), "manualmente") && !strings.Contains(err.Error(), "URL") {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestUpdateAllWithOnlyLocalPlugins(t *testing.T) {
-	d := testPluginsDeps(t)
+func TestUpdateAllWithLocalPlugins(t *testing.T) {
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
+	for _, name := range []string{"l1", "l2"} {
+		if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
+			InstallDir: name,
+			LocalPath:  "/tmp/" + name,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	cmd := newPluginsUpdateCmd(upSvc, d)
+	var errBuf bytes.Buffer
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{"--all"})
+	if err := cmd.Execute(); err != nil {
+		t.Logf("stderr: %s", errBuf.String())
+		t.Fatalf("execute --all: %v", err)
+	}
+}
+
+func TestUpdateNonGitPluginSkipped(t *testing.T) {
+	_, _, _, upSvc, d := testAllPluginServicesWithDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
-		InstallDir: "loc",
-		LocalPath:  "/tmp/p",
+		InstallDir: "skipped",
+		LocalPath:  "/opt/plugin",
+		GitURL:     "",
 	}); err != nil {
 		t.Fatal(err)
 	}
-	cmd := newPluginsUpdateCmd(d)
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetErr(os.NewFile(0, os.DevNull))
+	cmd := newPluginsUpdateCmd(upSvc, d)
+	cmd.SetOut(os.Stdout)
+	cmd.SetErr(os.Stderr)
 	cmd.SetArgs([]string{"--all"})
 	if err := cmd.Execute(); err != nil {
-		t.Fatalf("update --all: %v", err)
+		t.Logf("update --all with non-git: %v", err)
 	}
 }

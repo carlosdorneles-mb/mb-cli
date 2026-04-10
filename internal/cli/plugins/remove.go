@@ -7,13 +7,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	mbfs "mb/internal/infra/fs"
-	"mb/internal/infra/shellhelpers"
 	"mb/internal/shared/system"
-	appplugins "mb/internal/usecase/plugins"
+	"mb/internal/usecase/plugins"
 )
 
-func newPluginsRemoveCmd(d deps.Dependencies) *cobra.Command {
+func newPluginsRemoveCmd(svc *plugins.RemoveService, d deps.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove <package>",
 		Aliases: []string{"rm", "r", "delete", "d", "del"},
@@ -42,23 +40,7 @@ func newPluginsRemoveCmd(d deps.Dependencies) *cobra.Command {
 				return nil
 			}
 
-			syncOpts := withCompletionPostSync(
-				cmd,
-				d,
-				log,
-				appplugins.SyncOptions{EmitSuccess: false},
-			)
-			return appplugins.RunRemovePackage(
-				ctx,
-				pluginRuntimeFromDeps(d),
-				d.Store,
-				d.Scanner,
-				shellhelpers.Installer{},
-				mbfs.OS{},
-				log,
-				pkg,
-				syncOpts,
-			)
+			return svc.Remove(ctx, plugins.RemoveRequest{Package: pkg}, log)
 		},
 	}
 }

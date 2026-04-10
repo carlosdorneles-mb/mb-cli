@@ -8,11 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"mb/internal/cli/plugins"
+	appupdate "mb/internal/usecase/update"
 	"mb/internal/deps"
 	"mb/internal/ports"
 	"mb/internal/shared/system"
-	appupdate "mb/internal/usecase/update"
+	"mb/internal/usecase/plugins"
 )
 
 // machineSystemUpdateCommandPath is the plugin cache command_path that owns exposing
@@ -63,7 +63,7 @@ func storeHasToolsUpdateAll(store ports.PluginCLIStore) bool {
 }
 
 // NewUpdateCmd builds the root "mb update" cobra command.
-func NewUpdateCmd(d deps.Dependencies) *cobra.Command {
+func NewUpdateCmd(upSvc *plugins.UpdateService, d deps.Dependencies) *cobra.Command {
 	var onlyPlugins, onlyCLI, onlySystem, onlyTools, checkOnly, jsonOut bool
 
 	cmd := &cobra.Command{
@@ -92,7 +92,7 @@ Sem flags, executa todas as fases habilitadas. Use --only-plugins e/ou --only-cl
 				CheckOnly:   checkOnly,
 				JSON:        jsonOut,
 				RunAllGitPlugins: func(ctx context.Context) error {
-					return plugins.RunUpdateAll(ctx, cmd, d, log)
+					return upSvc.Update(ctx, plugins.UpdateRequest{}, log)
 				},
 			})
 		},

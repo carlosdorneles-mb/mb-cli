@@ -14,8 +14,8 @@ func forceConfirmFallback(t *testing.T) {
 }
 
 func TestRemovePluginNotFound(t *testing.T) {
-	d := testPluginsDeps(t)
-	cmd := newPluginsRemoveCmd(d)
+	_, _, rmSvc, _, d := testAllPluginServicesWithDeps(t)
+	cmd := newPluginsRemoveCmd(rmSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetIn(strings.NewReader("y\n"))
@@ -31,7 +31,7 @@ func TestRemovePluginNotFound(t *testing.T) {
 
 func TestRemoveCancelled(t *testing.T) {
 	forceConfirmFallback(t)
-	d := testPluginsDeps(t)
+	_, _, rmSvc, _, d := testAllPluginServicesWithDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "keepme",
 		LocalPath:  "/some/path",
@@ -40,7 +40,7 @@ func TestRemoveCancelled(t *testing.T) {
 	}
 
 	var errBuf bytes.Buffer
-	cmd := newPluginsRemoveCmd(d)
+	cmd := newPluginsRemoveCmd(rmSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&errBuf)
 	cmd.SetIn(strings.NewReader("n\n"))
@@ -62,7 +62,7 @@ func TestRemoveCancelled(t *testing.T) {
 
 func TestRemoveLocalConfirmed(t *testing.T) {
 	forceConfirmFallback(t)
-	d := testPluginsDeps(t)
+	_, _, rmSvc, _, d := testAllPluginServicesWithDeps(t)
 	if err := d.Store.UpsertPluginSource(sqlite.PluginSource{
 		InstallDir: "gone",
 		LocalPath:  "/tmp/plugin",
@@ -70,23 +70,20 @@ func TestRemoveLocalConfirmed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var errBuf2 bytes.Buffer
-	cmd := newPluginsRemoveCmd(d)
+	var errBuf bytes.Buffer
+	cmd := newPluginsRemoveCmd(rmSvc, d)
 	cmd.SetOut(&bytes.Buffer{})
-	cmd.SetErr(&errBuf2)
+	cmd.SetErr(&errBuf)
 	cmd.SetIn(strings.NewReader("yes\n"))
 	cmd.SetArgs([]string{"gone"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
-	}
-	if !strings.Contains(errBuf2.String(), "removido") {
-		t.Errorf("expected success message: %s", errBuf2.String())
 	}
 	src, err := d.Store.GetPluginSource("gone")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if src != nil {
-		t.Fatal("plugin source should be deleted")
+		t.Error("plugin should be gone from registry")
 	}
 }

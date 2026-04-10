@@ -23,6 +23,7 @@ import (
 	"mb/internal/shared/ui"
 	"mb/internal/shared/version"
 	"mb/internal/usecase/addplugin"
+	usecaseplugins "mb/internal/usecase/plugins"
 )
 
 type RootCommand = *cobra.Command
@@ -42,7 +43,7 @@ func NewRootCmd(
 	shell ports.ShellHelperInstaller,
 	layout ports.PluginLayoutValidator,
 ) RootCommand {
-	addPluginSvc := buildAddPluginService(d, fsys, git, shell, layout)
+	addPluginSvc, syncSvc, rmSvc, upSvc := buildPluginServices(d, fsys, git, shell, layout)
 	var openDoc bool
 	rootCmd := &cobra.Command{
 		Use:   "mb",
@@ -92,11 +93,11 @@ func NewRootCmd(
 	runCmd.GroupID = "commands"
 	rootCmd.AddCommand(runCmd)
 
-	pluginsCmd := plugins.NewPluginsCmd(addPluginSvc, d)
+	pluginsCmd := plugins.NewPluginsCmd(addPluginSvc, syncSvc, rmSvc, upSvc, d)
 	pluginsCmd.GroupID = "commands"
 	rootCmd.AddCommand(pluginsCmd)
 
-	updateCmd := update.NewUpdateCmd(d)
+	updateCmd := update.NewUpdateCmd(upSvc, d)
 	updateCmd.GroupID = "commands"
 	rootCmd.AddCommand(updateCmd)
 
@@ -215,19 +216,25 @@ Em ambientes não interativos é obrigatório --yes (ou use --dry-run para pré-
 	}
 }
 
-func buildAddPluginService(
+func buildPluginServices(
 	d deps.Dependencies,
 	fsys ports.Filesystem,
 	git ports.GitOperations,
 	shell ports.ShellHelperInstaller,
 	layout ports.PluginLayoutValidator,
-) *addplugin.Service {
+) (*addplugin.Service, *usecaseplugins.SyncService, *usecaseplugins.RemoveService, *usecaseplugins.UpdateService) {
+	rt := usecaseplugins.PluginRuntime{
+		ConfigDir:  d.Runtime.ConfigDir,
+		PluginsDir: d.Runtime.PluginsDir,
+		Quiet:      d.Runtime.Quiet,
+		Verbose:    d.Runtime.Verbose,
+	}
+
 	syncer := addplugin.NewSyncer()
-	return addplugin.New(
-		addplugin.Runtime{
-			ConfigDir:  d.Runtime.ConfigDir,
-			PluginsDir: d.Runtime.PluginsDir,
-		},
+	syncSvc := usecaseplugins.NewSyncService(rt, d.Store, d.Scanner, shell)
+
+	addPluginSvc := addplugin.New(
+		addplugin.Runtime{ConfigDir: d.Runtime.ConfigDir, PluginsDir: d.Runtime.PluginsDir},
 		d.Store,
 		d.Scanner,
 		fsys,
@@ -236,4 +243,9 @@ func buildAddPluginService(
 		layout,
 		syncer,
 	)
+
+	rmSvc := usecaseplugins.NewRemoveService(rt, d.Store, d.Scanner, shell, fsys, syncSvc)
+	upSvc := usecaseplugins.NewUpdateService(rt, d.Store, d.Scanner, shell, git, fsys, syncSvc)
+
+	return addPluginSvc, syncSvc, rmSvc, upSvc
 }

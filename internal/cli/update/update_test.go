@@ -1,6 +1,7 @@
 package update
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -12,7 +13,9 @@ import (
 	"mb/internal/infra/executor"
 	"mb/internal/infra/plugins"
 	"mb/internal/infra/sqlite"
+	"mb/internal/ports"
 	"mb/internal/shared/config"
+	usecaseplugins "mb/internal/usecase/plugins"
 )
 
 func testUpdateDeps(t *testing.T) deps.Dependencies {
@@ -49,9 +52,48 @@ func testUpdateDeps(t *testing.T) deps.Dependencies {
 	)
 }
 
+func testUpdatePluginService(t *testing.T) *usecaseplugins.UpdateService {
+	t.Helper()
+	d := testUpdateDeps(t)
+	rt := usecaseplugins.PluginRuntime{
+		ConfigDir:  d.Runtime.ConfigDir,
+		PluginsDir: d.Runtime.PluginsDir,
+	}
+	syncSvc := usecaseplugins.NewSyncService(rt, d.Store, d.Scanner, &dummyShellInstaller{})
+	return usecaseplugins.NewUpdateService(rt, d.Store, d.Scanner, &dummyShellInstaller{}, &dummyGitOps{}, &dummyFS{}, syncSvc)
+}
+
+type dummyShellInstaller struct{}
+
+func (dummyShellInstaller) EnsureShellHelpers(string) (string, error) { return "", nil }
+
+type dummyGitOps struct{}
+
+func (dummyGitOps) ParseGitURL(string) (string, string, error)              { return "", "", nil }
+func (dummyGitOps) Clone(context.Context, string, string, ports.GitCloneOpts) error { return nil }
+func (dummyGitOps) LatestTag(context.Context, string) (string, error)       { return "", nil }
+func (dummyGitOps) GetVersion(string) (string, error)                       { return "1.0.0", nil }
+func (dummyGitOps) GetCurrentBranch(string) (string, error)                 { return "main", nil }
+func (dummyGitOps) IsGitRepo(string) bool                                   { return false }
+func (dummyGitOps) FetchTags(context.Context, string) error                 { return nil }
+func (dummyGitOps) ListLocalTags(string) ([]string, error)                  { return nil, nil }
+func (dummyGitOps) NewerTag(string, string) (string, bool)                  { return "", false }
+func (dummyGitOps) CheckoutTag(context.Context, string, string) error       { return nil }
+func (dummyGitOps) FetchAndPull(context.Context, string, string) error      { return nil }
+
+type dummyFS struct{}
+
+func (dummyFS) RemoveAll(string) error                                      { return nil }
+func (dummyFS) MkdirAll(string, os.FileMode) error                          { return nil }
+func (dummyFS) Stat(name string) (os.FileInfo, error)                       { return os.Stat(name) }
+func (dummyFS) IsNotExist(err error) bool                                   { return os.IsNotExist(err) }
+func (dummyFS) ReadDir(name string) ([]os.DirEntry, error)                  { return os.ReadDir(name) }
+func (dummyFS) Getwd() (string, error)                                      { return os.Getwd() }
+
 func TestNewUpdateCmd(t *testing.T) {
 	d := testUpdateDeps(t)
-	cmd := NewUpdateCmd(d)
+	upSvc := testUpdatePluginService(t)
+	cmd := NewUpdateCmd(upSvc, d)
 	if cmd.Use != "update" {
 		t.Errorf("Use = %q, want update", cmd.Use)
 	}
@@ -93,7 +135,7 @@ func TestNewUpdateCmdOnlyToolsWithToolsPlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("UpsertPlugin: %v", err)
 	}
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	if ft := cmd.Flags().Lookup("only-tools"); ft == nil {
 		t.Error("flag only-tools missing when tools with update-all is in cache")
 	}
@@ -116,7 +158,7 @@ func TestNewUpdateCmdOnlyToolsAbsentWhenToolsWithoutUpdateAll(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("UpsertPlugin: %v", err)
 	}
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	if ft := cmd.Flags().Lookup("only-tools"); ft != nil {
 		t.Error("flag only-tools should be absent when tools has no update-all flag in cache")
 	}
@@ -134,7 +176,7 @@ func TestNewUpdateCmdOnlySystemWithMachineUpdatePlugin(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("UpsertPlugin: %v", err)
 	}
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	if fs := cmd.Flags().Lookup("only-system"); fs == nil {
 		t.Error("flag only-system missing when machine/update is in cache")
 	}
@@ -142,7 +184,7 @@ func TestNewUpdateCmdOnlySystemWithMachineUpdatePlugin(t *testing.T) {
 
 func TestUpdatePluginsAndCLICombinedNoError(t *testing.T) {
 	d := testUpdateDeps(t)
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(os.Stderr)
 	cmd.SetArgs([]string{"--only-plugins", "--only-cli"})
@@ -154,7 +196,7 @@ func TestUpdatePluginsAndCLICombinedNoError(t *testing.T) {
 
 func TestCheckOnlyWithoutOnlyCLIErrors(t *testing.T) {
 	d := testUpdateDeps(t)
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(os.Stderr)
 	cmd.SetArgs([]string{"--check-only"})
@@ -169,7 +211,7 @@ func TestCheckOnlyWithoutOnlyCLIErrors(t *testing.T) {
 
 func TestJSONWithoutOnlyCLIAndCheckOnlyErrors(t *testing.T) {
 	d := testUpdateDeps(t)
-	cmd := NewUpdateCmd(d)
+	cmd := NewUpdateCmd(testUpdatePluginService(t), d)
 	var errBuf strings.Builder
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(&errBuf)

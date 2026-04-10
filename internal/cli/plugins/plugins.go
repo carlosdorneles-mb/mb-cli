@@ -5,9 +5,16 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/usecase/addplugin"
+	"mb/internal/usecase/plugins"
 )
 
-func NewPluginsCmd(svc *addplugin.Service, deps deps.Dependencies) *cobra.Command {
+func NewPluginsCmd(
+	addSvc *addplugin.Service,
+	syncSvc *plugins.SyncService,
+	rmSvc *plugins.RemoveService,
+	upSvc *plugins.UpdateService,
+	deps deps.Dependencies,
+) *cobra.Command {
 	pluginsCmd := &cobra.Command{
 		Use:     "plugins",
 		Aliases: []string{"plugin", "p", "extensions", "e"},
@@ -15,19 +22,19 @@ func NewPluginsCmd(svc *addplugin.Service, deps deps.Dependencies) *cobra.Comman
 	}
 	pluginsCmd.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	addCmd := newPluginsAddCmd(svc, deps)
+	addCmd := newPluginsAddCmd(addSvc, deps)
 	addCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(addCmd)
 	listCmd := newPluginsListCmd(deps)
 	listCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(listCmd)
-	removeCmd := newPluginsRemoveCmd(deps)
+	removeCmd := newPluginsRemoveCmd(rmSvc, deps)
 	removeCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(removeCmd)
-	updateCmd := newPluginsUpdateCmd(deps)
+	updateCmd := newPluginsUpdateCmd(upSvc, deps)
 	updateCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(updateCmd)
-	syncCmd := newPluginsSyncCmd(deps)
+	syncCmd := newPluginsSyncCmd(syncSvc, deps)
 	syncCmd.GroupID = "commands"
 	pluginsCmd.AddCommand(syncCmd)
 	return pluginsCmd

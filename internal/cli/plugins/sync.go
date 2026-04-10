@@ -7,10 +7,10 @@ import (
 
 	"mb/internal/deps"
 	"mb/internal/shared/system"
-	appplugins "mb/internal/usecase/plugins"
+	"mb/internal/usecase/plugins"
 )
 
-func newPluginsSyncCmd(deps deps.Dependencies) *cobra.Command {
+func newPluginsSyncCmd(svc *plugins.SyncService, d deps.Dependencies) *cobra.Command {
 	var noRemove bool
 
 	cmd := &cobra.Command{
@@ -22,11 +22,11 @@ func newPluginsSyncCmd(deps deps.Dependencies) *cobra.Command {
 			if ctx == nil {
 				ctx = context.Background()
 			}
-			log := system.NewLogger(deps.Runtime.Quiet, deps.Runtime.Verbose, cmd.ErrOrStderr())
-			_, err := RunSync(ctx, cmd, deps, log, appplugins.SyncOptions{
+			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+			_, err := svc.Sync(ctx, plugins.SyncOptions{
 				EmitSuccess: true,
 				NoRemove:    noRemove,
-			})
+			}, log)
 			return err
 		},
 	}
