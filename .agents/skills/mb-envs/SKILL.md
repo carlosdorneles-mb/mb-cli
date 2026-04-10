@@ -22,7 +22,7 @@ description: >-
 | Comando | Notas |
 |--------|--------|
 | `mb envs list` | Tabela / `--json` / `--text`; `--show-secrets`; `--vault` |
-| `mb envs vaults` | Tabela VAULT / ARQUIVO; `--json` / `-J` |
+| `mb envs vaults` | Tabela VAULT / ARQUIVO / ENVS; vaults `project` e `project/*` via `mbcli.yaml`; `--json` com `env_count` |
 | `mb envs set KEY=VAL [...]` | Plain; `--vault`; **`--secret`** (keyring); **`--secret-op`** (1Password + `.opsecrets`); **`MB_ENVS_SECRET_STORE`**; **`--yes`** com `--secret-op` no default |
 | `mb envs unset KEY [KEY...]` | Várias chaves; `--vault`; remove keyring / 1Password / `.opsecrets` quando aplicável |
 

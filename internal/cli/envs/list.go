@@ -30,7 +30,8 @@ func newListCmd(svc *envs.ListService) *cobra.Command {
 			return envs.FormatRows(cmd.Context(), cmd.OutOrStdout(), rows, format)
 		},
 	}
-	cmd.Flags().StringVar(&listVault, "vault", "", "Lista apenas variáveis do vault informado")
+	cmd.Flags().
+		StringVar(&listVault, "vault", "", "Filtra por vault: nome em ~/.config/mb, ou project / project/<nome> só em mbcli.yaml")
 	cmd.Flags().
 		BoolVar(&showSecrets, "show-secrets", false, "Mostra o valor real das variáveis guardadas no keyring (por defeito mostram ***)")
 	cmd.Flags().

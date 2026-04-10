@@ -138,6 +138,168 @@ func TestBuildEnvFileValues_CwdDotEnvBeforeEnvFile(t *testing.T) {
 	}
 }
 
+func TestBuildEnvFileValues_MbcliYAMLEnvsOverDefaults(t *testing.T) {
+	tmp := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWd)
+	})
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(tmp, "mbcli.yaml"))
+	t.Setenv("MBCLI_PROJECT_ROOT", "")
+
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("A=def\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	yamlPath := filepath.Join(tmp, "mbcli.yaml")
+	if err := os.WriteFile(yamlPath, []byte("envs:\n  A: from-yaml\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	m, err := BuildEnvFileValues(rt, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["A"] != "from-yaml" {
+		t.Fatalf("A=%q, want from-yaml (mbcli.yaml entre default e .env)", m["A"])
+	}
+}
+
+func TestBuildEnvFileValues_MbcliYAMLNestedVaultWithEnvVault(t *testing.T) {
+	tmp := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWd)
+	})
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(tmp, "mbcli.yaml"))
+	t.Setenv("MBCLI_PROJECT_ROOT", "")
+
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("FOO=def\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	yamlPath := filepath.Join(tmp, "mbcli.yaml")
+	y := "envs:\n  FOO: root\n  staging:\n    FOO: stg\n"
+	if err := os.WriteFile(yamlPath, []byte(y), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+		EnvVault: "staging",
+	}
+	m, err := BuildEnvFileValues(rt, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["FOO"] != "stg" {
+		t.Fatalf("FOO=%q want stg (mbcli staging overlay com --env-vault)", m["FOO"])
+	}
+}
+
+func TestBuildEnvFileValues_MbcliYAMLNestedVaultNoEnvVault(t *testing.T) {
+	tmp := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWd)
+	})
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(tmp, "mbcli.yaml"))
+	t.Setenv("MBCLI_PROJECT_ROOT", "")
+
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("FOO=def\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	yamlPath := filepath.Join(tmp, "mbcli.yaml")
+	y := "envs:\n  FOO: root\n  staging:\n    FOO: stg\n"
+	if err := os.WriteFile(yamlPath, []byte(y), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	m, err := BuildEnvFileValues(rt, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["FOO"] != "root" {
+		t.Fatalf("FOO=%q want root (sem --env-vault não aplica sub-vault mbcli)", m["FOO"])
+	}
+}
+
+func TestBuildEnvFileValues_CwdDotEnvOverMbcliYAML(t *testing.T) {
+	tmp := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWd)
+	})
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(tmp, "mbcli.yaml"))
+	t.Setenv("MBCLI_PROJECT_ROOT", "")
+
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte("A=def\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(tmp, "mbcli.yaml"),
+		[]byte("envs:\n  A: from-yaml\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	dotEnv := filepath.Join(tmp, ".env")
+	if err := os.WriteFile(dotEnv, []byte("A=cwd\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+		},
+	}
+	m, err := BuildEnvFileValues(rt, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m["A"] != "cwd" {
+		t.Fatalf("A=%q, want cwd (.env por cima de mbcli.yaml)", m["A"])
+	}
+}
+
 func TestBuildEnvFileValues_ResolvesOPReferences(t *testing.T) {
 	tmp := t.TempDir()
 	def := filepath.Join(tmp, "env.defaults")
@@ -207,6 +369,21 @@ func TestBuildEnvFileValues_InvalidEnvVault(t *testing.T) {
 	_, err := BuildEnvFileValues(rt, nil, nil)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestBuildEnvFileValues_EnvVaultProjectReserved(t *testing.T) {
+	tmp := t.TempDir()
+	rt := &RuntimeConfig{
+		Paths: Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: filepath.Join(tmp, "env.defaults"),
+		},
+		EnvVault: "project",
+	}
+	_, err := BuildEnvFileValues(rt, nil, nil)
+	if err == nil {
+		t.Fatal("expected error for reserved EnvVault project")
 	}
 }
 

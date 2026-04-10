@@ -30,6 +30,24 @@ func Validate(name string) error {
 	return nil
 }
 
+// ValidateConfigurableVault checks names allowed for user-managed vault files
+// (~/.config/mb/.env.<name>, mb envs set --vault, manifest env_files).
+// The name "project" and any "project/..." prefix are reserved for mbcli.yaml logical vaults.
+func ValidateConfigurableVault(name string) error {
+	if err := Validate(name); err != nil {
+		return err
+	}
+	if name == "project" {
+		return errors.New(
+			`nome "project" é reservado para o vault de projeto em mbcli.yaml (use "mb envs list --vault project")`,
+		)
+	}
+	if strings.HasPrefix(name, "project/") {
+		return errors.New(`prefixo "project/" é reservado para vaults de projeto em mbcli.yaml`)
+	}
+	return nil
+}
+
 // FilePath returns <configDir>/.env.<vault> for a validated vault name.
 func FilePath(configDir, vault string) (string, error) {
 	if err := Validate(vault); err != nil {

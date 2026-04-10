@@ -13,6 +13,12 @@ func TestValidateEnvVault(t *testing.T) {
 	if err := ValidateEnvVault("../x"); err == nil {
 		t.Error("expected error")
 	}
+	if err := ValidateEnvVault("project"); err == nil {
+		t.Error("expected error for reserved name project")
+	}
+	if err := ValidateEnvVault("project/staging"); err == nil {
+		t.Error("expected error for reserved prefix project/")
+	}
 }
 
 func TestVaultEnvFilePath(t *testing.T) {

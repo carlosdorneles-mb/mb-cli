@@ -13,7 +13,7 @@ func TargetPath(paths Paths, vault string) (string, error) {
 	if vault == "" {
 		return paths.DefaultEnvPath, nil
 	}
-	if err := envvault.Validate(vault); err != nil {
+	if err := envvault.ValidateConfigurableVault(vault); err != nil {
 		return "", err
 	}
 	return envvault.FilePath(paths.ConfigDir, vault)

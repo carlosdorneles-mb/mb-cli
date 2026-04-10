@@ -12,7 +12,8 @@ import (
 type FileValuesOverlay func(map[string]string) error
 
 // BuildMergedOSEnviron builds the environment passed to plugin scripts and mb run:
-// system env, file layers (via BuildEnvFileValues + optional overlay), --env, gum theme, MB_* verbosity, MB_HELPERS_PATH.
+// system env, file layers (via BuildEnvFileValues: env.defaults, vault, mbcli.yaml envs, ./.env, --env-file;
+// plus optional manifest overlay), --env, gum theme, MB_* verbosity, MB_HELPERS_PATH.
 func BuildMergedOSEnviron(d Dependencies, overlay FileValuesOverlay) ([]string, error) {
 	return BuildMergedOSEnvironWithExtraInline(d, overlay, nil)
 }

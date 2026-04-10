@@ -20,11 +20,11 @@ mb envs list --vault staging
 mb envs list --show-secrets
 ```
 
-**Output:** tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** e **ARMAZENAMENTO** (`local`, `keyring`, `1password`).
+**Output:** tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** e **ARMAZENAMENTO** (`local`, `keyring`, `1password`, **`projeto`** para entradas em **`mbcli.yaml` → `envs`**).
 
 | Flag | Descrição |
 | ---- | --------- |
-| `--vault <nome>` | Lista só variáveis do vault `.env.<nome>` |
+| `--vault <nome>` | Vault em **`~/.config/mb/.env.<nome>`** mais overlay **`mbcli.yaml`** com o mesmo nome (ex.: `staging`). Use **`project`** para a raiz de **`envs`** no YAML, ou **`project/<nome>`** para **apenas** o sub-mapa **`envs.<nome>`** (sem misturar a raiz). Ver [Variáveis de ambiente](../user-guide/environment-variables.md). |
 | `--show-secrets` | Mostra valores reais em vez de `***` |
 | `--json` / `-J` | Emite `{"CHAVE":"valor", ...}` |
 | `--text` / `-T` | Emite `CHAVE=valor` por linha (sem vault) |
@@ -49,7 +49,7 @@ mb envs set TOKEN=abc --secret-op
 | `--secret-op` | Guarda no 1Password (requer `op` no PATH) |
 | `--yes` | Confirma sem prompt para `--secret-op` (útil em CI) |
 
-> `--secret` e `--secret-op` são mutuamente exclusivos. O nome do vault aceita letras, números, `.`, `_` e `-`.
+> `--secret` e `--secret-op` são mutuamente exclusivos. O nome do vault aceita letras, números, `.`, `_` e `-`, exceto **`project`** e nomes com prefixo **`project/`** (reservados para o YAML do projeto).
 
 ### `mb envs unset`
 
@@ -64,14 +64,16 @@ Se a chave não existir, o comando termina com sucesso (código 0). Se não rest
 
 ### `mb envs vaults`
 
-Lista vaults disponíveis e o caminho do ficheiro de cada um.
+Lista vaults disponíveis, caminho do ficheiro e **número de variáveis** (o mesmo universo de chaves que `mb envs list --vault` mostraria para esse vault).
 
 ```bash
 mb envs vaults
 mb envs vaults --json
 ```
 
-**Output:** tabela **VAULT** / **ARQUIVO**. O vault `default` aponta para `env.defaults`.
+**Output:** tabela **VAULT** / **ARQUIVO** / **ENVS**. O vault **`default`** aponta para **`env.defaults`**. Vaults **`project`** e **`project/<nome>`** referem-se ao **`mbcli.yaml`** (várias linhas podem partilhar o mesmo caminho de ficheiro). Ficheiros **`~/.config/mb/.env.project`** não são listados (nome reservado).
+
+**`--json` / `-J`:** array `[{"vault","path","env_count"},...]`.
 
 ## Integração com 1Password (`--secret-op`) {#envs-1password-secret-op}
 

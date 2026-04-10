@@ -6,9 +6,9 @@
 |----------|------------------|
 | `set.go` | `Set(...)` — plain, `--secret`, `--secret-op` (`*.opsecrets`, sem keyring para `op://` novos) |
 | `unset.go` | `Unset(...) (removed bool, err)` — ficheiro, `.secrets`, `.opsecrets`, keyring, 1Password |
-| `list.go` | `CollectListRows`, `rowsForPath`, `secretStorageFromStored` (`local` / `keyring` / `1password`) |
-| `vaults.go` | `CollectVaultRows` — `default` + `env.defaults`, glob `.env.<vault>` (ignora `*.secrets`, `*.opsecrets`) |
-| `paths.go` | `TargetPath`, `KeyringGroup` |
+| `list.go` | `CollectListRows`, `CountListableEnvKeys`, `rowsForPath`; `--vault project` / `project/x` só YAML (`project/x` = só sub-mapa `envs.x`) |
+| `vaults.go` | `CollectVaultRows` — `default`, `project` / `project/*` (`mbcli.yaml`), glob `.env.<vault>` (ignora reservado `project`, sidecars) |
+| `paths.go` | `TargetPath` (`ValidateConfigurableVault`), `KeyringGroup` |
 | `secretpref.go` | `ResolveSetSecretFlags`, `MB_ENVS_SECRET_STORE` |
 
 ## `internal/cli/envs`

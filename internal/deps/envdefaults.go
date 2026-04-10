@@ -93,8 +93,10 @@ func mergeOPRefsInto(
 }
 
 // BuildEnvFileValues loads env.defaults, overlays .env.<EnvVault> when EnvVault is set,
-// then overlays ./.env from the current working directory when that file exists,
-// then overlays --env-file. Secrets (keys in path.secrets) are resolved from the keyring;
+// then overlays envs from mbcli.yaml (project): root scalar keys always (project default vault);
+// when EnvVault is non-empty, also overlays the nested envs.<EnvVault> map when present.
+// Then ./.env from the current working directory when that file exists, then overlays --env-file.
+// Secrets (keys in path.secrets) are resolved from the keyring;
 // keys in path.opsecrets hold op:// references read from disk and resolved via onePassword.
 // Used for plugin execution and mb run.
 // If secrets is nil, the OS keyring implementation is used.
@@ -158,6 +160,18 @@ func BuildEnvFileValues(
 		}
 	}
 
+	mbcliPath, err := ResolveMbcliYAMLPath()
+	if err != nil {
+		return nil, err
+	}
+	mbcliEnvs, err := LoadMbcliProjectEnvsForMerge(mbcliPath, rt.EnvVault)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range mbcliEnvs {
+		merged[key] = value
+	}
+
 	if err := mergeCwdDotEnvIfPresent(merged); err != nil {
 		return nil, fmt.Errorf(".env no diretório atual: %w", err)
 	}
@@ -176,7 +190,7 @@ func BuildEnvFileValues(
 }
 
 // mergeCwdDotEnvIfPresent overlays ./.env from the current working directory when the file exists.
-// It runs after env.defaults / --env-vault and before --env-file.
+// It runs after env.defaults / --env-vault / mbcli.yaml envs and before --env-file.
 func mergeCwdDotEnvIfPresent(merged map[string]string) error {
 	wd, err := os.Getwd()
 	if err != nil {

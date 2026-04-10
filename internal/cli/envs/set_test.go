@@ -26,6 +26,17 @@ func TestEnvSetPersistsToDefaultFile(t *testing.T) {
 	}
 }
 
+func TestEnvSetVaultProjectReserved(t *testing.T) {
+	d := testDeps(t)
+	root := NewCmd(testListServiceForDeps(t, d), d)
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	root.SetArgs([]string{"set", "--vault", "project", "X=1"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("expected error for reserved vault name project")
+	}
+}
+
 func TestEnvSetVault(t *testing.T) {
 	d := testDeps(t)
 	root := NewCmd(testListServiceForDeps(t, d), d)

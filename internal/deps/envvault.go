@@ -2,9 +2,9 @@ package deps
 
 import "mb/internal/shared/envvault"
 
-// ValidateEnvVault returns an error if name is not a safe vault identifier.
+// ValidateEnvVault returns an error if name is not allowed for ~/.config/mb/.env.<name> (incl. reservados).
 func ValidateEnvVault(name string) error {
-	return envvault.Validate(name)
+	return envvault.ValidateConfigurableVault(name)
 }
 
 // VaultEnvFilePath returns the path to <configDir>/.env.<vault> for a validated vault name.

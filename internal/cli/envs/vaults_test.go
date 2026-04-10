@@ -10,6 +10,7 @@ import (
 
 func TestEnvVaultsTable(t *testing.T) {
 	d := testDeps(t)
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(filepath.Dir(d.Runtime.ConfigDir), "__no_mbcli.yaml"))
 	root := NewCmd(testListServiceForDeps(t, d), d)
 	var out bytes.Buffer
 	root.SetOut(&out)
@@ -25,6 +26,7 @@ func TestEnvVaultsTable(t *testing.T) {
 
 func TestEnvVaultsJSON(t *testing.T) {
 	d := testDeps(t)
+	t.Setenv("MBCLI_YAML_PATH", filepath.Join(filepath.Dir(d.Runtime.ConfigDir), "__no_mbcli.yaml"))
 	if err := os.WriteFile(
 		filepath.Join(d.Runtime.ConfigDir, ".env.staging"),
 		[]byte("A=b\n"),
@@ -41,8 +43,9 @@ func TestEnvVaultsJSON(t *testing.T) {
 		t.Fatalf("vaults: %v", err)
 	}
 	var got []struct {
-		Vault string `json:"vault"`
-		Path  string `json:"path"`
+		Vault    string `json:"vault"`
+		Path     string `json:"path"`
+		EnvCount int    `json:"env_count"`
 	}
 	if err := json.Unmarshal(bytes.TrimSpace(out.Bytes()), &got); err != nil {
 		t.Fatalf("json: %v out=%q", err, out.String())
@@ -52,5 +55,8 @@ func TestEnvVaultsJSON(t *testing.T) {
 	}
 	if got[0].Vault != "default" || got[1].Vault != "staging" {
 		t.Fatalf("order/vaults: %+v", got)
+	}
+	if got[0].EnvCount != 0 || got[1].EnvCount != 1 {
+		t.Fatalf("env_count: %+v", got)
 	}
 }

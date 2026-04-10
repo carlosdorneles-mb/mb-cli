@@ -16,6 +16,7 @@ const secretsSuffix = ".secrets"
 // Storage values for ListRow.Storage (mb envs list table column).
 const (
 	StorageLocal     = "local"
+	StorageProject   = "projeto"
 	Storage1Password = "1password"
 	StorageKeyring   = "keyring"
 )
@@ -34,14 +35,30 @@ func CollectListRows(
 	showSecrets bool,
 ) ([]ListRow, error) {
 	if listVault != "" {
-		if err := envvault.Validate(listVault); err != nil {
+		if isProjectOnlyListVault(listVault) {
+			var rows []ListRow
+			if err := appendMbcliProjectRows(&rows, listVault); err != nil {
+				return nil, err
+			}
+			sortListRows(rows)
+			return rows, nil
+		}
+		if err := envvault.ValidateConfigurableVault(listVault); err != nil {
 			return nil, err
 		}
 		p, err := envvault.FilePath(paths.ConfigDir, listVault)
 		if err != nil {
 			return nil, err
 		}
-		return rowsForPath(secrets, onePassword, p, listVault, showSecrets)
+		rows, err := rowsForPath(secrets, onePassword, p, listVault, showSecrets)
+		if err != nil {
+			return nil, err
+		}
+		if err := appendMbcliProjectRows(&rows, listVault); err != nil {
+			return nil, err
+		}
+		sortListRows(rows)
+		return rows, nil
 	}
 
 	defRows, err := rowsForPath(secrets, onePassword, paths.DefaultEnvPath, "default", showSecrets)
@@ -60,7 +77,7 @@ func CollectListRows(
 			continue
 		}
 		v := strings.TrimPrefix(base, ".env.")
-		if v == "" || envvault.Validate(v) != nil {
+		if v == "" || envvault.ValidateConfigurableVault(v) != nil {
 			continue
 		}
 		if strings.HasSuffix(path, secretsSuffix) || strings.HasSuffix(path, opSecretsSuffix) {
@@ -72,23 +89,121 @@ func CollectListRows(
 		}
 		rows = append(rows, r...)
 	}
+	if err := appendMbcliProjectRows(&rows, ""); err != nil {
+		return nil, err
+	}
+	sortListRows(rows)
+	return rows, nil
+}
+
+func isProjectOnlyListVault(listVault string) bool {
+	return listVault == "project" || strings.HasPrefix(listVault, "project/")
+}
+
+// CountListableEnvKeys returns how many distinct keys mb envs list would show for that env file path
+// (plain values, .secrets keys, and op:// entries in *.opsecrets), matching rowsForPath logic.
+func CountListableEnvKeys(path string) (int, error) {
+	values, err := deps.LoadDefaultEnvValues(path)
+	if err != nil {
+		return 0, err
+	}
+	secretKeys, err := deps.LoadSecretKeys(path)
+	if err != nil {
+		return 0, err
+	}
+	opRefs, err := deps.LoadOPSecretRefs(path)
+	if err != nil {
+		return 0, err
+	}
+	keySet := make(map[string]bool)
+	for k := range values {
+		keySet[k] = true
+	}
+	for _, k := range secretKeys {
+		keySet[k] = true
+	}
+	for k := range opRefs {
+		keySet[k] = true
+	}
+	keys := sortedStringSet(keySet)
+	n := 0
+	for _, key := range keys {
+		ref, inOP := opRefs[key]
+		inOP = inOP && ref != "" && strings.HasPrefix(ref, "op://")
+		inSK := isSecretKey(secretKeys, key)
+		_, inPlain := values[key]
+		if inOP || inSK || inPlain {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func appendMbcliProjectRows(rows *[]ListRow, listVault string) error {
+	path, err := deps.ResolveMbcliYAMLPath()
+	if err != nil {
+		return err
+	}
+	entries, err := deps.MbcliProjectListEntries(path, listVault)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		*rows = append(*rows, ListRow{
+			Key: e.Key, Value: e.Value, Vault: e.Vault, Storage: StorageProject,
+		})
+	}
+	return nil
+}
+
+func storageSortOrder(s string) int {
+	switch s {
+	case StorageLocal:
+		return 0
+	case StorageProject:
+		return 1
+	case StorageKeyring:
+		return 2
+	case Storage1Password:
+		return 3
+	default:
+		return 9
+	}
+}
+
+func vaultListSortRank(v string) int {
+	switch v {
+	case "default":
+		return 0
+	case "project":
+		return 1
+	default:
+		if strings.HasPrefix(v, "project/") {
+			return 2
+		}
+		return 3
+	}
+}
+
+func sortListRows(rows []ListRow) {
 	sort.Slice(rows, func(i, j int) bool {
 		vi, vj := rows[i].Vault, rows[j].Vault
 		if vi != vj {
-			if vi == "default" {
-				return true
-			}
-			if vj == "default" {
-				return false
+			ri, rj := vaultListSortRank(vi), vaultListSortRank(vj)
+			if ri != rj {
+				return ri < rj
 			}
 			return vi < vj
 		}
 		if rows[i].Key != rows[j].Key {
 			return rows[i].Key < rows[j].Key
 		}
+		si, sj := storageSortOrder(rows[i].Storage), storageSortOrder(rows[j].Storage)
+		if si != sj {
+			return si < sj
+		}
 		return rows[i].Value < rows[j].Value
 	})
-	return rows, nil
 }
 
 func rowsForPath(

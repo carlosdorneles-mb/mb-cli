@@ -241,7 +241,7 @@ func validateManifest(manifest Manifest, baseDir string) []string {
 				errs = append(errs, "env_files: file não pode ser vazio")
 				break
 			}
-			if err := envvault.Validate(ef.Vault); err != nil {
+			if err := envvault.ValidateConfigurableVault(ef.Vault); err != nil {
 				errs = append(errs, "env_files vault inválido ("+ef.File+"): "+err.Error())
 				break
 			}

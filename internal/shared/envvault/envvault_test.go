@@ -15,6 +15,19 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+func TestValidateConfigurableVault_reservedProject(t *testing.T) {
+	t.Parallel()
+	if err := ValidateConfigurableVault("staging"); err != nil {
+		t.Errorf("staging: %v", err)
+	}
+	if err := ValidateConfigurableVault("project"); err == nil {
+		t.Error("expected error for project")
+	}
+	if err := ValidateConfigurableVault("project/x"); err == nil {
+		t.Error("expected error for project/ prefix")
+	}
+}
+
 func TestFilePath(t *testing.T) {
 	t.Parallel()
 	cfg := "/home/u/.config/mb"

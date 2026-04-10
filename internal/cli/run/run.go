@@ -20,7 +20,7 @@ func NewRunCmd(d deps.Dependencies) *cobra.Command {
 		Use:   "run [command]",
 		Short: "Executa um comando com as variáveis de ambiente do CLI",
 		Long: `Repassa o comando e os argumentos ao executável (PATH ou caminho), com o mesmo ambiente
-mesclado dos plugins (env.defaults, --env-vault, ./.env no diretório atual, --env-file, --env, etc.).
+mesclado dos plugins (env.defaults, --env-vault, mbcli.yaml envs, ./.env no diretório atual, --env-file, --env, etc.).
 
 As flags globais do MB (-e/--env, --env-file, --env-vault, -v/--verbose, -q/--quiet) podem ir antes
 de mb (ex.: mb --env-vault st run cmd) ou logo após run (ex.: mb run --env-vault st cmd), sempre

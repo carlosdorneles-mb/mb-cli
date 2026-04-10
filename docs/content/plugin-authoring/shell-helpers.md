@@ -24,7 +24,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper ensure (pré-requisitos de CLI):** `. "$MB_HELPERS_PATH/ensure.sh"`
 - **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
 - **Só o helper de contexto (invocação `mb`, pares `MB_CTX_*`):** `. "$MB_HELPERS_PATH/context.sh"`
-- **Só o helper de `mbcli.yaml` (config do projeto):** `. "$MB_HELPERS_PATH/mbcli-yaml.sh"` (requer `ensure.sh` para `ensure_yq`; com `all.sh` já está disponível.)
+- **Só o helper de `mbcli.yaml` (config do projeto):** `. "$MB_HELPERS_PATH/mbcli-yaml.sh"` (requer `ensure.sh` para `ensure_yq`; com `all.sh` já está disponível.) O ficheiro pode declarar **`envs`** com vault de projeto na raiz (escalares) e vaults nomeados (sub-mapas); a mescla no runtime e o **`mb envs list`** seguem [Variáveis de ambiente](../user-guide/environment-variables.md#ordem-de-precedencia).
 
 Exemplo:
 
@@ -138,6 +138,8 @@ Funções para ler e alterar o ficheiro **`mbcli.yaml`** na raiz do projeto (con
 | `MBCLI_YAML_PATH` | Se definida, caminho completo ao YAML (absoluto ou relativo ao `PWD` do plugin). Tem prioridade. |
 | `MBCLI_PROJECT_ROOT` | Directório do projeto; o ficheiro é `$MBCLI_PROJECT_ROOT/mbcli.yaml`. |
 | *(omissão)* | `${MBCLI_PROJECT_ROOT:-.}/mbcli.yaml` com `.` = `PWD`. O runtime do `mb` pode vir a definir `MBCLI_PROJECT_ROOT` (ex.: raiz Git); até lá o plugin pode exportá-la. |
+
+O processo Go do MB CLI (execução de **plugins** e comando **`mb run`**) também lê o mapa de topo **`envs`** neste ficheiro e mescla-o no ambiente do subprocesso (mesma resolução de caminho). Ordem em relação a `env.defaults`, `./.env`, `--env-file`, etc.: [Variáveis de ambiente — ordem de precedência](../user-guide/environment-variables.md#ordem-de-precedencia).
 
 **Políticas**
 
