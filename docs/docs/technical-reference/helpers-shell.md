@@ -24,6 +24,7 @@ No início do script do plugin (por exemplo em `run.sh`), importe o que precisar
 - **Só o helper ensure (pré-requisitos de CLI):** `. "$MB_HELPERS_PATH/ensure.sh"`
 - **Só o helper de shell rc (bash/zsh):** `. "$MB_HELPERS_PATH/shell-rc.sh"`
 - **Só o helper de contexto (invocação `mb`, pares `MB_CTX_*`):** `. "$MB_HELPERS_PATH/context.sh"`
+- **Só o helper de `mbcli.yaml` (config do projeto):** `. "$MB_HELPERS_PATH/mbcli-yaml.sh"` (requer `ensure.sh` para `ensure_yq`; com `all.sh` já está disponível.)
 
 Exemplo:
 
@@ -115,6 +116,58 @@ fi
 **`mb_ctx_command_path_is`** — `mb_ctx_command_path_is <path>`: saída **0** se `MB_CTX_COMMAND_PATH` for exatamente `<path>` (ex.: `tools/vscode`).
 
 **`mb_ctx_path_depth`** — imprime o número de segmentos de `MB_CTX_COMMAND_PATH` (`hello` → `1`, `tools/vscode` → `2`, vazio → `0`).
+
+### mbcli-yaml (`mbcli.yaml` no projeto)
+
+Funções para ler e alterar o ficheiro **`mbcli.yaml`** na raiz do projeto (configuração versionada no repositório), **distinto** de `~/.config/mb`. Dependem de **`yq`** (Mike Farah v4); use `ensure_yq` antes de chamar se carregar só este helper, ou carregue `all.sh`.
+
+**Caminho do ficheiro**
+
+| Variável | Uso |
+|----------|-----|
+| `MBCLI_YAML_PATH` | Se definida, caminho completo ao YAML (absoluto ou relativo ao `PWD` do plugin). Tem prioridade. |
+| `MBCLI_PROJECT_ROOT` | Directório do projeto; o ficheiro é `$MBCLI_PROJECT_ROOT/mbcli.yaml`. |
+| *(omissão)* | `${MBCLI_PROJECT_ROOT:-.}/mbcli.yaml` com `.` = `PWD`. O runtime do `mb` pode vir a definir `MBCLI_PROJECT_ROOT` (ex.: raiz Git); até lá o plugin pode exportá-la. |
+
+**Políticas**
+
+| Variável | Valores | Efeito |
+|----------|---------|--------|
+| `MBCLI_YAML_ON_MISSING` | `error` (omissão) ou `ignore` | Com **`error`**, `get`/`set`/`del`/`ensure` falham (exit ≠ 0) ou não toleram ausência conforme abaixo. Com **`ignore`**, `get` com ficheiro ausente devolve exit 0 e stdout vazio; `set`/`del` sem ficheiro são no-op (exit 0), salvo criação automática. |
+| `MBCLI_YAML_AUTOCREATE` | `0` (omissão) ou `1` | Com **`1`**, `set` e `ensure` podem criar o ficheiro (`{}`) e directórios pais se o YAML ainda não existir. |
+
+**Matriz resumida**
+
+- **Get** e ficheiro ausente: `error` → exit 1; `ignore` → exit 0, sem saída.
+- **Set** e ficheiro ausente: `AUTOCREATE=1` → cria `{}` e aplica; `AUTOCREATE=0` com `error` → exit 1; `AUTOCREATE=0` com `ignore` → no-op exit 0.
+- **Del** e ficheiro ausente: igual a **Get** (com `ignore`, exit 0).
+- **Ensure** e ficheiro ausente: com `AUTOCREATE=1` cria; com `AUTOCREATE=0` e `ignore` → exit 0; com `error` → exit 1.
+
+**Funções**
+
+**`mbcli_yaml_path`** — imprime o caminho resolvido do `mbcli.yaml` (útil para depuração).
+
+**`mbcli_yaml_ensure`** — garante que o ficheiro existe quando `MBCLI_YAML_AUTOCREATE=1`; caso contrário aplica as regras de `MBCLI_YAML_ON_MISSING`.
+
+**`mbcli_yaml_get <expressão_yq>`** — avalia a expressão com `yq eval -o=json` sobre o ficheiro. O resultado vai para stdout (JSON).
+
+**`mbcli_yaml_set <caminho_yq> <valor...>`** — atribui o valor (string) ao caminho com `yq` e `strenv` (compatível com versões do Mike Farah `yq` sem `--arg`). O `<caminho_yq>` deve começar por `.` e não pode conter metacaracteres perigosos (`;`, `` ` ``, `$(`, etc.). Espaços no valor são permitidos após o primeiro argumento de caminho; o carácter ASCII NUL não é suportado no valor.
+
+**`mbcli_yaml_del <caminho_yq>`** — remove o nó com `del(<caminho>)`; mesmas regras de validação do caminho que em `set`.
+
+```sh
+#!/usr/bin/env bash
+. "$MB_HELPERS_PATH/all.sh"
+
+export MBCLI_PROJECT_ROOT="${MBCLI_PROJECT_ROOT:-$PWD}"
+export MBCLI_YAML_AUTOCREATE=1
+export MBCLI_YAML_ON_MISSING=error
+
+mbcli_yaml_ensure
+mbcli_yaml_set '.example.version' '1.0.0'
+ver="$(mbcli_yaml_get '.example.version' | jq -r .)"
+log info "Versão em mbcli.yaml: $ver"
+```
 
 ### log
 

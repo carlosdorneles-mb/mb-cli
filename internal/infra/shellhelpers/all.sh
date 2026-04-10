@@ -16,4 +16,5 @@
 . "${MB_HELPERS_PATH}/sudo.sh"
 . "${MB_HELPERS_PATH}/shell-rc.sh"
 . "${MB_HELPERS_PATH}/ensure.sh"
+. "${MB_HELPERS_PATH}/mbcli-yaml.sh"
 . "${MB_HELPERS_PATH}/context.sh"

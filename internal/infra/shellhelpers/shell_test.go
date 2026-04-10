@@ -64,6 +64,9 @@ func TestEnsureShellHelpers(t *testing.T) {
 	if !strings.Contains(string(allData), "context.sh") {
 		t.Errorf("all.sh should source context.sh, got: %s", allData)
 	}
+	if !strings.Contains(string(allData), "mbcli-yaml.sh") {
+		t.Errorf("all.sh should source mbcli-yaml.sh, got: %s", allData)
+	}
 	contextPath := filepath.Join(shellDir, "context.sh")
 	contextData, _ := os.ReadFile(contextPath)
 	if !strings.Contains(string(contextData), "mb_context_dump()") {
@@ -94,6 +97,11 @@ func TestEnsureShellHelpers(t *testing.T) {
 	kubernetesData, _ := os.ReadFile(kubernetesPath)
 	if !strings.Contains(string(kubernetesData), "kb_check_installed()") {
 		t.Errorf("kubernetes.sh should define kb_check_installed(), got: %s", kubernetesData)
+	}
+	mbcliPath := filepath.Join(shellDir, "mbcli-yaml.sh")
+	mbcliData, _ := os.ReadFile(mbcliPath)
+	if !strings.Contains(string(mbcliData), "mbcli_yaml_get()") {
+		t.Errorf("mbcli-yaml.sh should define mbcli_yaml_get(), got: %s", mbcliData)
 	}
 
 	// Idempotent: second call returns same path
@@ -166,6 +174,12 @@ func TestEnsureShellHelpers_overwritesWhenChecksumDiffers(t *testing.T) {
 	if !strings.Contains(string(allData), "context.sh") {
 		t.Errorf(
 			"all.sh should have been overwritten with embed content (sources context.sh), got: %s",
+			allData,
+		)
+	}
+	if !strings.Contains(string(allData), "mbcli-yaml.sh") {
+		t.Errorf(
+			"all.sh should have been overwritten with embed content (sources mbcli-yaml.sh), got: %s",
 			allData,
 		)
 	}

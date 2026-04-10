@@ -4,6 +4,8 @@ Scripts de shell embutidos no MB CLI e **sempre** materializados em `~/.config/m
 
 **Documentação:** [Helpers de shell](../../../../docs/docs/technical-reference/helpers-shell.md) — como carregar nos plugins e lista de helpers disponíveis. Variáveis de contexto `MB_CTX_*` (runtime do CLI): [Contexto de invocação de plugins](../../../../docs/docs/technical-reference/plugin-invocation-context.md).
 
+Helpers adicionais embebidos incluem **`mbcli-yaml.sh`** (leitura/escrita de `mbcli.yaml` no projeto com `yq`).
+
 ---
 
 ## Adicionar um novo arquivo `.sh`
