@@ -67,7 +67,7 @@ func (s *UpdateService) Update(ctx context.Context, req UpdateRequest, log Logge
 		}
 	}
 
-	opts := SyncOptions{EmitSuccess: false, NoRemove: false}
+	opts := SyncOptions{EmitSuccess: false}
 	_, err = s.syncer.Sync(ctx, opts, log)
 	return err
 }

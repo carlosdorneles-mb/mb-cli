@@ -62,7 +62,7 @@ func (s *RemoveService) Remove(ctx context.Context, req RemoveRequest, log Logge
 		return err
 	}
 
-	opts := SyncOptions{EmitSuccess: false, NoRemove: false}
+	opts := SyncOptions{EmitSuccess: false}
 	if _, err := s.syncer.Sync(ctx, opts, log); err != nil {
 		return err
 	}

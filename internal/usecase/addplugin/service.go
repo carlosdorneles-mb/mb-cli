@@ -26,7 +26,6 @@ type Runtime struct {
 // SyncOptions configures the post-add sync behaviour.
 type SyncOptions struct {
 	EmitSuccess bool
-	NoRemove    bool
 	PostSync    func(context.Context) error
 }
 
@@ -47,8 +46,6 @@ type Request struct {
 	Package string
 	// Tag pins a specific Git tag to install (remote only).
 	Tag string
-	// NoRemove keeps SQLite rows for commands that disappeared.
-	NoRemove bool
 }
 
 // Service orchestrates plugin addition.
@@ -95,7 +92,7 @@ func (s *Service) Add(ctx context.Context, req Request, log Logger) error {
 		return fmt.Errorf("informe a URL do repositório, um path ou . para o diretório atual")
 	}
 
-	syncOpts := SyncOptions{EmitSuccess: false, NoRemove: req.NoRemove, PostSync: nil}
+	syncOpts := SyncOptions{EmitSuccess: false, PostSync: nil}
 
 	_, _, err := s.git.ParseGitURL(source)
 	if err == nil {

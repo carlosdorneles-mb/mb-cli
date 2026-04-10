@@ -12,12 +12,9 @@ import (
 
 // SyncOptions configures RunSync behaviour.
 type SyncOptions struct {
-	// EmitSuccess logs a short summary when true (e.g. plugins sync command): one line when
-	// nothing changed, or no extra bulk line when per-command diff lines were emitted.
+	// EmitSuccess logs a short summary when true (e.g. plugins sync command).
 	EmitSuccess bool
-	// NoRemove keeps SQLite rows for commands that disappeared from scanned packages (orphans).
-	NoRemove bool
-	// PostSync runs after a successful SQLite refresh. Errors are logged but do not fail RunSync.
+	// PostSync runs after a successful SQLite refresh.
 	PostSync func(context.Context) error
 }
 
@@ -90,17 +87,11 @@ func RunSync(
 	afterByKey := pluginsByCommandKey(pluginsList)
 	removedKeys := diffRemovedKeys(beforeByKey, afterByKey)
 
-	if opts.NoRemove && len(removedKeys) > 0 {
-		for _, k := range removedKeys {
-			pluginsList = append(pluginsList, beforeByKey[k])
-		}
-	}
-
 	if err := checkPluginPathCollisions(pluginsList); err != nil {
 		return SyncReport{}, err
 	}
 
-	report := emitPluginSyncDiff(runCtx, log, beforeByKey, pluginsList, removedKeys, opts.NoRemove)
+	report := emitPluginSyncDiff(runCtx, log, beforeByKey, pluginsList, removedKeys)
 
 	validGroupIDs := make(map[string]struct{}, len(mergedHelp))
 	for _, g := range mergedHelp {
@@ -189,7 +180,6 @@ func emitPluginSyncDiff(
 	before map[string]plugin.Plugin,
 	afterList []plugin.Plugin,
 	removedKeys []string,
-	noRemove bool,
 ) SyncReport {
 	var r SyncReport
 	for _, p := range afterList {
@@ -218,11 +208,7 @@ func emitPluginSyncDiff(
 		if log == nil {
 			continue
 		}
-		if noRemove {
-			_ = log.Warn(ctx, "Comando %q removido do pacote; mantido no cache (--no-remove)", k)
-		} else {
-			_ = log.Warn(ctx, "Comando %q deixou de existir no pacote (removido do cache)", k)
-		}
+		_ = log.Warn(ctx, "Comando %q deixou de existir no pacote (removido do cache)", k)
 	}
 	return r
 }

@@ -78,10 +78,9 @@ internal/
 func (c *cobra.Command) RunE: func(cmd *cobra.Command, args []string) error {
     log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
     return svc.Add(cmd.Context(), addplugin.Request{
-        Source:   args[0],
-        Package:  pkg,
-        Tag:      tag,
-        NoRemove: noRemove,
+        Source:  args[0],
+        Package: pkg,
+        Tag:     tag,
     }, log)
 }
 ```
