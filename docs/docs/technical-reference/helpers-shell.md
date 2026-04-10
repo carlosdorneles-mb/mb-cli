@@ -56,7 +56,7 @@ Imprime no stdout os pares `MB_CTX_*` de contexto conhecidos (uma linha por vari
 
 **`mb_context_dump_json`**
 
-Imprime **um único objeto JSON** no stdout com os mesmos dados (chaves em *snake_case*: `invocation`, `config_dir`, `command_path`, `command_name`, `parent_command_path`, `cobr_command_path`, `plugin_flags` como array de strings, `peer_commands` como array). Útil para enviar contexto a outra ferramenta ou para logs estruturados.
+Imprime **um único objeto JSON** no stdout com os mesmos dados (chaves em *snake_case*: `invocation`, `config_dir`, `command_path`, `command_name`, `parent_command_path`, `cobr_command_path`, `plugin_flags` como array de strings, `peer_commands`, `child_commands`, `hidden_child_commands`, `child_command_aliases`). Útil para enviar contexto a outra ferramenta ou para logs estruturados.
 
 Usa **`jq`** quando está no `PATH`; caso contrário tenta **`python3`** com o módulo `json`. Se nenhum existir, escreve uma mensagem em stderr e devolve código de saída **1**.
 
@@ -80,6 +80,12 @@ while IFS= read -r peer; do
   log info "Outro comando neste grupo: $peer"
 done < <(mb_peer_commands_lines)
 ```
+
+**`mb_child_commands_lines`** / **`mb_hidden_child_commands_lines`**
+
+Lê `MB_CTX_CHILD_COMMANDS` ou `MB_CTX_HIDDEN_CHILD_COMMANDS` (JSON array) e imprime um nome por linha — mesma lógica `jq`/fallback que `mb_peer_commands_lines`.
+
+**`MB_CTX_CHILD_COMMAND_ALIASES`** — JSON array de `{"name","aliases"}`; para filtrar no script use `jq` sobre a variável ou `mb_context_dump_json` e o campo `child_command_aliases`.
 
 Exemplo só para depuração rápida no terminal:
 
@@ -107,7 +113,11 @@ fi
 
 **`mb_ctx_peer_contains`** — `mb_ctx_peer_contains <nome>`: saída **0** se `<nome>` for um dos comandos irmãos listados em `MB_CTX_PEER_COMMANDS`.
 
+**`mb_ctx_child_contains`** / **`mb_ctx_hidden_child_contains`** — igual a `mb_ctx_peer_contains`, mas para `MB_CTX_CHILD_COMMANDS` e `MB_CTX_HIDDEN_CHILD_COMMANDS`.
+
 **`mb_ctx_peer_count`** — imprime o número de comandos irmãos (inteiro, uma linha).
+
+**`mb_ctx_child_count`** / **`mb_ctx_hidden_child_count`** — número de filhos visíveis ou ocultos (uma linha, inteiro).
 
 **`mb_ctx_cache_db`** — imprime `${MB_CTX_CONFIG_DIR}/cache.db`; saída **1** se `MB_CTX_CONFIG_DIR` estiver vazio.
 

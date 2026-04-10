@@ -2,11 +2,11 @@
 sidebar_position: 3
 ---
 
-# Contexto de invocação de plugins (`MB_CTX_*`)
+# Contexto de invocação de plugins
 
 Quando o MB **executa um plugin** (script ou binário registado no manifest), o processo do plugin recebe variáveis de ambiente adicionais além de `MB_HELPERS_PATH`, `MB_QUIET` e `MB_VERBOSE`. Todas seguem o prefixo **`MB_CTX_`** para se distinguirem das restantes.
 
-Servem para o script saber **como** o utilizador chamou o `mb` (linha de comandos), **qual** comando do manifest corresponde à folha atual, **que** flags do plugin foram usadas e **que** outros subcomandos existem ao mesmo nível na árvore do CLI.
+Servem para o script saber **como** o utilizador chamou o `mb` (linha de comandos), **qual** comando do manifest corresponde à folha atual, **que** flags do plugin foram usadas, **que** outros subcomandos existem ao mesmo nível na árvore Cobra (**irmãos**), e **que** subcomandos existem **por baixo** do comando Cobra em execução (**filhos** — visíveis, ocultos e aliases).
 
 Esta página é a **referência das variáveis** definidas pelo runtime do CLI. Para funções shell que apenas **lêem** essas variáveis (`mb_context_dump`, `mb_peer_commands_lines`), veja o helper **context** em [Helpers de shell](helpers-shell.md#context).
 
@@ -21,7 +21,15 @@ Esta página é a **referência das variáveis** definidas pelo runtime do CLI. 
 | `MB_CTX_PARENT_COMMAND_PATH` | Caminho do “pai” no manifest (tudo antes do último `/`); vazio se a folha está na raiz (ex.: só `hello`). |
 | `MB_CTX_COBR_COMMAND_PATH` | Caminho Cobra (`cmd.CommandPath()`), normalmente `mb` + subcomandos (ex.: `mb tools vscode`); pode diferir de `MB_CTX_COMMAND_PATH` quando há aliases. |
 | `MB_CTX_PLUGIN_FLAGS` | Nomes **longos** das flags do plugin que foram passadas (separados por espaço), ordenados. Em comandos só com entrypoint, inclui flags locais alteradas exceto `--readme`. Em comandos com `flags` no manifest, só entram flags definidas no manifest. |
-| `MB_CTX_PEER_COMMANDS` | JSON com um array de strings: nomes dos **outros** comandos irmãos sob o mesmo pai Cobra (ex.: outras folhas sob `mb tools`), ordenados; o comando atual não entra na lista. |
+| `MB_CTX_PEER_COMMANDS` | JSON com um array de strings: nomes dos **outros** comandos irmãos sob o mesmo pai Cobra (ordenados); o comando atual não entra na lista. |
+| `MB_CTX_CHILD_COMMANDS` | JSON com um array de strings: **filhos directos** do comando Cobra actual com `Hidden == false`, ordenados por nome. |
+| `MB_CTX_HIDDEN_CHILD_COMMANDS` | JSON com um array de strings: filhos directos com `Hidden == true`, ordenados. |
+| `MB_CTX_CHILD_COMMAND_ALIASES` | JSON com um array de objetos `{"name":"…","aliases":["…"]}` — só entradas com `aliases` não vazio; `aliases` ordenado; inclui filhos ocultos se tiverem aliases. |
+
+## Irmãos vs filhos (Cobra)
+
+- **`MB_CTX_PEER_COMMANDS`** — irmãos do **mesmo** comando-pai Cobra que o `cmd` actual. Ex.: no `mb tools vscode`, o pai é `tools`, logo os peers são outros comandos sob `tools` (ex.: `bruno`, `flutter`), **não** inclui `vscode`.
+- **`MB_CTX_CHILD_COMMANDS` / `MB_CTX_HIDDEN_CHILD_COMMANDS` / `MB_CTX_CHILD_COMMAND_ALIASES`** — filhos **directos** do `cmd` actual. Ex.: no `mb tools --install`, o `cmd` é `tools`; os peers são comandos sob `mb` ao lado de `tools`; os **child** são os subcomandos de `tools` (ex.: `vscode`, `bruno`).
 
 ## Exemplo: comando aninhado com flag
 
@@ -42,9 +50,16 @@ MB_CTX_PARENT_COMMAND_PATH=tools
 MB_CTX_COBR_COMMAND_PATH=mb tools vscode
 MB_CTX_PLUGIN_FLAGS=install
 MB_CTX_PEER_COMMANDS=["bruno","flutter"]
+MB_CTX_CHILD_COMMANDS=[]
+MB_CTX_HIDDEN_CHILD_COMMANDS=[]
+MB_CTX_CHILD_COMMAND_ALIASES=[]
 ```
 
-`MB_CTX_PEER_COMMANDS` lista os **outros** nomes de comando irmãos (por exemplo `bruno`, `flutter`), não inclui `vscode`.
+`MB_CTX_PEER_COMMANDS` lista os **outros** nomes de comando irmãos (por exemplo `bruno`, `flutter`), não inclui `vscode`. Num comando **folha** como `vscode`, não há filhos Cobra: os três `MB_CTX_*CHILD*` ficam com arrays vazios (ou só aliases vazios).
+
+## Exemplo: plugin no grupo `tools` (ex.: `mb tools --install`)
+
+Com o manifest a registar o entrypoint no path `tools` e o utilizador a passar `--install`, o `cmd` Cobra é `tools`. Os **peers** são irmãos de `tools` sob `mb` (ex.: `plugins`, `run`, …). Os **child** são os subcomandos directos de `tools` (ex.: `vscode`, `bruno`), conforme a árvore construída a partir do cache.
 
 ## Exemplo: folha na raiz do manifest
 
@@ -96,4 +111,4 @@ As variáveis são montadas na execução de plugins (`internal/cli/plugincmd`, 
 ## Ver também
 
 - [Plugins](plugins.md) — cache, manifest e execução
-- [Helpers de shell — context](helpers-shell.md#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_peer_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`
+- [Helpers de shell — context](helpers-shell.md#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_child_commands_lines`, `mb_hidden_child_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_child_contains`, `mb_ctx_hidden_child_contains`, `mb_ctx_peer_count`, `mb_ctx_child_count`, `mb_ctx_hidden_child_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`

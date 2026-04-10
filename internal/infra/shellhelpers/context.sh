@@ -6,7 +6,7 @@
 # mb_context_dump prints known MB_CTX_* context variables for debugging.
 mb_context_dump() {
 	local v
-	for v in MB_CTX_INVOCATION MB_CTX_CONFIG_DIR MB_CTX_COMMAND_PATH MB_CTX_COMMAND_NAME MB_CTX_PARENT_COMMAND_PATH MB_CTX_COBR_COMMAND_PATH MB_CTX_PLUGIN_FLAGS MB_CTX_PEER_COMMANDS; do
+	for v in MB_CTX_INVOCATION MB_CTX_CONFIG_DIR MB_CTX_COMMAND_PATH MB_CTX_COMMAND_NAME MB_CTX_PARENT_COMMAND_PATH MB_CTX_COBR_COMMAND_PATH MB_CTX_PLUGIN_FLAGS MB_CTX_PEER_COMMANDS MB_CTX_CHILD_COMMANDS MB_CTX_HIDDEN_CHILD_COMMANDS MB_CTX_CHILD_COMMAND_ALIASES; do
 		printf '%s=%s\n' "$v" "${!v-}"
 	done
 }
@@ -15,6 +15,9 @@ mb_context_dump() {
 # Prefers jq; falls back to python3 -c json. Writes to stdout; returns 1 if neither is available.
 mb_context_dump_json() {
 	local peers="${MB_CTX_PEER_COMMANDS:-[]}"
+	local child="${MB_CTX_CHILD_COMMANDS:-[]}"
+	local hidden="${MB_CTX_HIDDEN_CHILD_COMMANDS:-[]}"
+	local aliases="${MB_CTX_CHILD_COMMAND_ALIASES:-[]}"
 	if command -v jq >/dev/null 2>&1; then
 		jq -n \
 			--arg invocation "${MB_CTX_INVOCATION-}" \
@@ -25,6 +28,9 @@ mb_context_dump_json() {
 			--arg cobr_command_path "${MB_CTX_COBR_COMMAND_PATH-}" \
 			--arg plugin_flags_str "${MB_CTX_PLUGIN_FLAGS-}" \
 			--arg peer_json "$peers" \
+			--arg child_json "$child" \
+			--arg hidden_json "$hidden" \
+			--arg aliases_json "$aliases" \
 			'{
 				invocation: $invocation,
 				config_dir: $config_dir,
@@ -33,7 +39,10 @@ mb_context_dump_json() {
 				parent_command_path: $parent_command_path,
 				cobr_command_path: $cobr_command_path,
 				plugin_flags: (if $plugin_flags_str == "" then [] else ($plugin_flags_str | split(" ") | map(select(length > 0))) end),
-				peer_commands: (try ($peer_json | fromjson) catch [])
+				peer_commands: (try ($peer_json | fromjson) catch []),
+				child_commands: (try ($child_json | fromjson) catch []),
+				hidden_child_commands: (try ($hidden_json | fromjson) catch []),
+				child_command_aliases: (try ($aliases_json | fromjson) catch [])
 			}'
 		return 0
 	fi
@@ -42,11 +51,18 @@ mb_context_dump_json() {
 import json, os
 flags = os.environ.get("MB_CTX_PLUGIN_FLAGS", "")
 parts = [x for x in flags.split() if x]
-peers_raw = os.environ.get("MB_CTX_PEER_COMMANDS", "[]")
-try:
-    peers = json.loads(peers_raw)
-except json.JSONDecodeError:
-    peers = []
+
+def loads_arr(key):
+    raw = os.environ.get(key, "[]")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+
+peers = loads_arr("MB_CTX_PEER_COMMANDS")
+child = loads_arr("MB_CTX_CHILD_COMMANDS")
+hidden = loads_arr("MB_CTX_HIDDEN_CHILD_COMMANDS")
+aliases = loads_arr("MB_CTX_CHILD_COMMAND_ALIASES")
 obj = {
     "invocation": os.environ.get("MB_CTX_INVOCATION", ""),
     "config_dir": os.environ.get("MB_CTX_CONFIG_DIR", ""),
@@ -56,6 +72,9 @@ obj = {
     "cobr_command_path": os.environ.get("MB_CTX_COBR_COMMAND_PATH", ""),
     "plugin_flags": parts,
     "peer_commands": peers,
+    "child_commands": child,
+    "hidden_child_commands": hidden,
+    "child_command_aliases": aliases,
 }
 print(json.dumps(obj, ensure_ascii=False))
 PY
@@ -69,6 +88,42 @@ PY
 # Uses jq when available; otherwise a best-effort parse for simple names (letters, digits, _, -).
 mb_peer_commands_lines() {
 	local j="${MB_CTX_PEER_COMMANDS:-[]}"
+	if command -v jq >/dev/null 2>&1; then
+		jq -r '.[]' <<<"$j" 2>/dev/null
+		return
+	fi
+	j="${j#\[}"
+	j="${j%\]}"
+	j="${j//\"/}"
+	local IFS=,
+	local part
+	for part in $j; do
+		part="${part// /}"
+		[[ -n "$part" ]] && printf '%s\n' "$part"
+	done
+}
+
+# mb_child_commands_lines — um nome por linha a partir de MB_CTX_CHILD_COMMANDS (filhos Cobra não ocultos).
+mb_child_commands_lines() {
+	local j="${MB_CTX_CHILD_COMMANDS:-[]}"
+	if command -v jq >/dev/null 2>&1; then
+		jq -r '.[]' <<<"$j" 2>/dev/null
+		return
+	fi
+	j="${j#\[}"
+	j="${j%\]}"
+	j="${j//\"/}"
+	local IFS=,
+	local part
+	for part in $j; do
+		part="${part// /}"
+		[[ -n "$part" ]] && printf '%s\n' "$part"
+	done
+}
+
+# mb_hidden_child_commands_lines — um nome por linha a partir de MB_CTX_HIDDEN_CHILD_COMMANDS.
+mb_hidden_child_commands_lines() {
+	local j="${MB_CTX_HIDDEN_CHILD_COMMANDS:-[]}"
 	if command -v jq >/dev/null 2>&1; then
 		jq -r '.[]' <<<"$j" 2>/dev/null
 		return
@@ -106,12 +161,52 @@ mb_ctx_peer_contains() {
 	return 1
 }
 
+# mb_ctx_child_contains NAME — exit 0 if NAME appears in MB_CTX_CHILD_COMMANDS (filho directo visível).
+mb_ctx_child_contains() {
+	local want="$1"
+	[[ -n "$want" ]] || return 1
+	local name
+	while IFS= read -r name; do
+		[[ "$name" == "$want" ]] && return 0
+	done < <(mb_child_commands_lines)
+	return 1
+}
+
+# mb_ctx_hidden_child_contains NAME — exit 0 if NAME appears em MB_CTX_HIDDEN_CHILD_COMMANDS.
+mb_ctx_hidden_child_contains() {
+	local want="$1"
+	[[ -n "$want" ]] || return 1
+	local name
+	while IFS= read -r name; do
+		[[ "$name" == "$want" ]] && return 0
+	done < <(mb_hidden_child_commands_lines)
+	return 1
+}
+
 # mb_ctx_peer_count — imprime o número de comandos irmãos (inteiro, uma linha).
 mb_ctx_peer_count() {
 	local n=0
 	while IFS= read -r _; do
 		((++n)) || true
 	done < <(mb_peer_commands_lines)
+	printf '%s\n' "$n"
+}
+
+# mb_ctx_child_count — número de filhos Cobra visíveis (não ocultos).
+mb_ctx_child_count() {
+	local n=0
+	while IFS= read -r _; do
+		((++n)) || true
+	done < <(mb_child_commands_lines)
+	printf '%s\n' "$n"
+}
+
+# mb_ctx_hidden_child_count — número de filhos Cobra ocultos.
+mb_ctx_hidden_child_count() {
+	local n=0
+	while IFS= read -r _; do
+		((++n)) || true
+	done < <(mb_hidden_child_commands_lines)
 	printf '%s\n' "$n"
 }
 
