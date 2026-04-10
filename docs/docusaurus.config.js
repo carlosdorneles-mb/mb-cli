@@ -52,6 +52,7 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
+          path: './content',
           sidebarPath: './sidebars.js',
         },
         blog: false,
