@@ -25,7 +25,12 @@ type SyncService struct {
 }
 
 // NewSyncService creates a new SyncService.
-func NewSyncService(rt PluginRuntime, store ports.PluginCLIStore, scanner ports.PluginScanner, shell ports.ShellHelperInstaller) *SyncService {
+func NewSyncService(
+	rt PluginRuntime,
+	store ports.PluginCLIStore,
+	scanner ports.PluginScanner,
+	shell ports.ShellHelperInstaller,
+) *SyncService {
 	return &SyncService{
 		rt:      rt,
 		store:   store,

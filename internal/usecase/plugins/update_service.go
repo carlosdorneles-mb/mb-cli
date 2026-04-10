@@ -72,7 +72,12 @@ func (s *UpdateService) Update(ctx context.Context, req UpdateRequest, log Logge
 	return err
 }
 
-func (s *UpdateService) updateOne(ctx context.Context, pkg string, logAlreadyLatest bool, log Logger) error {
+func (s *UpdateService) updateOne(
+	ctx context.Context,
+	pkg string,
+	logAlreadyLatest bool,
+	log Logger,
+) error {
 	src, err := s.store.GetPluginSource(pkg)
 	if err != nil {
 		return err
@@ -84,7 +89,10 @@ func (s *UpdateService) updateOne(ctx context.Context, pkg string, logAlreadyLat
 		return fmt.Errorf("pacote %q é local; não é possível atualizar", pkg)
 	}
 	if src.GitURL == "" {
-		return fmt.Errorf("pacote %q foi instalado manualmente (sem URL Git); não é possível atualizar", pkg)
+		return fmt.Errorf(
+			"pacote %q foi instalado manualmente (sem URL Git); não é possível atualizar",
+			pkg,
+		)
 	}
 
 	dir := filepath.Join(s.rt.PluginsDir, pkg)

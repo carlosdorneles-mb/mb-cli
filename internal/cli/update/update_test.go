@@ -60,7 +60,15 @@ func testUpdatePluginService(t *testing.T) *usecaseplugins.UpdateService {
 		PluginsDir: d.Runtime.PluginsDir,
 	}
 	syncSvc := usecaseplugins.NewSyncService(rt, d.Store, d.Scanner, &dummyShellInstaller{})
-	return usecaseplugins.NewUpdateService(rt, d.Store, d.Scanner, &dummyShellInstaller{}, &dummyGitOps{}, &dummyFS{}, syncSvc)
+	return usecaseplugins.NewUpdateService(
+		rt,
+		d.Store,
+		d.Scanner,
+		&dummyShellInstaller{},
+		&dummyGitOps{},
+		&dummyFS{},
+		syncSvc,
+	)
 }
 
 type dummyShellInstaller struct{}
@@ -69,26 +77,57 @@ func (dummyShellInstaller) EnsureShellHelpers(string) (string, error) { return "
 
 type dummyGitOps struct{}
 
-func (dummyGitOps) ParseGitURL(string) (string, string, error)              { return "", "", nil }
+func (dummyGitOps) ParseGitURL(
+	string,
+) (string, string, error) {
+	return "", "", nil
+}
 func (dummyGitOps) Clone(context.Context, string, string, ports.GitCloneOpts) error { return nil }
-func (dummyGitOps) LatestTag(context.Context, string) (string, error)       { return "", nil }
-func (dummyGitOps) GetVersion(string) (string, error)                       { return "1.0.0", nil }
-func (dummyGitOps) GetCurrentBranch(string) (string, error)                 { return "main", nil }
-func (dummyGitOps) IsGitRepo(string) bool                                   { return false }
-func (dummyGitOps) FetchTags(context.Context, string) error                 { return nil }
-func (dummyGitOps) ListLocalTags(string) ([]string, error)                  { return nil, nil }
-func (dummyGitOps) NewerTag(string, string) (string, bool)                  { return "", false }
-func (dummyGitOps) CheckoutTag(context.Context, string, string) error       { return nil }
-func (dummyGitOps) FetchAndPull(context.Context, string, string) error      { return nil }
+
+func (dummyGitOps) LatestTag(
+	context.Context,
+	string,
+) (string, error) {
+	return "", nil
+}
+
+func (dummyGitOps) GetVersion(
+	string,
+) (string, error) {
+	return "1.0.0", nil
+}
+
+func (dummyGitOps) GetCurrentBranch(
+	string,
+) (string, error) {
+	return "main", nil
+}
+func (dummyGitOps) IsGitRepo(string) bool                   { return false }
+func (dummyGitOps) FetchTags(context.Context, string) error { return nil }
+
+func (dummyGitOps) ListLocalTags(
+	string,
+) ([]string, error) {
+	return nil, nil
+}
+
+func (dummyGitOps) NewerTag(
+	string,
+	string,
+) (string, bool) {
+	return "", false
+}
+func (dummyGitOps) CheckoutTag(context.Context, string, string) error  { return nil }
+func (dummyGitOps) FetchAndPull(context.Context, string, string) error { return nil }
 
 type dummyFS struct{}
 
-func (dummyFS) RemoveAll(string) error                                      { return nil }
-func (dummyFS) MkdirAll(string, os.FileMode) error                          { return nil }
-func (dummyFS) Stat(name string) (os.FileInfo, error)                       { return os.Stat(name) }
-func (dummyFS) IsNotExist(err error) bool                                   { return os.IsNotExist(err) }
-func (dummyFS) ReadDir(name string) ([]os.DirEntry, error)                  { return os.ReadDir(name) }
-func (dummyFS) Getwd() (string, error)                                      { return os.Getwd() }
+func (dummyFS) RemoveAll(string) error                     { return nil }
+func (dummyFS) MkdirAll(string, os.FileMode) error         { return nil }
+func (dummyFS) Stat(name string) (os.FileInfo, error)      { return os.Stat(name) }
+func (dummyFS) IsNotExist(err error) bool                  { return os.IsNotExist(err) }
+func (dummyFS) ReadDir(name string) ([]os.DirEntry, error) { return os.ReadDir(name) }
+func (dummyFS) Getwd() (string, error)                     { return os.Getwd() }
 
 func TestNewUpdateCmd(t *testing.T) {
 	d := testUpdateDeps(t)

@@ -24,50 +24,6 @@ import (
 // Ensure the gitOpsForTestImpl satisfies ports.GitOperations.
 var _ ports.GitOperations = (*gitOpsForTestImpl)(nil)
 
-// testAddService builds an AddPlugin service backed by real SQLite and OS FS
-// for integration tests that exercise the full use case.
-func testAddService(t *testing.T) (*addplugin.Service, *deps.RuntimeConfig) {
-	t.Helper()
-	tmp := t.TempDir()
-	cachePath := filepath.Join(tmp, "cache.db")
-	pluginsDir := filepath.Join(tmp, "plugins")
-	configDir := filepath.Join(tmp, "config")
-	if err := os.MkdirAll(pluginsDir, 0o755); err != nil {
-		t.Fatalf("mkdir plugins: %v", err)
-	}
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
-		t.Fatalf("mkdir config: %v", err)
-	}
-	store, err := sqlite.NewStore(cachePath)
-	if err != nil {
-		t.Fatalf("new store: %v", err)
-	}
-	t.Cleanup(func() { _ = store.Close() })
-
-	rt := &deps.RuntimeConfig{
-		Paths: deps.Paths{
-			PluginsDir: pluginsDir,
-			ConfigDir:  configDir,
-		},
-	}
-
-	syncer := addplugin.NewSyncer()
-	svc := addplugin.New(
-		addplugin.Runtime{
-			ConfigDir:  rt.ConfigDir,
-			PluginsDir: rt.PluginsDir,
-		},
-		store,
-		plugins.NewScanner(pluginsDir),
-		&osFSAdapter{},
-		gitOpsForTest(),
-		&shellInstaller{},
-		&layoutValidator{},
-		syncer,
-	)
-	return svc, rt
-}
-
 // osFSAdapter adapts the real OS to the ports.Filesystem interface for tests.
 type osFSAdapter struct{}
 

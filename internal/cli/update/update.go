@@ -8,11 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appupdate "mb/internal/usecase/update"
 	"mb/internal/deps"
 	"mb/internal/ports"
 	"mb/internal/shared/system"
 	"mb/internal/usecase/plugins"
+	appupdate "mb/internal/usecase/update"
 )
 
 // machineSystemUpdateCommandPath is the plugin cache command_path that owns exposing
