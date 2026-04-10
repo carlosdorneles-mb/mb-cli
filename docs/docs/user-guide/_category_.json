@@ -1,0 +1,9 @@
+{
+  "label": "Guia do Usuário",
+  "position": 2,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Variáveis de ambiente, comandos de plugins e flags globais."
+  }
+}

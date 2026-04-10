@@ -12,7 +12,7 @@ Isto é **independente** dos ficheiros **`.env.*`** e de **`env.defaults`**, que
 
 Só existem duas chaves lidas deste ficheiro (`docs_url` e `update_repo`). **Qualquer outra chave no YAML é ignorada** — por exemplo, `TESTCONFIG: dudu` **não** vira variável de ambiente e **`mb run`** não a verá.
 
-Para variáveis como `TESTCONFIG`, use uma destas opções (ver [Variáveis de ambiente](../guide/environment-variables.md)):
+Para variáveis como `TESTCONFIG`, use uma destas opções (ver [Variáveis de ambiente](../user-guide/environment-variables.md)):
 
 - **`~/.config/mb/env.defaults`** — por exemplo `mb envs set TESTCONFIG dudu`
 - **`./.env`** no diretório de trabalho atual

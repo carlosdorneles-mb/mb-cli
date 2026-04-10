@@ -7,7 +7,7 @@ sidebar_position: 2
 Guia para montar um pacote de plugins do MB CLI: pastas, `manifest.yaml`, registo e execução.
 
 - **Referência técnica** (scanner, cache, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
-- **Uso no dia a dia** (`mb plugins`, help, completion): [Comandos de plugins](./plugin-commands.md)
+- **Uso no dia a dia** (`mb plugins`, help, completion): [Comandos de plugins](../user-guide/plugin-commands.md)
 - **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins) — na raiz do repo, `make install-plugins-examples` e depois `mb plugins sync`
 
 ## Checklist rápido
@@ -147,7 +147,7 @@ env_files:
     vault: local
 ```
 
-Manifestos só de **categoria** ignoram `env_files`. Ordem de precedência do ambiente: [Variáveis de ambiente](./environment-variables.md).
+Manifestos só de **categoria** ignoram `env_files`. Ordem de precedência do ambiente: [Variáveis de ambiente](../user-guide/environment-variables.md).
 
 ### Grupos no help (`groups.yaml` e `group_id`)
 
@@ -167,7 +167,7 @@ echo "Plugin rodando!"
 
 Torne executável: `chmod +x run.sh`.
 
-**Helpers MB** (após `mb plugins sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](../technical-reference/helpers-shell.md). **gum** é opcional nos scripts.
+**Helpers MB** (após `mb plugins sync`): no shell, `. "$MB_HELPERS_PATH/all.sh"` ou `log.sh`. Lista: [Helpers de shell](./shell-helpers.md). **gum** é opcional nos scripts.
 
 ### Códigos de saída e sudo (batch update-all) {#plugin-exit-codes-sudo}
 
@@ -232,4 +232,4 @@ Com `readme: README.md` na mesma pasta que o manifest da folha, o utilizador pod
 
 ---
 
-Para comandos `mb plugins` (list, remove, update) e indicação **(local)** no help, veja [Comandos de plugins](./plugin-commands.md).
+Para comandos `mb plugins` (list, remove, update) e indicação **(local)** no help, veja [Comandos de plugins](../user-guide/plugin-commands.md).

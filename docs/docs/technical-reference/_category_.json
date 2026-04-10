@@ -1,0 +1,9 @@
+{
+  "label": "Referência Técnica",
+  "position": 5,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Detalhes de implementação para desenvolvedores Go."
+  }
+}

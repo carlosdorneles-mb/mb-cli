@@ -34,31 +34,4 @@ curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninst
 
 Ou remova manualmente: `rm -f ~/.local/bin/mb ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf` (se foram instalados pelo install.sh). Os dados (plugins, configuração) permanecem em `~/.config/mb` (Linux) ou `~/Library/Application Support/mb` (macOS) e não são apagados.
 
-## Para desenvolvedores
-
-### Pré-requisitos
-
-- Go 1.26.1+ (apenas se for compilar a partir do código)
-
-### Build e instalação
-
-Se você for alterar o código ou contribuir:
-
-```bash
-make build          # binário em bin/mb
-make install        # instala em $GOPATH/bin
-```
-
-### Executar localmente
-
-Para rodar o CLI sem instalar (a partir do código-fonte):
-
-```bash
-make run-local              # go run . (ajuda: make run-local --help)
-make run-local plugins sync # argumentos podem ser passados direto: make run-local [args...]
-make run plugins sync       # build + ./bin/mb; idem: make run [args...] ou make run ARGS="..."
-```
-
-Para usar os plugins de exemplo do repositório: **`make install-plugins-examples`** (registra cada plugin com `mb plugins add`, sem copiar); depois **`make run plugins sync`** (ou `mb plugins sync`).
-
-Próximo passo: [Criar um plugin](./creating-plugins.md) para montar seu primeiro plugin e rodá-lo com o MB.
+Próximo passo: [Desenvolvimento Local](./local-development.md) para compilar a partir do código ou [Criar um plugin](../plugin-authoring/create-a-plugin.md) para montar seu primeiro plugin.

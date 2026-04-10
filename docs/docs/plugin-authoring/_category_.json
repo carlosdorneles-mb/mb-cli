@@ -1,0 +1,9 @@
+{
+  "label": "Criar Plugins",
+  "position": 3,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Como criar, registar e publicar plugins para o MB CLI."
+  }
+}

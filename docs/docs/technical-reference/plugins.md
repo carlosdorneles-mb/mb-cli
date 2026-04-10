@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Plugins
 
-Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para **criar** um plugin e usar `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../guide/creating-plugins.md) e [Comandos de plugins](../guide/plugin-commands.md).
+Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para **criar** um plugin e usar `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../plugin-authoring/create-a-plugin.md) e [Comandos de plugins](../user-guide/plugin-commands.md).
 
 ## Diretório de plugins e plugins locais
 
@@ -146,7 +146,7 @@ Plugins que participam em batches como **`mb tools --update-all`** (ou equivalen
 - **86** (`MB_EXIT_UPDATE_SKIPPED_SUDO`) — sem `sudo` não interativo / root para operações de pacote; o batch trata como “saltado”, não como erro fatal.
 - **87** (`MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED`) — nada a atualizar porque a ferramenta não está instalada; ignorado no batch.
 
-O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `~/.config/mb/lib/shell/sudo.sh`, sincronizado com `mb plugins sync`). Ver [Guia: criar um plugin — códigos e sudo](../guide/creating-plugins.md#plugin-exit-codes-sudo).
+O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `~/.config/mb/lib/shell/sudo.sh`, sincronizado com `mb plugins sync`). Ver [Guia: criar um plugin — códigos e sudo](../plugin-authoring/create-a-plugin.md#plugin-exit-codes-sudo).
 
 ## Execução: flags e argumentos
 
@@ -165,7 +165,7 @@ O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas *
 - **Posicionais** após o consumo das flags acima. Ex.: `mb tools hello foo bar` → `$1`, `$2`.
 - **Ambiente:** sistema + defaults + `env_files` do plugin + `flags[].envs` (apenas das flags usadas) + `--env` + `MB_VERBOSE`/`MB_QUIET` + variáveis de contexto **`MB_CTX_*`** (invocação, path no manifest, irmãos Cobra, etc.).
   - Precedência prática em conflito de chave: `--env` > `flags[].envs` > `env_files`.
-  - Ver [Variáveis de ambiente](../guide/environment-variables.md), [Flags globais](../guide/global-flags.md) e [Contexto de invocação de plugins](plugin-invocation-context.md).
+  - Ver [Variáveis de ambiente](../user-guide/environment-variables.md), [Flags globais](../user-guide/global-flags.md) e [Contexto de invocação de plugins](plugin-invocation-context.md).
 
 ### `--help` / `-h`
 
@@ -178,4 +178,4 @@ Mostra o help Cobra do comando; o entrypoint **não** é executado.
 
 ## Segurança
 
-Os plugins correm com as permissões do utilizador; o CLI confina paths ao diretório do plugin no scan e no executor e suporta timeout opcional. Ver [Segurança](../guide/security.md).
+Os plugins correm com as permissões do utilizador; o CLI confina paths ao diretório do plugin no scan e no executor e suporta timeout opcional. Ver [Segurança](../user-guide/security.md).

@@ -17,12 +17,12 @@ O **MB CLI** é uma ferramenta de linha de comando para **estender o que você p
 
 **Guia (uso do dia a dia)**
 
-- [Começar](./guide/getting-started.md) — pré-requisitos, instalação e primeiros passos
-- [Comandos de plugins](./guide/plugin-commands.md) — como descobrir e executar comandos de plugins
-- [Criar um plugin](./guide/creating-plugins.md) — passo a passo com manifest e scripts
-- [Flags globais](./guide/global-flags.md) — `--verbose`, `--quiet`, `--env`
-- [Variáveis de ambiente](./guide/environment-variables.md) — ordem de precedência e como usar
-- [Segurança](./guide/security.md) — de onde vem o código que roda e boas práticas
+- [Começar](./getting-started/) — pré-requisitos, instalação e primeiros passos
+- [Comandos de plugins](./user-guide/plugin-commands.md) — como descobrir e executar comandos de plugins
+- [Criar um plugin](./plugin-authoring/create-a-plugin.md) — passo a passo com manifest e scripts
+- [Flags globais](./user-guide/global-flags.md) — `--verbose`, `--quiet`, `--env`
+- [Variáveis de ambiente](./user-guide/environment-variables.md) — ordem de precedência e como usar
+- [Segurança](./user-guide/security.md) — de onde vem o código que roda e boas práticas
 
 **Referência técnica** (implementação, cache, fluxos internos)
 
