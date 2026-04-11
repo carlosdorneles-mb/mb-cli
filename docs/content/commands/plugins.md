@@ -24,8 +24,16 @@ mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-pacote
 
 | Flag | Descrição |
 |---|---|
-| `--package <id>` | Identificador do pacote |
+| `--package <id>` | Identificador do pacote. Se omitido, usa o nome do repositório ou do diretório. |
 | `--tag <tag>` | Instalar tag específica (remoto) |
+
+Quando `--package` não é informado, o nome do pacote é:
+- **Remoto (Git):** último segmento da URL (ex.: `org/repo` → `repo`)
+- **Local:** nome do diretório (ex.: `/path/meu-plugin` → `meu-plugin`)
+
+Esse nome é usado em `mb plugins remove` e `mb plugins update`.
+
+**Subdiretório de plugins:** o MB detecta automaticamente se os plugins estão em `src/` (ou o valor de `MB_PLUGIN_SUBDIR`). Se o subdiretório não contiver manifests, faz fallback para a raiz.
 
 Após `add`, o sync é executado automaticamente.
 
@@ -37,24 +45,43 @@ Lista plugins instalados com pacote, caminho do comando, descrição, versão, o
 
 ```bash
 mb plugins list
+mb plugins list --check-updates
 ```
+
+| Flag | Descrição |
+|---|---|
+| `--check-updates` | Verifica se há atualização disponível para cada plugin remoto |
+
+A coluna **PACOTE** é o identificador usado em `mb plugins remove <pacote> [<pacote>...]` / `mb plugins remove --all` e `mb plugins update <pacote> [<pacote>...]` / `mb plugins update --all`.
 
 ### `mb plugins remove`
 
-Remove um plugin instalado (diretório + registo no cache).
+Remove um ou mais plugins instalados.
 
 ```bash
+# Remove um único plugin
 mb plugins remove meu-plugin
+
+# Remove múltiplos plugins
+mb plugins remove foo bar baz
+
+# Remove todos os plugins instalados
+mb plugins remove --all
 ```
+
+| Flag | Descrição |
+|---|---|
+| `--all` | Remove todos os plugins instalados |
 
 Pede confirmação antes de remover.
 
 ### `mb plugins update`
 
-Atualiza plugins remotos (Git).
+Atualiza um ou mais plugins remotos (Git), ou todos com `--all`.
 
 ```bash
 mb plugins update meu-plugin
+mb plugins update foo bar
 mb plugins update --all
 ```
 

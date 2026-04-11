@@ -49,7 +49,7 @@ Para **flags globais do CLI**, argumentos posicionais no script e flags desconhe
 
 ## Repositório com vários plugins
 
-Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **PACOTE** é o identificador da instalação (`--package` ou nome do diretório clone), usado em `mb plugins remove <package>` e `mb plugins update <package>`.
+Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **PACOTE** é o identificador da instalação (`--package` ou nome do diretório clone), usado em `mb plugins remove <package> [<package>...]` / `mb plugins remove --all` e `mb plugins update <package> [<package>...]` / `mb plugins update --all`.
 
 ## Plugin local vs remoto
 

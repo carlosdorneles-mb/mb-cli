@@ -242,7 +242,8 @@ Se `--package` não for informado:
   Ex.: `repo/foo/` + `repo/bar/` → `foo` e `bar`
 
 Esse nome é o identificador que aparece na coluna **PACOTE** de `mb plugins list`
-e é usado em `mb plugins remove <pacote>` e `mb plugins update <pacote>`.
+e é usado em `mb plugins remove <pacote> [<pacote>...]` / `mb plugins remove --all` e
+`mb plugins update <pacote> [<pacote>...]` / `mb plugins update --all`.
 
 ### Local (sem copiar ficheiros)
 

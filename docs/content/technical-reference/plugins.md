@@ -38,7 +38,8 @@ Ao instalar sem `--package`, o identificador do pacote é:
 | Coleção | Nome de cada subdiretório | `repo/foo/`, `repo/bar/` → `foo`, `bar` |
 
 Esse identificador aparece como **PACOTE** em `mb plugins list` e é usado em
-`mb plugins remove <pacote>` e `mb plugins update <pacote>`.
+`mb plugins remove <pacote> [<pacote>...]` / `mb plugins remove --all` e
+`mb plugins update <pacote> [<pacote>...]` / `mb plugins update --all`.
 
 ## Descoberta: scanner e `manifest.yaml`
 
