@@ -18,6 +18,10 @@ func newPluginsUpdateCmd(svc *plugins.UpdateService, d deps.Dependencies) *cobra
 		Use:     "update <package>",
 		Aliases: []string{"up", "u"},
 		Short:   "Atualiza um plugin ou todos (--all)",
+		Long: `Atualiza um plugin instalado ou todos com --all.
+
+O nome do pacote é o valor da coluna PACOTE em mb plugins list.
+Ao instalar sem --package, usa-se o nome do repositório (Git) ou do diretório (local).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())

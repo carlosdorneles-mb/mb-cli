@@ -24,8 +24,13 @@ func newPluginsAddCmd(svc *AddPluginService, d deps.Dependencies) *cobra.Command
 
 O MB detecta automaticamente se os plugins estão num subdiretório (default: src/).
 Para usar outro subdiretório, defina MB_PLUGIN_SUBDIR. Para desativar, defina
-MB_PLUGIN_SUBDIR= (vazio) e o scan será feito na raiz do pacote.`,
-  		Example: `# Instalar a partir do GitHub
+MB_PLUGIN_SUBDIR= (vazio) e o scan será feito na raiz do pacote.
+
+Quando --package não é informado, o nome do pacote é:
+  - Remoto (Git): último segmento da URL (ex.: org/repo → repo)
+  - Local: nome do diretório (ex.: /path/meu-plugin → meu-plugin)
+Esse nome é usado em mb plugins remove <pacote> e mb plugins update <pacote>.`,
+		Example: `# Instalar a partir do GitHub
   mb plugins add https://github.com/org/repo
   mb plugins add https://github.com/org/repo --tag v1.2.0 --package meu-plugin
 

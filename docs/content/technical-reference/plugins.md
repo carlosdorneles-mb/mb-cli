@@ -27,6 +27,19 @@ MB_PLUGIN_SUBDIR=lib mb plugins sync
 
 Se o subdiretório não contiver nenhum `manifest.yaml`, o scanner faz **fallback** para a raiz do pacote. Definir `MB_PLUGIN_SUBDIR=` (vazio) desativa a detecção e escaneia sempre da raiz.
 
+### Nome do pacote (identificador)
+
+Ao instalar sem `--package`, o identificador do pacote é:
+
+| Origem | Identificador | Exemplo |
+|--------|--------------|---------|
+| Git | Último segmento da URL | `org/infra-tools` → `infra-tools` |
+| Local | Nome do diretório | `/path/meu-plugin` → `meu-plugin` |
+| Coleção | Nome de cada subdiretório | `repo/foo/`, `repo/bar/` → `foo`, `bar` |
+
+Esse identificador aparece como **PACOTE** em `mb plugins list` e é usado em
+`mb plugins remove <pacote>` e `mb plugins update <pacote>`.
+
 ## Descoberta: scanner e `manifest.yaml`
 
 O **scanner** percorre a árvore à procura de `manifest.yaml`. Para cada ficheiro:

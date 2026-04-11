@@ -230,6 +230,20 @@ MB_PLUGIN_SUBDIR= mb plugins add https://github.com/org/repo
 | `lib` | Tenta `lib/` → se vazio, raiz |
 | `""` (vazio) | Escaneia direto da raiz |
 
+### Nome do pacote
+
+Se `--package` não for informado:
+
+- **Remoto (Git):** usa o nome do repositório (último segmento da URL).
+  Ex.: `https://github.com/org/infra-tools` → `infra-tools`
+- **Local:** usa o nome do diretório.
+  Ex.: `/caminho/para/meu-plugin` → `meu-plugin`
+- **Coleção:** usa o nome de cada subdiretório.
+  Ex.: `repo/foo/` + `repo/bar/` → `foo` e `bar`
+
+Esse nome é o identificador que aparece na coluna **PACOTE** de `mb plugins list`
+e é usado em `mb plugins remove <pacote>` e `mb plugins update <pacote>`.
+
 ### Local (sem copiar ficheiros)
 
 ```bash

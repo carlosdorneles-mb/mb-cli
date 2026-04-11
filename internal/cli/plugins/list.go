@@ -18,6 +18,11 @@ func newPluginsListCmd(deps deps.Dependencies) *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
 		Short:   "Lista plugins instalados",
+		Long: `Lista plugins instalados.
+
+A coluna PACOTE é o identificador usado em mb plugins remove <pacote> e
+mb plugins update <pacote>. Ao instalar sem --package, o nome vem do
+repositório (Git) ou do diretório (local).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			pluginList, err := deps.Store.ListPlugins()
 			if err != nil {
