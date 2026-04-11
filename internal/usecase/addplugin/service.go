@@ -173,6 +173,18 @@ func (s *Service) addRemote(
 		Ref:        ref,
 		Version:    version,
 	}
+
+	// Detect plugin subdirectory convention (e.g. src/)
+	if subDir := plugin.SubDir(); subDir != "" {
+		subPath := filepath.Join(destDir, subDir)
+		if info, err := s.fsys.Stat(subPath); err == nil && info.IsDir() {
+			// Verify subdir has at least one manifest.yaml
+			if hasManifests(subPath, s.fsys) {
+				ps.SubDir = subDir
+			}
+		}
+	}
+
 	if err := s.store.UpsertPluginSource(ps); err != nil {
 		_ = s.fsys.RemoveAll(destDir)
 		return err
@@ -235,6 +247,16 @@ func (s *Service) addLocal(
 
 	rootManifest := filepath.Join(absPath, "manifest.yaml")
 	if _, err := s.fsys.Stat(rootManifest); s.fsys.IsNotExist(err) {
+		// Check if there's a subdirectory with plugins inside
+		if subDir := plugin.SubDir(); subDir != "" {
+			subPath := filepath.Join(absPath, subDir)
+			if hasManifests(subPath, s.fsys) {
+				if _, err := s.fsys.Stat(filepath.Join(subPath, "manifest.yaml")); err == nil {
+					return s.addLocalSingle(ctx, subPath, pkg, syncOpts, log)
+				}
+				return s.addLocalCollection(ctx, subPath, pkg, syncOpts, log)
+			}
+		}
 		return s.addLocalCollection(ctx, absPath, pkg, syncOpts, log)
 	} else if err != nil {
 		return err
@@ -439,4 +461,24 @@ func (s *Service) toSyncRuntime() Runtime {
 
 func toSyncOptions(opts SyncOptions) SyncerOptions {
 	return SyncerOptions(opts)
+}
+
+// hasManifests checks if dir contains at least one manifest.yaml
+// (either directly or in immediate subdirectories).
+func hasManifests(dir string, fsys ports.Filesystem) bool {
+	if _, err := fsys.Stat(filepath.Join(dir, "manifest.yaml")); err == nil {
+		return true
+	}
+	entries, err := fsys.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			if _, err := fsys.Stat(filepath.Join(dir, e.Name(), "manifest.yaml")); err == nil {
+				return true
+			}
+		}
+	}
+	return false
 }

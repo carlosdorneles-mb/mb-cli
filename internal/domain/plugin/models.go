@@ -48,5 +48,6 @@ type PluginSource struct {
 	Ref        string
 	Version    string
 	LocalPath  string
+	SubDir     string // "src" when plugins live in a src subdirectory; empty otherwise
 	UpdatedAt  string
 }

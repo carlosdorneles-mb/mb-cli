@@ -82,6 +82,9 @@ func (s *Store) InitSchema() error {
 	if err := s.migratePluginSourcesLocalPath(); err != nil {
 		return err
 	}
+	if err := s.migratePluginSourcesSubDir(); err != nil {
+		return err
+	}
 	return s.migrateCobraPluginFields()
 }
 
@@ -227,6 +230,17 @@ func (s *Store) migratePluginSourcesLocalPath() error {
 		return nil
 	}
 	_, err := s.db.Exec("ALTER TABLE plugin_sources ADD COLUMN local_path TEXT")
+	return err
+}
+
+func (s *Store) migratePluginSourcesSubDir() error {
+	var has int
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('plugin_sources') WHERE name='sub_dir'").
+		Scan(&has)
+	if has > 0 {
+		return nil
+	}
+	_, err := s.db.Exec("ALTER TABLE plugin_sources ADD COLUMN sub_dir TEXT")
 	return err
 }
 
@@ -448,25 +462,26 @@ ORDER BY path
 
 func (s *Store) UpsertPluginSource(ps PluginSource) error {
 	_, err := s.db.Exec(`
-INSERT INTO plugin_sources (install_dir, git_url, ref_type, ref, version, local_path)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO plugin_sources (install_dir, git_url, ref_type, ref, version, local_path, sub_dir)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(install_dir) DO UPDATE SET
   git_url = excluded.git_url,
   ref_type = excluded.ref_type,
   ref = excluded.ref,
   version = excluded.version,
   local_path = excluded.local_path,
+  sub_dir = excluded.sub_dir,
   updated_at = CURRENT_TIMESTAMP
-`, ps.InstallDir, nullEmpty(ps.GitURL), nullEmpty(ps.RefType), nullEmpty(ps.Ref), nullEmpty(ps.Version), nullEmpty(ps.LocalPath))
+`, ps.InstallDir, nullEmpty(ps.GitURL), nullEmpty(ps.RefType), nullEmpty(ps.Ref), nullEmpty(ps.Version), nullEmpty(ps.LocalPath), nullEmpty(ps.SubDir))
 	return err
 }
 
 func (s *Store) GetPluginSource(installDir string) (*PluginSource, error) {
 	var ps PluginSource
 	err := s.db.QueryRow(`
-SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(updated_at, '')
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(sub_dir, ''), COALESCE(updated_at, '')
 FROM plugin_sources WHERE install_dir = ?
-`, installDir).Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.LocalPath, &ps.UpdatedAt)
+`, installDir).Scan(&ps.InstallDir, &ps.GitURL, &ps.RefType, &ps.Ref, &ps.Version, &ps.LocalPath, &ps.SubDir, &ps.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -478,7 +493,7 @@ FROM plugin_sources WHERE install_dir = ?
 
 func (s *Store) ListPluginSources() ([]PluginSource, error) {
 	rows, err := s.db.Query(`
-SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(updated_at, '')
+SELECT install_dir, COALESCE(git_url, ''), COALESCE(ref_type, ''), COALESCE(ref, ''), COALESCE(version, ''), COALESCE(local_path, ''), COALESCE(sub_dir, ''), COALESCE(updated_at, '')
 FROM plugin_sources
 ORDER BY install_dir
 `)
@@ -497,6 +512,7 @@ ORDER BY install_dir
 			&ps.Ref,
 			&ps.Version,
 			&ps.LocalPath,
+			&ps.SubDir,
 			&ps.UpdatedAt,
 		); err != nil {
 			return nil, err

@@ -197,6 +197,39 @@ env_files:
 
 ## 4. Registar e testar
 
+### Convenção de subdiretório
+
+O MB CLI detecta automaticamente se os plugins estão num **subdiretório** do repositório.
+Por padrão, procura em **`src/`**. Se não encontrar manifests nessa pasta, faz **fallback** para a raiz do pacote.
+
+```
+repo/
+├── README.md
+├── src/                     ← plugins aqui (detectado automaticamente)
+│   ├── manifest.yaml
+│   └── deploy/
+│       ├── manifest.yaml
+│       └── deploy.sh
+└── docs/
+    └── guia.md
+```
+
+Para **customizar** o subdiretório, defina a variável de ambiente **`MB_PLUGIN_SUBDIR`**:
+
+```bash
+# Usar "lib/" em vez de "src/"
+MB_PLUGIN_SUBDIR=lib mb plugins add https://github.com/org/repo
+
+# Desativar detecção automática (escanear sempre da raiz)
+MB_PLUGIN_SUBDIR= mb plugins add https://github.com/org/repo
+```
+
+| `MB_PLUGIN_SUBDIR` | Comportamento |
+|---------------------|---------------|
+| não definida | Tenta `src/` → se vazio, raiz |
+| `lib` | Tenta `lib/` → se vazio, raiz |
+| `""` (vazio) | Escaneia direto da raiz |
+
 ### Local (sem copiar ficheiros)
 
 ```bash

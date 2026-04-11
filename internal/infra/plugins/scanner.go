@@ -549,6 +549,16 @@ func (s *Scanner) Scan() ([]sqlite.Plugin, []sqlite.Category, []plugin.Validatio
 			continue
 		}
 		rootPath := filepath.Join(s.pluginsDir, e.Name())
+		// Detect plugin subdirectory convention (e.g. src/)
+		if subDir := plugin.SubDir(); subDir != "" {
+			subPath := filepath.Join(rootPath, subDir)
+			if info, err := os.Stat(subPath); err == nil && info.IsDir() {
+				// Check if subdir has any manifest.yaml (single or collection)
+				if hasAnyManifests(subPath) {
+					rootPath = subPath
+				}
+			}
+		}
 		p, c, w, hg, err := s.scanTree(rootPath)
 		if err != nil {
 			return nil, nil, nil, nil, err
@@ -580,4 +590,21 @@ func (s *Scanner) ScanDir(
 // SetDebugLog wires debug output for scan (implements ports.PluginScanner).
 func (s *Scanner) SetDebugLog(fn func(string)) {
 	s.DebugLog = fn
+}
+
+// hasAnyManifests checks if dir contains at least one manifest.yaml
+// (either directly or in immediate subdirectories).
+func hasAnyManifests(dir string) bool {
+	if _, err := os.Stat(filepath.Join(dir, "manifest.yaml")); err == nil {
+		return true
+	}
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if e.IsDir() {
+			if _, err := os.Stat(filepath.Join(dir, e.Name(), "manifest.yaml")); err == nil {
+				return true
+			}
+		}
+	}
+	return false
 }

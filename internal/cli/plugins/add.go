@@ -20,7 +20,23 @@ func newPluginsAddCmd(svc *AddPluginService, d deps.Dependencies) *cobra.Command
 		Use:     "add <git-url|path|.>",
 		Aliases: []string{"install", "i", "a"},
 		Short:   "Instala um plugin a partir de uma URL Git ou de um diretório local",
-		Args:    cobra.ExactArgs(1),
+		Long: `Instala um plugin a partir de uma URL Git ou de um diretório local.
+
+O MB detecta automaticamente se os plugins estão num subdiretório (default: src/).
+Para usar outro subdiretório, defina MB_PLUGIN_SUBDIR. Para desativar, defina
+MB_PLUGIN_SUBDIR= (vazio) e o scan será feito na raiz do pacote.`,
+  		Example: `# Instalar a partir do GitHub
+  mb plugins add https://github.com/org/repo
+  mb plugins add https://github.com/org/repo --tag v1.2.0 --package meu-plugin
+
+  # Instalar a partir de um path local
+  mb plugins add /caminho/para/meu-pacote
+  mb plugins add . --package meu-plugin
+
+  # Instalar com subdiretório personalizado (em vez de src/)
+  MB_PLUGIN_SUBDIR=lib mb plugins add https://github.com/org/repo
+  MB_PLUGIN_SUBDIR=plugins mb plugins add /caminho/para/meu-pacote`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 			return svc.Add(cmd.Context(), addplugin.Request{
