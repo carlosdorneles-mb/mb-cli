@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"mb/internal/infra/sqlite"
+	"mb/internal/domain/plugin"
 )
 
 // appendPluginInvocationEnv adds MB_CTX_* variables so plugin scripts can inspect how mb was invoked.
@@ -17,7 +17,7 @@ import (
 func appendPluginInvocationEnv(
 	merged []string,
 	cmd *cobra.Command,
-	plugin sqlite.Plugin,
+	p plugin.Plugin,
 	argv []string,
 	configDir string,
 	changedPluginFlagNames []string,
@@ -28,7 +28,7 @@ func appendPluginInvocationEnv(
 		merged = append(merged, "MB_CTX_CONFIG_DIR="+configDir)
 	}
 
-	cp := strings.TrimSpace(plugin.CommandPath)
+	cp := strings.TrimSpace(p.CommandPath)
 	merged = append(merged, "MB_CTX_COMMAND_PATH="+cp)
 
 	name := commandNameFromPath(cp)

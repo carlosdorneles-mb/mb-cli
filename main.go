@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"charm.land/fang/v2"
 
@@ -17,7 +18,9 @@ import (
 func main() {
 	ctx := context.Background()
 
-	fxApp, rootCmd, err := bootstrap.Bootstrap()
+	// Check for verbose flag before bootstrap to enable FX lifecycle logging.
+	verbose := hasVerboseFlag(os.Args[1:])
+	fxApp, rootCmd, err := bootstrap.Bootstrap(verbose)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.RenderError(fmt.Sprintf("bootstrap failure: %v", err)))
 		os.Exit(1)
@@ -51,4 +54,19 @@ func main() {
 		}
 		os.Exit(1)
 	}
+}
+
+// hasVerboseFlag checks if -v or --verbose appears in the initial args.
+// This is a best-effort check to enable FX logging before Cobra parses flags.
+func hasVerboseFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "-v" || arg == "--verbose" {
+			return true
+		}
+		// Stop at first subcommand (non-flag token)
+		if !strings.HasPrefix(arg, "-") {
+			break
+		}
+	}
+	return false
 }

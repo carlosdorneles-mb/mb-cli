@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/infra/plugins"
-	"mb/internal/infra/sqlite"
+	domainplugin "mb/internal/domain/plugin"
+	"mb/internal/shared/pluginutil"
 	"mb/internal/shared/system"
 	"mb/internal/shared/ui"
 )
@@ -21,7 +21,7 @@ import (
 // Cobra requires every child GroupID to exist on the direct parent. Category commands
 // get this before AddCommand; a manifest leaf (e.g. tools) later used as parent for tools/bruno
 // must receive the same groups before AddCommand.
-func ensureNestedPluginHelpGroups(cmd *cobra.Command, helpGroups []sqlite.PluginHelpGroup) {
+func ensureNestedPluginHelpGroups(cmd *cobra.Command, helpGroups []domainplugin.PluginHelpGroup) {
 	if cmd == nil {
 		return
 	}
@@ -94,13 +94,13 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 	}
 
 	categoryList, _ := d.Store.ListCategories()
-	categoriesByPath := make(map[string]sqlite.Category)
+	categoriesByPath := make(map[string]domainplugin.Category)
 	for _, c := range categoryList {
 		categoriesByPath[c.Path] = c
 	}
 
 	sources, _ := d.Store.ListPluginSources()
-	sourceByDir := make(map[string]*sqlite.PluginSource)
+	sourceByDir := make(map[string]*domainplugin.PluginSource)
 	for i := range sources {
 		sourceByDir[sources[i].InstallDir] = &sources[i]
 	}
@@ -121,7 +121,7 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 
 	type node struct {
 		cmd     *cobra.Command
-		plugins []sqlite.Plugin
+		plugins []domainplugin.Plugin
 	}
 	byPath := map[string]*node{}
 
@@ -189,10 +189,10 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 		if byPath[pathSoFar] != nil {
 			continue
 		}
-		src := plugins.SourceForPlugin(plugin, sources, d.Runtime.PluginsDir)
+		src := pluginutil.SourceForPlugin(plugin, sources, d.Runtime.PluginsDir)
 		pluginRoot := plugin.PluginDir
 		if pluginRoot == "" {
-			installDir := plugins.FirstPathSegment(plugin.CommandPath)
+			installDir := pluginutil.FirstPathSegment(plugin.CommandPath)
 			s := sourceByDir[installDir]
 			pluginRoot = filepath.Join(d.Runtime.PluginsDir, installDir)
 			if s != nil && s.LocalPath != "" {
@@ -232,6 +232,6 @@ func Attach(root *cobra.Command, d deps.Dependencies) {
 			ensureNestedPluginHelpGroups(parent, helpGroups)
 		}
 		parent.AddCommand(leafCmd)
-		byPath[pathSoFar] = &node{cmd: leafCmd, plugins: []sqlite.Plugin{plugin}}
+		byPath[pathSoFar] = &node{cmd: leafCmd, plugins: []domainplugin.Plugin{plugin}}
 	}
 }

@@ -2,12 +2,10 @@ package addplugin
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strings"
 
 	"mb/internal/domain/plugin"
 	"mb/internal/ports"
+	"mb/internal/shared/syncdiff"
 )
 
 // Syncer wraps the RunSync logic so it can be injected as a dependency
@@ -45,16 +43,16 @@ func (*Syncer) Run(
 	if err != nil {
 		return SyncReport{}, err
 	}
-	beforeByKey := pluginsByCommandKey(beforePlugins)
+	beforeByKey := syncdiff.PluginsByCommandKey(beforePlugins)
 
-	pluginHelpLog := log
-	if pluginHelpLog == nil {
-		// No logger provided; warnings are dropped and success is not emitted.
-		pluginHelpLog = &noopLogger{}
+	var debugFn syncdiff.DebugFunc
+	if log != nil {
+		debugFn = func(msg string) { _ = log.Debug(runCtx, "%s", msg) }
+	} else {
+		debugFn = func(string) {}
 	}
 
-	runSyncLogger := &syncLoggerWrapper{logger: log}
-	scanner.SetDebugLog(func(msg string) { _ = runSyncLogger.Debug(runCtx, "%s", msg) })
+	scanner.SetDebugLog(debugFn)
 	defer func() { scanner.SetDebugLog(nil) }()
 
 	pluginsList, categories, warnings, hgBatches, err := scanner.Scan()
@@ -81,34 +79,28 @@ func (*Syncer) Run(
 		warnings = append(warnings, w...)
 		hgBatches = append(hgBatches, hg...)
 	}
-	mergedHelp := plugin.MergeHelpGroupsGlobal(hgBatches, func(msg string) {
-		_ = runSyncLogger.Debug(runCtx, "%s", msg)
-	})
+	mergedHelp := plugin.MergeHelpGroupsGlobal(hgBatches, debugFn)
 	if log != nil {
 		for _, w := range warnings {
 			_ = log.Warn(runCtx, "aviso: %s: %s", w.Path, w.Message)
 		}
 	}
 
-	afterByKey := pluginsByCommandKey(pluginsList)
-	removedKeys := diffRemovedKeys(beforeByKey, afterByKey)
+	afterByKey := syncdiff.PluginsByCommandKey(pluginsList)
+	removedKeys := syncdiff.DiffRemovedKeys(beforeByKey, afterByKey)
 
-	if err := checkPluginPathCollisions(pluginsList); err != nil {
+	if err := syncdiff.CheckPluginPathCollisions(pluginsList); err != nil {
 		return SyncReport{}, err
 	}
 
-	report := emitDiff(runCtx, log, beforeByKey, pluginsList, removedKeys)
+	sd := syncdiff.EmitDiff(runCtx, &loggerAdapter{log}, beforeByKey, pluginsList, removedKeys)
 
 	validGroupIDs := make(map[string]struct{}, len(mergedHelp))
 	for _, g := range mergedHelp {
 		validGroupIDs[g.ID] = struct{}{}
 	}
-	normalizePluginGroupIDs(pluginsList, validGroupIDs, func(msg string) {
-		_ = runSyncLogger.Debug(runCtx, "%s", msg)
-	})
-	normalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
-		_ = runSyncLogger.Debug(runCtx, "%s", msg)
-	})
+	syncdiff.NormalizePluginGroupIDs(pluginsList, validGroupIDs, debugFn)
+	syncdiff.NormalizeCategoryGroupIDs(categories, validGroupIDs, debugFn)
 
 	if err := store.DeleteAllPlugins(); err != nil {
 		return SyncReport{}, err
@@ -138,6 +130,13 @@ func (*Syncer) Run(
 		}
 	}
 
+	report := SyncReport{
+		Added:     sd.Added,
+		Updated:   sd.Updated,
+		Removed:   sd.Removed,
+		AnyChange: sd.AnyChange,
+	}
+
 	if opts.EmitSuccess && log != nil && !report.AnyChange {
 		_ = log.Info(runCtx, "Nenhum comando alterado; cache atualizado.")
 	}
@@ -150,188 +149,24 @@ func (*Syncer) Run(
 	return report, nil
 }
 
-// --- internal helpers (copied from usecase/plugins/sync.go to decouple) ---
+// loggerAdapter adapts addplugin.Logger to syncdiff.Logger.
+type loggerAdapter struct{ log Logger }
 
-type noopLogger struct{}
-
-func (*noopLogger) Info(context.Context, string, ...any) error  { return nil }
-func (*noopLogger) Warn(context.Context, string, ...any) error  { return nil }
-func (*noopLogger) Debug(context.Context, string, ...any) error { return nil }
-func (*noopLogger) Error(context.Context, string, ...any) error { return nil }
-
-type syncLoggerWrapper struct{ logger Logger }
-
-func (w *syncLoggerWrapper) Info(ctx context.Context, msg string, args ...any) error {
-	if w.logger == nil {
+func (a *loggerAdapter) Info(ctx context.Context, msg string, args ...any) error {
+	if a.log == nil {
 		return nil
 	}
-	return w.logger.Info(ctx, msg, args...)
+	return a.log.Info(ctx, msg, args...)
 }
-func (w *syncLoggerWrapper) Warn(ctx context.Context, msg string, args ...any) error {
-	if w.logger == nil {
+func (a *loggerAdapter) Warn(ctx context.Context, msg string, args ...any) error {
+	if a.log == nil {
 		return nil
 	}
-	return w.logger.Warn(ctx, msg, args...)
+	return a.log.Warn(ctx, msg, args...)
 }
-func (w *syncLoggerWrapper) Debug(ctx context.Context, msg string, args ...any) error {
-	if w.logger == nil {
+func (a *loggerAdapter) Debug(ctx context.Context, msg string, args ...any) error {
+	if a.log == nil {
 		return nil
 	}
-	return w.logger.Debug(ctx, msg, args...)
-}
-func (w *syncLoggerWrapper) Error(ctx context.Context, msg string, args ...any) error {
-	if w.logger == nil {
-		return nil
-	}
-	return w.logger.Error(ctx, msg, args...)
-}
-
-func pluginCommandKey(p plugin.Plugin) string {
-	if strings.TrimSpace(p.CommandPath) != "" {
-		return p.CommandPath
-	}
-	return strings.TrimSpace(p.CommandName)
-}
-
-func pluginsByCommandKey(list []plugin.Plugin) map[string]plugin.Plugin {
-	m := make(map[string]plugin.Plugin, len(list))
-	for _, p := range list {
-		k := pluginCommandKey(p)
-		if k == "" {
-			continue
-		}
-		m[k] = p
-	}
-	return m
-}
-
-func diffRemovedKeys(before, after map[string]plugin.Plugin) []string {
-	var keys []string
-	for k := range before {
-		if _, ok := after[k]; !ok {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func emitDiff(
-	ctx context.Context,
-	log Logger,
-	before map[string]plugin.Plugin,
-	afterList []plugin.Plugin,
-	removedKeys []string,
-) SyncReport {
-	var r SyncReport
-	for _, p := range afterList {
-		k := pluginCommandKey(p)
-		if k == "" {
-			continue
-		}
-		prev, had := before[k]
-		if !had {
-			r.Added++
-			if log != nil {
-				_ = log.Info(ctx, "Comando %q adicionado", k)
-			}
-			continue
-		}
-		if prev.ConfigHash != p.ConfigHash {
-			r.Updated++
-			if log != nil {
-				_ = log.Info(ctx, "Comando %q atualizado", k)
-			}
-		}
-	}
-	r.Removed = len(removedKeys)
-	r.AnyChange = r.Added > 0 || r.Updated > 0 || r.Removed > 0
-	for _, k := range removedKeys {
-		if log == nil {
-			continue
-		}
-		_ = log.Warn(ctx, "Comando %q deixou de existir no pacote (removido do cache)", k)
-	}
-	return r
-}
-
-func normalizeCategoryGroupIDs(
-	categories []plugin.Category,
-	valid map[string]struct{},
-	debug func(string),
-) {
-	for i := range categories {
-		c := &categories[i]
-		if !strings.Contains(c.Path, "/") {
-			c.GroupID = ""
-			continue
-		}
-		if c.GroupID == "" {
-			continue
-		}
-		if _, ok := valid[c.GroupID]; !ok {
-			if debug != nil {
-				debug(
-					fmt.Sprintf(
-						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
-						c.Path,
-						c.GroupID,
-					),
-				)
-			}
-			c.GroupID = ""
-		}
-	}
-}
-
-func normalizePluginGroupIDs(
-	pluginsList []plugin.Plugin,
-	valid map[string]struct{},
-	debug func(string),
-) {
-	for i := range pluginsList {
-		p := &pluginsList[i]
-		if !strings.Contains(p.CommandPath, "/") {
-			p.GroupID = ""
-			continue
-		}
-		if p.GroupID == "" {
-			continue
-		}
-		if _, ok := valid[p.GroupID]; !ok {
-			if debug != nil {
-				debug(
-					fmt.Sprintf(
-						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
-						p.CommandPath,
-						p.GroupID,
-					),
-				)
-			}
-			p.GroupID = ""
-		}
-	}
-}
-
-func checkPluginPathCollisions(pluginsList []plugin.Plugin) error {
-	seen := make(map[string]string)
-	for _, p := range pluginsList {
-		key := p.CommandPath
-		if key == "" {
-			key = p.CommandName
-		}
-		if prevDir, ok := seen[key]; ok {
-			if prevDir != p.PluginDir {
-				return fmt.Errorf(
-					"conflito de plugins: o caminho de commando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes",
-					key,
-					prevDir,
-					p.PluginDir,
-				)
-			}
-			continue
-		}
-		seen[key] = p.PluginDir
-	}
-	return nil
+	return a.log.Debug(ctx, msg, args...)
 }

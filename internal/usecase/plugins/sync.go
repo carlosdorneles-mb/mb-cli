@@ -2,12 +2,10 @@ package plugins
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strings"
 
 	"mb/internal/domain/plugin"
 	"mb/internal/ports"
+	"mb/internal/shared/syncdiff"
 )
 
 // SyncOptions configures RunSync behaviour.
@@ -19,12 +17,7 @@ type SyncOptions struct {
 }
 
 // SyncReport summarizes plugin command changes detected during sync (leaf commands only).
-type SyncReport struct {
-	Added     int
-	Updated   int
-	Removed   int
-	AnyChange bool
-}
+type SyncReport = syncdiff.SyncReport
 
 // RunSync rescans PluginsDir and each plugin_sources.local_path tree, merges results, and replaces plugin, category, and help-group rows in SQLite. It does not mutate plugin_sources (add/remove/update handle that).
 // Used by mb plugins sync and after plugins add/remove/update.
@@ -47,7 +40,7 @@ func RunSync(
 	if err != nil {
 		return SyncReport{}, err
 	}
-	beforeByKey := pluginsByCommandKey(beforePlugins)
+	beforeByKey := syncdiff.PluginsByCommandKey(beforePlugins)
 	scanner.SetDebugLog(func(msg string) { _ = logDebugOrNil(log, runCtx, msg) })
 	defer func() { scanner.SetDebugLog(nil) }()
 
@@ -84,23 +77,23 @@ func RunSync(
 		}
 	}
 
-	afterByKey := pluginsByCommandKey(pluginsList)
-	removedKeys := diffRemovedKeys(beforeByKey, afterByKey)
+	afterByKey := syncdiff.PluginsByCommandKey(pluginsList)
+	removedKeys := syncdiff.DiffRemovedKeys(beforeByKey, afterByKey)
 
-	if err := checkPluginPathCollisions(pluginsList); err != nil {
+	if err := syncdiff.CheckPluginPathCollisions(pluginsList); err != nil {
 		return SyncReport{}, err
 	}
 
-	report := emitPluginSyncDiff(runCtx, log, beforeByKey, pluginsList, removedKeys)
+	report := syncdiff.EmitDiff(runCtx, log, beforeByKey, pluginsList, removedKeys)
 
 	validGroupIDs := make(map[string]struct{}, len(mergedHelp))
 	for _, g := range mergedHelp {
 		validGroupIDs[g.ID] = struct{}{}
 	}
-	normalizePluginGroupIDs(pluginsList, validGroupIDs, func(msg string) {
+	syncdiff.NormalizePluginGroupIDs(pluginsList, validGroupIDs, func(msg string) {
 		_ = logDebugOrNil(log, runCtx, msg)
 	})
-	normalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
+	syncdiff.NormalizeCategoryGroupIDs(categories, validGroupIDs, func(msg string) {
 		_ = logDebugOrNil(log, runCtx, msg)
 	})
 
@@ -142,156 +135,6 @@ func RunSync(
 		}
 	}
 	return report, nil
-}
-
-func pluginCommandKey(p plugin.Plugin) string {
-	if strings.TrimSpace(p.CommandPath) != "" {
-		return p.CommandPath
-	}
-	return strings.TrimSpace(p.CommandName)
-}
-
-func pluginsByCommandKey(list []plugin.Plugin) map[string]plugin.Plugin {
-	m := make(map[string]plugin.Plugin, len(list))
-	for _, p := range list {
-		k := pluginCommandKey(p)
-		if k == "" {
-			continue
-		}
-		m[k] = p
-	}
-	return m
-}
-
-func diffRemovedKeys(before, after map[string]plugin.Plugin) []string {
-	var keys []string
-	for k := range before {
-		if _, ok := after[k]; !ok {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func emitPluginSyncDiff(
-	ctx context.Context,
-	log ports.Logger,
-	before map[string]plugin.Plugin,
-	afterList []plugin.Plugin,
-	removedKeys []string,
-) SyncReport {
-	var r SyncReport
-	for _, p := range afterList {
-		k := pluginCommandKey(p)
-		if k == "" {
-			continue
-		}
-		prev, had := before[k]
-		if !had {
-			r.Added++
-			if log != nil {
-				_ = log.Info(ctx, "Comando %q adicionado", k)
-			}
-			continue
-		}
-		if prev.ConfigHash != p.ConfigHash {
-			r.Updated++
-			if log != nil {
-				_ = log.Info(ctx, "Comando %q atualizado", k)
-			}
-		}
-	}
-	r.Removed = len(removedKeys)
-	r.AnyChange = r.Added > 0 || r.Updated > 0 || r.Removed > 0
-	for _, k := range removedKeys {
-		if log == nil {
-			continue
-		}
-		_ = log.Warn(ctx, "Comando %q deixou de existir no pacote (removido do cache)", k)
-	}
-	return r
-}
-
-func normalizeCategoryGroupIDs(
-	categories []plugin.Category,
-	valid map[string]struct{},
-	debug func(string),
-) {
-	for i := range categories {
-		c := &categories[i]
-		if !strings.Contains(c.Path, "/") {
-			c.GroupID = ""
-			continue
-		}
-		if c.GroupID == "" {
-			continue
-		}
-		if _, ok := valid[c.GroupID]; !ok {
-			if debug != nil {
-				debug(
-					fmt.Sprintf(
-						"plugin help: category_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
-						c.Path,
-						c.GroupID,
-					),
-				)
-			}
-			c.GroupID = ""
-		}
-	}
-}
-
-func normalizePluginGroupIDs(
-	pluginsList []plugin.Plugin,
-	valid map[string]struct{},
-	debug func(string),
-) {
-	for i := range pluginsList {
-		p := &pluginsList[i]
-		if !strings.Contains(p.CommandPath, "/") {
-			p.GroupID = ""
-			continue
-		}
-		if p.GroupID == "" {
-			continue
-		}
-		if _, ok := valid[p.GroupID]; !ok {
-			if debug != nil {
-				debug(
-					fmt.Sprintf(
-						"plugin help: command_path=%q group_id=%q não cadastrado em nenhum groups.yaml; usando COMANDOS",
-						p.CommandPath,
-						p.GroupID,
-					),
-				)
-			}
-			p.GroupID = ""
-		}
-	}
-}
-
-func checkPluginPathCollisions(pluginsList []plugin.Plugin) error {
-	seen := make(map[string]string)
-	for _, p := range pluginsList {
-		key := p.CommandPath
-		if key == "" {
-			key = p.CommandName
-		}
-		if prevDir, ok := seen[key]; ok {
-			if prevDir != p.PluginDir {
-				return fmt.Errorf(
-					"conflito de plugins: o caminho de commando %q está definido em dois pacotes (%s e %s). Remova ou ajuste uma das fontes",
-					key,
-					prevDir,
-					p.PluginDir,
-				)
-			}
-			continue
-		}
-		seen[key] = p.PluginDir
-	}
-	return nil
 }
 
 // logDebugOrNil safely calls log.Debug or does nothing if log is nil.

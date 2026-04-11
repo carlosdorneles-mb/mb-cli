@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/pflag"
 
 	"mb/internal/deps"
-	"mb/internal/infra/plugins"
-	"mb/internal/infra/sqlite"
+	domainplugin "mb/internal/domain/plugin"
 	"mb/internal/ports"
+	"mb/internal/shared/pluginutil"
 	"mb/internal/shared/safepath"
 )
 
@@ -29,7 +29,7 @@ func parseRootVerbosityFlags(cmd *cobra.Command, args []string) []string {
 }
 
 func runEntrypointCommand(
-	plugin sqlite.Plugin,
+	plugin domainplugin.Plugin,
 	d deps.Dependencies,
 	exec ports.ScriptExecutor,
 	pluginRoot string,
@@ -69,8 +69,8 @@ func runEntrypointCommand(
 }
 
 func runFlagsOnlyCommand(
-	plugin sqlite.Plugin,
-	flagsMap map[string]plugins.FlagDef,
+	plugin domainplugin.Plugin,
+	flagsMap map[string]pluginutil.FlagDef,
 	d deps.Dependencies,
 	exec ports.ScriptExecutor,
 	pluginRoot string,
@@ -152,8 +152,8 @@ func runFlagsOnlyCommand(
 		if err := safepath.ValidateUnderDir(execPath, baseDir); err != nil {
 			return fmt.Errorf("flag entrypoint fora do diretório do plugin: %w", err)
 		}
-		pluginType := plugins.PluginTypeFromEntrypoint(chosenEntrypoint)
-		syntheticPlugin := sqlite.Plugin{
+		pluginType := pluginutil.PluginTypeFromEntrypoint(chosenEntrypoint)
+		syntheticPlugin := domainplugin.Plugin{
 			CommandPath:  plugin.CommandPath,
 			CommandName:  plugin.CommandName,
 			ExecPath:     execPath,
@@ -204,11 +204,11 @@ func mergeManifestEnvIntoFileValues(
 	envFilesJSON string,
 	rt *deps.RuntimeConfig,
 ) error {
-	vault := plugins.ManifestEnvVaultDefault
+	vault := pluginutil.ManifestEnvVaultDefault
 	if rt != nil && strings.TrimSpace(rt.EnvVault) != "" {
 		vault = strings.TrimSpace(rt.EnvVault)
 	}
-	extra, err := plugins.MergeManifestEnvFiles(pluginDir, envFilesJSON, vault)
+	extra, err := pluginutil.MergeManifestEnvFiles(pluginDir, envFilesJSON, vault)
 	if err != nil {
 		return err
 	}

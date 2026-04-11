@@ -8,36 +8,36 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
-	"mb/internal/infra/plugins"
-	"mb/internal/infra/sqlite"
+	domainplugin "mb/internal/domain/plugin"
 	"mb/internal/ports"
+	"mb/internal/shared/pluginutil"
 	"mb/internal/shared/system"
 )
 
-func applyCobraPluginFields(cmd *cobra.Command, plugin sqlite.Plugin, defaultUse string) {
-	if plugin.UseTemplate != "" {
-		cmd.Use = defaultUse + " " + strings.TrimSpace(plugin.UseTemplate)
+func applyCobraPluginFields(cmd *cobra.Command, p domainplugin.Plugin, defaultUse string) {
+	if p.UseTemplate != "" {
+		cmd.Use = defaultUse + " " + strings.TrimSpace(p.UseTemplate)
 	} else {
 		cmd.Use = defaultUse
 	}
-	if plugin.ArgsCount > 0 {
-		cmd.Args = cobra.ExactArgs(plugin.ArgsCount)
+	if p.ArgsCount > 0 {
+		cmd.Args = cobra.ExactArgs(p.ArgsCount)
 	}
-	if plugin.AliasesJSON != "" {
+	if p.AliasesJSON != "" {
 		var aliases []string
-		if err := json.Unmarshal([]byte(plugin.AliasesJSON), &aliases); err == nil {
+		if err := json.Unmarshal([]byte(p.AliasesJSON), &aliases); err == nil {
 			cmd.Aliases = aliases
 		}
 	}
-	if plugin.Example != "" {
-		cmd.Example = plugin.Example
+	if p.Example != "" {
+		cmd.Example = p.Example
 	}
-	if plugin.LongDescription != "" {
-		cmd.Long = plugin.LongDescription
+	if p.LongDescription != "" {
+		cmd.Long = p.LongDescription
 	}
-	if plugin.Deprecated != "" && cmd.RunE != nil {
+	if p.Deprecated != "" && cmd.RunE != nil {
 		oldRunE := cmd.RunE
-		deprecatedMsg := plugin.Deprecated
+		deprecatedMsg := p.Deprecated
 		cmdName := defaultUse
 		cmd.RunE = func(c *cobra.Command, args []string) error {
 			fmt.Fprintf(c.ErrOrStderr(), "Comando %q está obsoleto: %s\n", cmdName, deprecatedMsg)
@@ -48,7 +48,7 @@ func applyCobraPluginFields(cmd *cobra.Command, plugin sqlite.Plugin, defaultUse
 
 func newLeafCommand(
 	use string,
-	plugin sqlite.Plugin,
+	p domainplugin.Plugin,
 	d deps.Dependencies,
 	exec ports.ScriptExecutor,
 	pluginRoot string,
@@ -56,33 +56,33 @@ func newLeafCommand(
 	dbgLog *system.Logger,
 	globalShorts map[string]struct{},
 ) *cobra.Command {
-	short := plugin.Description
+	short := p.Description
 	if short == "" {
-		short = "Executa " + plugin.CommandPath
+		short = "Executa " + p.CommandPath
 	}
 	if isLocal {
 		short += " (local)"
 	}
 
-	if plugin.FlagsJSON == "" {
+	if p.FlagsJSON == "" {
 		cmd := &cobra.Command{
 			Use:   use,
 			Short: short,
-			RunE:  runEntrypointCommand(plugin, d, exec, pluginRoot),
+			RunE:  runEntrypointCommand(p, d, exec, pluginRoot),
 		}
-		applyCobraPluginFields(cmd, plugin, use)
-		registerReadmeFlag(cmd, plugin.CommandPath, plugin.ReadmePath, dbgLog, nil, globalShorts)
+		applyCobraPluginFields(cmd, p, use)
+		registerReadmeFlag(cmd, p.CommandPath, p.ReadmePath, dbgLog, nil, globalShorts)
 		cmd.Flags().ParseErrorsAllowlist.UnknownFlags = true
 		setHelpFang(cmd)
 		return cmd
 	}
 
-	var flagsMap map[string]plugins.FlagDef
-	if err := json.Unmarshal([]byte(plugin.FlagsJSON), &flagsMap); err != nil {
+	var flagsMap map[string]pluginutil.FlagDef
+	if err := json.Unmarshal([]byte(p.FlagsJSON), &flagsMap); err != nil {
 		cmd := &cobra.Command{
 			Use:    use,
 			Short:  short + " (config de flags inválida)",
-			Hidden: plugin.Hidden,
+			Hidden: p.Hidden,
 		}
 		return cmd
 	}
@@ -90,15 +90,15 @@ func newLeafCommand(
 	cmd := &cobra.Command{
 		Use:   use,
 		Short: short,
-		RunE:  runFlagsOnlyCommand(plugin, flagsMap, d, exec, pluginRoot),
+		RunE:  runFlagsOnlyCommand(p, flagsMap, d, exec, pluginRoot),
 	}
-	applyCobraPluginFields(cmd, plugin, use)
+	applyCobraPluginFields(cmd, p, use)
 
 	usedShorts := make(map[string]bool)
 	for sh := range globalShorts {
 		usedShorts[sh] = true
 	}
-	registerReadmeFlag(cmd, plugin.CommandPath, plugin.ReadmePath, dbgLog, usedShorts, globalShorts)
+	registerReadmeFlag(cmd, p.CommandPath, p.ReadmePath, dbgLog, usedShorts, globalShorts)
 
 	for name, def := range flagsMap {
 		usage := def.Description
@@ -111,7 +111,7 @@ func newLeafCommand(
 			if globalShorthandReserved(globalShorts, sh) {
 				pluginFlagShortDisabledDebug(
 					dbgLog,
-					plugin.CommandPath,
+					p.CommandPath,
 					name,
 					sh,
 					"reservado pela CLI mb",
@@ -119,7 +119,7 @@ func newLeafCommand(
 			} else if usedShorts[sh] {
 				pluginFlagShortDisabledDebug(
 					dbgLog,
-					plugin.CommandPath,
+					p.CommandPath,
 					name,
 					sh,
 					"já usado neste comando",
@@ -139,7 +139,7 @@ func newLeafCommand(
 			if globalShorthandReserved(globalShorts, nameSh) {
 				pluginFlagShortDisabledDebug(
 					dbgLog,
-					plugin.CommandPath,
+					p.CommandPath,
 					name,
 					nameSh,
 					"reservado pela CLI mb",
@@ -148,7 +148,7 @@ func newLeafCommand(
 			} else if usedShorts[nameSh] {
 				pluginFlagShortDisabledDebug(
 					dbgLog,
-					plugin.CommandPath,
+					p.CommandPath,
 					name,
 					nameSh,
 					"já usado neste comando",
