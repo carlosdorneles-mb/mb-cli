@@ -19,7 +19,7 @@ O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo diretório de
 
 ### Subdiretório de plugins
 
-Ao escanear um pacote instalado, o MB procura por `manifest.yaml` num **subdiretório** configurável. O valor padrão é **`src`** (controlado por `plugin.DefaultPluginSubDir`). Para sobrescrever:
+Ao escanear um pacote instalado, o MB procura por `manifest.yaml` num **subdiretório** configurável. O valor padrão é **`src`**. Para sobrescrever:
 
 ```bash
 MB_PLUGIN_SUBDIR=lib mb plugins sync

@@ -199,51 +199,19 @@ env_files:
 
 ### Convenção de subdiretório
 
-O MB CLI detecta automaticamente se os plugins estão num **subdiretório** do repositório.
-Por padrão, procura em **`src/`**. Se não encontrar manifests nessa pasta, faz **fallback** para a raiz do pacote.
+O MB CLI detecta automaticamente se os plugins estão num **subdiretório** do repositório. Por padrão, procura em **`src/`**. Se não encontrar manifests nessa pasta, faz **fallback** para a raiz do pacote.
 
-```
-repo/
-├── README.md
-├── src/                     ← plugins aqui (detectado automaticamente)
-│   ├── manifest.yaml
-│   └── deploy/
-│       ├── manifest.yaml
-│       └── deploy.sh
-└── docs/
-    └── guia.md
-```
-
-Para **customizar** o subdiretório, defina a variável de ambiente **`MB_PLUGIN_SUBDIR`**:
-
-```bash
-# Usar "lib/" em vez de "src/"
-MB_PLUGIN_SUBDIR=lib mb plugins add https://github.com/org/repo
-
-# Desativar detecção automática (escanear sempre da raiz)
-MB_PLUGIN_SUBDIR= mb plugins add https://github.com/org/repo
-```
-
-| `MB_PLUGIN_SUBDIR` | Comportamento |
-|---------------------|---------------|
-| não definida | Tenta `src/` → se vazio, raiz |
-| `lib` | Tenta `lib/` → se vazio, raiz |
-| `""` (vazio) | Escaneia direto da raiz |
+Para detalhes completos sobre subdiretórios e variável `MB_PLUGIN_SUBDIR`, veja [Subdiretório de plugins](../technical-reference/plugins.md#subdiretorio-de-plugins).
 
 ### Nome do pacote
 
-Se `--package` não for informado:
+O identificador do pacote segue as regras definidas em [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador). Resumidamente:
 
-- **Remoto (Git):** usa o nome do repositório (último segmento da URL).
-  Ex.: `https://github.com/org/infra-tools` → `infra-tools`
-- **Local:** usa o nome do diretório.
-  Ex.: `/caminho/para/meu-plugin` → `meu-plugin`
-- **Coleção:** usa o nome de cada subdiretório.
-  Ex.: `repo/foo/` + `repo/bar/` → `foo` e `bar`
+- **Remoto (Git):** nome do repositório (ex.: `org/infra-tools` → `infra-tools`)
+- **Local:** nome do diretório (ex.: `/path/meu-plugin` → `meu-plugin`)
+- **Coleção:** nome de cada subdiretório (ex.: `repo/foo/` + `repo/bar/` → `foo` e `bar`)
 
-Esse nome é o identificador que aparece na coluna **PACOTE** de `mb plugins list`
-e é usado em `mb plugins remove <pacote> [<pacote>...]` / `mb plugins remove --all` e
-`mb plugins update <pacote> [<pacote>...]` / `mb plugins update --all`.
+Esse identificador aparece como **PACOTE** em `mb plugins list` e é usado em `mb plugins remove` e `mb plugins update`.
 
 ### Local (sem copiar ficheiros)
 
@@ -328,7 +296,7 @@ Lista completa: [Helpers para plugins](./shell-helpers.md).
 
 ### Códigos de saída
 
-Para plugins com `install.sh` / `update.sh` que podem precisar de `sudo`:
+Para plugins com `install.sh` / `update.sh` que podem precisar de `sudo`, siga a [convenção de códigos de saída](../technical-reference/plugins.md#plugin-shell-exit-codes-convention):
 
 | Código | Significado |
 |--------|-------------|

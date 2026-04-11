@@ -44,10 +44,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ## Diretórios por sistema operacional
 
-| Sistema | Configuração | Cache | Helpers de shell |
-|---------|-------------|-------|------------------|
-| **Linux** | `~/.config/mb` | `~/.config/mb/cache.db` | `~/.config/mb/lib/shell` |
-| **macOS** | `~/Library/Application Support/mb` | `~/Library/Application Support/mb/cache.db` | `~/Library/Application Support/mb/lib/shell` |
+O MB CLI usa diretórios padrão para configuração, cache e helpers. Para detalhes completos, veja [Cache SQLite](../technical-reference/architecture.md#cache-sqlite).
+
+Resumo rápido:
+
+| Sistema | Configuração | Cache |
+|---------|-------------|-------|
+| **Linux** | `~/.config/mb` | `~/.config/mb/cache.db` |
+| **macOS** | `~/Library/Application Support/mb` | `~/Library/Application Support/mb/cache.db` |
 
 A variável de ambiente **`MB_HELPERS_PATH`** (injetada nos plugins) aponta automaticamente para o diretório correto do seu sistema.
 
@@ -63,24 +67,17 @@ Isso atualiza o cache de comandos e os helpers de shell.
 
 ## Adicionar um plugin
 
+Para adicionar um plugin, use `mb plugins add` com uma URL Git ou path local:
+
 ```bash
 # Por URL Git
 mb plugins add https://github.com/org/repo
 
 # Por path local (sem copiar arquivos)
 mb plugins add /caminho/para/meu-plugin --package meu-plugin
-
-# A partir da raiz do pacote
-cd /caminho/para/meu-plugin
-mb plugins add .
 ```
 
-Após adicionar, o sync é automático. Verifique os comandos disponíveis:
-
-```bash
-mb plugins list
-mb help
-```
+Após adicionar, o sync é automático. Para detalhes completos sobre gestão de plugins, veja [Comandos de plugins](../user-guide/plugin-commands.md) e [Criar um plugin](../plugin-authoring/create-a-plugin.md).
 
 ## Atualizar
 

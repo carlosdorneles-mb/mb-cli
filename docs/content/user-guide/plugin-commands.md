@@ -19,7 +19,7 @@ Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do cam
 
 Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** no `manifest.yaml` define atalhos para esse segmento (ex.: `mb ai sk` se `skills` tiver `aliases: [sk]`). É preciso **`mb plugins sync`** para atualizar o cache após alterar aliases.
 
-**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. O MB compara um **digest por comando** (folha): só aparecem mensagens por comando para **adicionados**, **alterados** (conteúdo do plugin / digest mudou) ou **removidos** do pacote; **não** há linha de log quando o comando já existia e o digest não mudou. Em **`mb plugins sync`**, se não houver nenhuma dessas alterações, verá uma linha curta a indicar que o cache foi atualizado sem mudanças nos comandos. Em **`mb plugins add`**, se o pacote já estiver alinhado (nenhum comando novo, atualizado ou removido), é mostrada uma **mensagem genérica** em vez de repetir confirmações por comando.
+**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.md#cache-sqlite-e-sync).
 
 ## Como descobrir os comandos
 
@@ -49,7 +49,9 @@ Para **flags globais do CLI**, argumentos posicionais no script e flags desconhe
 
 ## Repositório com vários plugins
 
-Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. Em **`mb plugins list`**, a coluna **PACOTE** é o identificador da instalação (`--package` ou nome do diretório clone), usado em `mb plugins remove <package> [<package>...]` / `mb plugins remove --all` e `mb plugins update <package> [<package>...]` / `mb plugins update --all`.
+Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. 
+
+A coluna **PACOTE** em `mb plugins list` é o identificador da instalação (definido por `--package` ou nome do diretório), usado em `mb plugins remove` e `mb plugins update`. Para regras completas de nomenclatura de pacotes, veja [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador).
 
 ## Plugin local vs remoto
 

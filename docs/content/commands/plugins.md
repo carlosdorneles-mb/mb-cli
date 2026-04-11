@@ -24,16 +24,10 @@ mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-pacote
 
 | Flag | Descrição |
 |---|---|
-| `--package <id>` | Identificador do pacote. Se omitido, usa o nome do repositório ou do diretório. |
+| `--package <id>` | Identificador do pacote. Se omitido, usa o nome do repositório ou do diretório. Para regras de nomenclatura, veja [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador). |
 | `--tag <tag>` | Instalar tag específica (remoto) |
 
-Quando `--package` não é informado, o nome do pacote é:
-- **Remoto (Git):** último segmento da URL (ex.: `org/repo` → `repo`)
-- **Local:** nome do diretório (ex.: `/path/meu-plugin` → `meu-plugin`)
-
-Esse nome é usado em `mb plugins remove` e `mb plugins update`.
-
-**Subdiretório de plugins:** o MB detecta automaticamente se os plugins estão em `src/` (ou o valor de `MB_PLUGIN_SUBDIR`). Se o subdiretório não contiver manifests, faz fallback para a raiz.
+**Subdiretório de plugins:** o MB detecta automaticamente se os plugins estão em `src/` (ou o valor de `MB_PLUGIN_SUBDIR`). Para detalhes, veja [Subdiretório de plugins](../technical-reference/plugins.md#subdiretorio-de-plugins).
 
 Após `add`, o sync é executado automaticamente.
 
