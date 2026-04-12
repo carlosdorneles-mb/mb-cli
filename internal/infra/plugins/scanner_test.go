@@ -369,3 +369,122 @@ flags:
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// TestScanTreeWithSrcSubdirNoPrefix verifies that when plugins are inside a
+// subdirectory like src/, the command path does NOT include "src" as a prefix.
+// This reproduces the bug where repo/src/my-plugin would create command "mb src my-plugin".
+func TestScanTreeWithSrcSubdirNoPrefix(t *testing.T) {
+	root := t.TempDir()
+	// Simulate a cloned repository with plugins inside src/
+	srcDir := filepath.Join(root, "src")
+	if err := os.MkdirAll(filepath.Join(srcDir, "my-plugin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// src/manifest.yaml exists but has no command (it's just a container)
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "manifest.yaml"),
+		[]byte("description: Plugin container\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	// Actual plugin manifest
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "my-plugin", "manifest.yaml"),
+		[]byte("command: my-plugin\ndescription: My Plugin\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "my-plugin", "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewScanner("/tmp")
+	p, _, _, _, err := s.scanTree(srcDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p) != 1 {
+		t.Fatalf("expected 1 plugin, got %d: %+v", len(p), p)
+	}
+	// The command path should be "my-plugin", NOT "src/my-plugin"
+	if p[0].CommandPath != "my-plugin" {
+		t.Errorf("CommandPath = %q, want %q", p[0].CommandPath, "my-plugin")
+	}
+}
+
+// TestScanTreeWithSrcNestedNoPrefix verifies nested plugins inside src/
+// also don't get the "src" prefix in their command paths.
+func TestScanTreeWithSrcNestedNoPrefix(t *testing.T) {
+	root := t.TempDir()
+	srcDir := filepath.Join(root, "src")
+	// Create structure: src/infra/ci/manifest.yaml
+	if err := os.MkdirAll(filepath.Join(srcDir, "infra", "ci"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// src/manifest.yaml (container, no command)
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "manifest.yaml"),
+		[]byte("description: Plugin container\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	// src/infra/manifest.yaml (category)
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "infra", "manifest.yaml"),
+		[]byte("command: infra\ndescription: Infra tools\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	// src/infra/ci/manifest.yaml (plugin)
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "infra", "ci", "manifest.yaml"),
+		[]byte("command: ci\ndescription: CI tool\nentrypoint: run.sh\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(srcDir, "infra", "ci", "run.sh"),
+		[]byte("#!/bin/sh\n"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NewScanner("/tmp")
+	p, cats, _, _, err := s.scanTree(srcDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p) != 1 {
+		t.Fatalf("expected 1 plugin, got %d: %+v", len(p), p)
+	}
+	// The command path should be "infra/ci", NOT "src/infra/ci"
+	if p[0].CommandPath != "infra/ci" {
+		t.Errorf("CommandPath = %q, want %q", p[0].CommandPath, "infra/ci")
+	}
+	// Category path should also NOT include "src"
+	var catPaths []string
+	for _, c := range cats {
+		catPaths = append(catPaths, c.Path)
+	}
+	wantCatPath := "infra"
+	found := false
+	for _, cp := range catPaths {
+		if cp == wantCatPath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Category path %q not found in %#v", wantCatPath, catPaths)
+	}
+}

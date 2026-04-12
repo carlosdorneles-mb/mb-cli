@@ -131,7 +131,9 @@ func commandPathForPluginDir(rootPath, baseDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if rootSeg == "" {
+	// Skip root segment when it equals the directory base name (e.g., "src").
+	// This prevents container directories from becoming part of the command path.
+	if rootSeg == "" || rootSeg == filepath.Base(rootPath) {
 		return inner, nil
 	}
 	return rootSeg + "/" + inner, nil
@@ -169,7 +171,9 @@ func categoryPathForDir(rootPath, baseDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if rootSeg == "" {
+	// Skip root segment when it equals the directory base name (e.g., "src").
+	// This prevents container directories from becoming part of the category path.
+	if rootSeg == "" || rootSeg == filepath.Base(rootPath) {
 		return inner, nil
 	}
 	return rootSeg + "/" + inner, nil
