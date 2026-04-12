@@ -14,15 +14,78 @@ Para entender ordem de precedência, vaults de projeto e quando usar cada aborda
 
 Lista variáveis de um vault.
 
+**Modos de exibição:**
+
+- **Interativo (terminal):** Interface fzf com colunas simplificadas (VAR | VAULT) e preview automático no lado direito
+- **Pipe/redirecionamento:** Tabela completa com colunas (VAR | VAULT | ARMAZENAMENTO)
+- **JSON:** Todos os dados em formato estruturado com `--json` / `-J`
+- **Texto:** Formato key=value com `--text` / `-T`
+
 ```bash
+# Modo interativo (padrão)
 mb envs list
+mb envs ls
+mb envs l
+
+# Filtrar por vault
 mb envs list --vault staging
-mb envs list --show-secrets
 mb envs list --vault project        # só a raiz de envs no mbcli.yaml
 mb envs list --vault project/staging # só o sub-mapa envs.staging
+
+# Mostrar valores reais
+mb envs list --show-secrets
+
+# Saída em formato JSON
+mb envs list --json
+mb envs list --json | jq '.API_BASE'
+mb envs list --json | jq 'keys[]'
+
+# Saída em formato texto (key=value)
+mb envs list --text
+mb envs list --text | grep API
+
+# Pipe com tabela completa
+mb envs list | cat
+mb envs list | grep API
+mb envs list | wc -l
+mb envs list | grep keyring
 ```
 
-**Output:** tabela com colunas **VAR** (`KEY=VALUE`), **VAULT** e **ARMAZENAMENTO** (`local`, `keyring`, `1password`, `projeto` para `mbcli.yaml`).
+**Preview automático:**
+
+No modo interativo, ao navegar com ↑↓ um preview aparece automaticamente no lado direito mostrando detalhes da variável selecionada:
+
+- Valor (ou `***` para secrets)
+- Vault
+- Tipo de armazenamento (local, keyring, 1password, projeto)
+
+O preview é renderizado com `gum format` para melhor legibilidade e atualiza em tempo real conforme você navega.
+
+**Colunas no modo interativo:**
+
+| Coluna | Descrição |
+|---|---|
+| VAR | Nome da variável |
+| VAULT | Vault onde está armazenada |
+
+**Preview automático (modo interativo):**
+
+Ao navegar com ↑↓, o preview mostra informações adicionais:
+
+| Campo | Descrição |
+|---|---|
+| Valor | Valor da variável (ou `***` para secrets) |
+| Vault | Nome do vault |
+| Armazenamento | Tipo: local, keyring, 1password, projeto |
+| Arquivo | Caminho completo do arquivo onde está armazenado |
+
+**Colunas no modo pipe/redirecionamento:**
+
+| Coluna | Descrição |
+|---|---|
+| VAR | `KEY=VALUE` (valor truncado se muito longo) |
+| VAULT | Vault onde está armazenada |
+| ARMAZENAMENTO | `local`, `keyring`, `1password`, `projeto` |
 
 | Flag | Descrição |
 | ---- | --------- |
@@ -32,6 +95,75 @@ mb envs list --vault project/staging # só o sub-mapa envs.staging
 | `--text` / `-T` | Emite `CHAVE=valor` por linha (sem coluna de vault) |
 
 > `--json` e `--text` são mutuamente exclusivos.
+
+**Exemplos de uso com JSON:**
+
+```bash
+# Listar valor de uma variável específica de um vault
+mb envs list --json | jq '.[] | select(.vault == "default" and .key == "API_BASE") | .value'
+
+# Listar todas as variáveis de um vault
+mb envs list --json | jq '.[] | select(.vault == "staging")'
+
+# Filtrar variáveis que são secrets
+mb envs list --json | jq '.[] | select(.isSecret == true)'
+
+# Listar apenas vaults disponíveis
+mb envs list --json | jq '[.[].vault] | unique'
+
+# Filtrar por tipo de armazenamento
+mb envs list --json | jq '.[] | select(.storage == "keyring")'
+
+# Contar variáveis por vault
+mb envs list --json | jq 'group_by(.vault) | map({vault: .[0].vault, count: length})'
+
+# Mostrar caminho do arquivo de uma variável
+mb envs list --json | jq '.[] | select(.vault == "default" and .key == "API_KEY") | .path'
+```
+
+**Formato JSON:**
+
+```json
+[
+  {
+    "vault": "default",
+    "key": "API_KEY",
+    "value": "***",
+    "isSecret": true,
+    "storage": "keyring",
+    "path": "~/.config/mb/.env.default.secrets"
+  },
+  {
+    "vault": "staging",
+    "key": "API_KEY",
+    "value": "***",
+    "isSecret": true,
+    "storage": "keyring",
+    "path": "~/.config/mb/.env.staging.secrets"
+  },
+  {
+    "vault": "default",
+    "key": "VERSION",
+    "value": "1.0.0",
+    "isSecret": false,
+    "storage": "local",
+    "path": "~/.config/mb/env.defaults"
+  }
+]
+```
+
+**Exemplos de uso com pipe:**
+
+```bash
+# Buscar por nome de variável
+mb envs list | grep API
+
+# Contar variáveis
+mb envs list | wc -l
+
+# Filtrar por tipo de armazenamento
+mb envs list | grep keyring
+```
 
 ### `mb envs set`
 

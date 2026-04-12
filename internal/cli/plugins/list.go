@@ -50,9 +50,10 @@ repositório (Git) ou do diretório (local).`,
 
   # Saída em formato JSON
   mb plugins list --json
+  mb plugins list -J
   mb plugins list --json | jq '.plugins[].package'
 
-  # Pipe com colunas completas
+  # Pipe com tabela completa
   mb plugins list | cat
   mb plugins list | grep local
   mb plugins list | wc -l`,
@@ -108,7 +109,7 @@ repositório (Git) ou do diretório (local).`,
 
 	cmd.Flags().
 		BoolVar(&checkUpdates, "check-updates", false, "Verifica se há atualização disponível para cada plugin")
-	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Saída em formato JSON")
+	cmd.Flags().BoolVarP(&jsonOutput, "json", "J", false, "Saída em formato JSON")
 	return cmd
 }
 

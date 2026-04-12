@@ -16,7 +16,7 @@ func NewCmd(listSvc *envs.ListService, d deps.Dependencies) *cobra.Command {
 	}
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
-	root.AddCommand(newListCmd(listSvc))
+	root.AddCommand(newListCmd(listSvc, d.Runtime.ConfigDir))
 	root.AddCommand(newVaultsCmd(d))
 	root.AddCommand(newSetCmd(d))
 	root.AddCommand(newUnsetCmd(d))

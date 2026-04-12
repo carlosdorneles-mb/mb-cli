@@ -50,13 +50,25 @@ func (s *ListService) List(ctx context.Context, req ListRequest) ([]ListRow, err
 }
 
 // FormatRows writes the rows to w in the requested format.
-func FormatRows(ctx context.Context, w io.Writer, rows []ListRow, format FormatType) error {
+func FormatRows(
+	ctx context.Context,
+	w io.Writer,
+	rows []ListRow,
+	format FormatType,
+	showSecrets bool,
+	configDir string,
+) error {
 	switch format {
 	case FormatJSON:
-		return formatJSON(w, rows)
+		return FormatJSONByVault(w, rows, showSecrets, configDir)
 	case FormatText:
-		return formatText(w, rows)
+		return formatTextPlain(w, rows)
 	default:
-		return formatTable(ctx, w, rows)
+		return formatTable(ctx, w, rows, configDir)
 	}
+}
+
+// FormatTextPlain exports the text formatter for CLI use.
+func FormatTextPlain(w io.Writer, rows []ListRow) error {
+	return formatTextPlain(w, rows)
 }

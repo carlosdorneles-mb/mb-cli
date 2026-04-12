@@ -64,7 +64,7 @@ mb plugins list | wc -l
 | Flag | Descrição |
 |---|---|
 | `--check-updates` | Verifica se há atualização disponível para cada plugin remoto |
-| `--json` | Saída em formato JSON com todos os dados do plugin |
+| `--json` / `-J` | Saída em formato JSON com todos os dados do plugin |
 
 **Preview automático:**
 
@@ -112,6 +112,7 @@ Ao navegar com ↑↓, o preview mostra informações adicionais:
 ```bash
 # Listar apenas plugins locais
 mb plugins list --json | jq '.plugins[] | select(.origin == "local")'
+mb plugins list -J | jq '.plugins[] | select(.origin == "local")'
 
 # Contar plugins remotos
 mb plugins list --json | jq '[.plugins[] | select(.origin == "remoto")] | length'

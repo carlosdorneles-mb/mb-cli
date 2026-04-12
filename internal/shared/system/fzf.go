@@ -28,6 +28,17 @@ type PluginEntry struct {
 	RefType         string `json:"refType,omitempty"`
 }
 
+// EnvEntry represents an environment variable entry for fzf preview.
+type EnvEntry struct {
+	Key          string `json:"key"`
+	Value        string `json:"value"`
+	DisplayValue string `json:"displayValue"`
+	Vault        string `json:"vault"`
+	Storage      string `json:"storage"`
+	IsSecret     bool   `json:"isSecret"`
+	Path         string `json:"path"`
+}
+
 // FzfTable displays data in fzf table mode with headers and returns the selected row.
 // If not a TTY or fzf not found, falls back to GumTable.
 func FzfTable(
@@ -358,6 +369,181 @@ fi
 	if len(selectedParts) > 0 {
 		firstCol := strings.TrimSpace(selectedParts[0])
 		// Remove index prefix if still present
+		if idx := strings.Index(firstCol, "\t"); idx > 0 {
+			firstCol = firstCol[idx+1:]
+		}
+		for _, row := range rows {
+			if len(row) > 0 && row[0] == firstCol {
+				return row, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// FzfTableWithPreviewForEnv displays env variables in fzf with a preview panel using gum format.
+func FzfTableWithPreviewForEnv(
+	ctx context.Context,
+	headers []string,
+	rows [][]string,
+	out io.Writer,
+	entries []EnvEntry,
+) (selectedRow []string, err error) {
+	if len(rows) == 0 {
+		return nil, GumTable(ctx, headers, rows, out)
+	}
+
+	// Check if stdout is a terminal
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return nil, GumTable(ctx, headers, rows, out)
+	}
+
+	fzfPath, err := exec.LookPath("fzf")
+	if err != nil {
+		return nil, GumTable(ctx, headers, rows, out)
+	}
+
+	// Check if gum is available for preview
+	_, gumErr := exec.LookPath("gum")
+	if gumErr != nil {
+		// No gum, fall back to regular FzfTable
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	// Calculate column widths for proper alignment
+	widths := calculateColumnWidths(headers, rows)
+
+	// Create formatted header text
+	headerText := createHeaderText(headers, widths)
+
+	// Format rows with tab-separated index (hidden from display)
+	// Índices começam em 1 para o script preview
+	var input bytes.Buffer
+	for i, row := range rows {
+		fmt.Fprintf(&input, "%d\t%s", i+1, formatRowFixedWidth(row, widths))
+		input.WriteString("\n")
+	}
+
+	// Create temp directory for preview script and data
+	tmpDir, err := os.MkdirTemp("", "mb-fzf-*")
+	if err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Write entries to JSON file
+	entriesJSON, err := json.Marshal(entries)
+	if err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+	entriesFile := filepath.Join(tmpDir, "entries.json")
+	if err := os.WriteFile(entriesFile, entriesJSON, 0644); err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	// Create preview script
+	previewScript := filepath.Join(tmpDir, "preview.sh")
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+NUMINDEX="$1"
+if [ -z "$NUMINDEX" ]; then
+  echo "**Nenhuma variável selecionada**" | gum format
+  exit 0
+fi
+
+# Converter índice 1-based para 0-based
+INDEX=$(($NUMINDEX - 1))
+if [ "$INDEX" -lt 0 ]; then
+  echo "**Nenhuma variável selecionada**" | gum format
+  exit 0
+fi
+
+ENTRIES_FILE="%s"
+ENTRY=$(cat "$ENTRIES_FILE" | jq ".[$INDEX]")
+if [ -z "$ENTRY" ] || [ "$ENTRY" = "null" ]; then
+  echo "**Erro ao ler dados da variável**" | gum format
+  exit 0
+fi
+
+# Generate markdown with proper newlines
+{
+  echo "### $(echo "$ENTRY" | jq -r '.key // "N/A"')"
+  echo ""
+  echo "**Valor:** $(echo "$ENTRY" | jq -r '.displayValue // "N/A"')"
+  echo "**Vault:** $(echo "$ENTRY" | jq -r '.vault // "N/A"')"
+  echo "**Armazenamento:** $(echo "$ENTRY" | jq -r '.storage // "N/A"')"
+  echo "**Arquivo:** $(echo "$ENTRY" | jq -r '.path // "N/A"')"
+
+  IS_SECRET=$(echo "$ENTRY" | jq -r '.isSecret // false')
+  if [ "$IS_SECRET" = "true" ]; then
+    echo ""
+    echo "Use --show-secrets para ver o valor real"
+  fi
+} | gum format
+`, entriesFile)
+
+	if err := os.WriteFile(previewScript, []byte(scriptContent), 0755); err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	// Build fzf command with preview
+	args := []string{
+		"--prompt", "Filtrar> ",
+		"--layout", "reverse",
+		"--height", "~80%",
+		"--cycle",
+		"--header", headerText,
+		"--delimiter", "\t",
+		"--with-nth", "2..",
+		"--preview", previewScript + " {1}",
+		"--preview-window", "right:50%",
+		"--bind", "enter:accept",
+		"--bind", "esc:cancel",
+		"--bind", "ctrl-c:cancel",
+	}
+
+	// Capture fzf output
+	var output bytes.Buffer
+	cmd := exec.CommandContext(ctx, fzfPath, args...)
+	cmd.Stdin = &input
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	err = cmd.Run()
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
+				// User cancelled with ESC - just exit, no fallback
+				return nil, nil
+			}
+		}
+		// Other error, fall back to GumTable
+		return nil, GumTable(ctx, headers, rows, out)
+	}
+
+	// Parse selected line
+	selectedLine := strings.TrimSpace(output.String())
+	if selectedLine == "" {
+		return nil, nil
+	}
+
+	// Remove tab-separated index prefix and find matching row
+	tabIdx := strings.Index(selectedLine, "\t")
+	if tabIdx > 0 {
+		indexStr := selectedLine[:tabIdx]
+		var index int
+		fmt.Sscanf(indexStr, "%d", &index)
+		if index >= 0 && index < len(rows) {
+			return rows[index], nil
+		}
+	}
+
+	// Fallback: try matching by first column
+	selectedParts := strings.Split(selectedLine, " │ ")
+	if len(selectedParts) > 0 {
+		firstCol := strings.TrimSpace(selectedParts[0])
 		if idx := strings.Index(firstCol, "\t"); idx > 0 {
 			firstCol = firstCol[idx+1:]
 		}
