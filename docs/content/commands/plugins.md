@@ -35,16 +35,106 @@ Após `add`, o sync é executado automaticamente.
 
 ### `mb plugins list`
 
-Lista plugins instalados com pacote, caminho do comando, descrição, versão, origem (local/remoto) e URL/path.
+Lista plugins instalados com informações detalhadas.
+
+**Modos de exibição:**
+
+- **Interativo (terminal):** Interface fzf com colunas simplificadas (PACOTE | COMANDO) e preview automático no lado direito com detalhes completos
+- **Pipe/redirecionamento:** Tabela completa com colunas (PACOTE | COMANDO | DESCRIÇÃO | VERSÃO | ORIGEM | ATUALIZAR)
+- **JSON:** Todos os dados em formato estruturado com `--json`
 
 ```bash
+# Modo interativo (padrão)
 mb plugins list
+mb plugins ls
+mb plugins l
+
+# Com verificação de atualizações
 mb plugins list --check-updates
+
+# Saída JSON completa
+mb plugins list --json
+
+# Pipe com colunas completas
+mb plugins list | cat
+mb plugins list | grep local
+mb plugins list | wc -l
 ```
 
 | Flag | Descrição |
 |---|---|
 | `--check-updates` | Verifica se há atualização disponível para cada plugin remoto |
+| `--json` | Saída em formato JSON com todos os dados do plugin |
+
+**Preview automático:**
+
+No modo interativo, ao navegar com ↑↓ um preview aparece automaticamente no lado direito mostrando detalhes do plugin selecionado:
+
+- Pacote e comando
+- Descrição completa
+- Versão e origem
+- URL/path
+- Referência (tag/branch)
+
+O preview é renderizado com `gum format` para melhor legibilidade e atualiza em tempo real conforme você navega.
+
+**Colunas no modo interativo:**
+
+| Coluna | Descrição |
+|---|---|
+| PACOTE | Identificador do pacote (usado em `remove` e `update`) |
+| COMANDO | Caminho do comando na árvore do CLI |
+
+**Preview automático (modo interativo):**
+
+Ao navegar com ↑↓, o preview mostra informações adicionais:
+
+| Campo | Descrição |
+|---|---|
+| ORIGEM | `local` (path) ou `remoto` (Git) |
+| VERSÃO | Versão ou commit do plugin |
+| URL | Path local ou URL do repositório |
+| REF | Tag ou branch (quando aplicável) |
+
+**Colunas no modo pipe/redirecionamento:**
+
+| Coluna | Descrição |
+|---|---|
+| PACOTE | Identificador do pacote |
+| COMANDO | Caminho do comando |
+| DESCRIÇÃO | Descrição curta do plugin (truncada a 47 caracteres) |
+| VERSÃO | Versão ou commit do plugin |
+| ORIGEM | `local` ou `remoto` |
+| ATUALIZAR | `sim` se há atualização disponível (só com `--check-updates`) |
+
+**Exemplos de uso com JSON:**
+
+```bash
+# Listar apenas plugins locais
+mb plugins list --json | jq '.plugins[] | select(.origin == "local")'
+
+# Contar plugins remotos
+mb plugins list --json | jq '[.plugins[] | select(.origin == "remoto")] | length'
+
+# Listar nomes de pacotes únicos
+mb plugins list --json | jq -r '.plugins[].package' | sort -u
+
+# Filtrar plugins com atualização disponível
+mb plugins list --json --check-updates | jq '.plugins[] | select(.updateAvailable == true)'
+```
+
+**Exemplos de uso com pipe:**
+
+```bash
+# Buscar por descrição
+mb plugins list | grep -i deploy
+
+# Contar plugins
+mb plugins list | tail -n +4 | wc -l
+
+# Filtrar por origem
+mb plugins list | grep remoto
+```
 
 A coluna **PACOTE** é o identificador usado em `mb plugins remove <pacote> [<pacote>...]` / `mb plugins remove --all` e `mb plugins update <pacote> [<pacote>...]` / `mb plugins update --all`.
 
