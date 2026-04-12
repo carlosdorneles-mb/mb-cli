@@ -14,6 +14,7 @@ const sidebars = {
       link: { type: 'doc', id: 'getting-started/index' },
       items: [
         'getting-started/index',
+        'getting-started/installation',
         'getting-started/local-development',
       ],
     },

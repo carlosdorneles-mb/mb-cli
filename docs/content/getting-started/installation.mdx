@@ -1,0 +1,232 @@
+---
+sidebar_position: 2
+---
+
+# Instalação Detalhada
+
+Guia completo de instalação, dependências e configuração do MB CLI.
+
+## Pré-requisitos
+
+- **Linux** ou **macOS** (amd64 ou arm64)
+- **Bash** disponível no sistema
+- **`curl`** ou **`wget`** instalado
+
+## Dependências Externas
+
+O MB CLI depende das seguintes ferramentas externas para funcionar corretamente:
+
+| Ferramenta | Finalidade | Instalação |
+|------------|------------|------------|
+| **gum**    | UI interativa (tabelas, prompts, confirmações) | `install.sh` ou `brew install gum` |
+| **glow**   | Renderização de READMEs no terminal | `install.sh` ou `brew install glow` |
+| **jq**     | Processamento de JSON | `install.sh` ou `brew install jq` |
+| **fzf**    | Busca fuzzy (comandos, plugins) | `install.sh` ou `brew install fzf` |
+| **yq**     | Manipulação de YAML (configuração do projeto) | `install.sh` ou `brew install yq` |
+
+### macOS com Homebrew
+
+Se o **Homebrew** estiver disponível, o script de instalação usa `brew install` para todas as dependências:
+
+```bash
+# Instala via Homebrew (recomendado no macOS)
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+
+# O script executa automaticamente:
+# brew install gum glow jq fzf yq mas
+```
+
+Isto é preferível porque:
+- Atualizações via `brew upgrade` funcionam para todas as ferramentas
+- Não há downloads manuais de binários
+- Integração nativa com o ecossistema macOS
+
+### Linux (ou macOS sem Homebrew)
+
+Sem Homebrew, o script instala cada dependência baixando binários diretamente do **GitHub Releases**:
+
+```bash
+# Instala via GitHub Releases
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+
+# Baixa e instala automaticamente:
+# - gum (charmbracelet/gum)
+# - glow (charmbracelet/glow)
+# - jq (jqlang/jq)
+# - fzf (junegunn/fzf)
+# - yq (mikefarah/yq)
+```
+
+Todos os binários vão para `~/.local/bin`.
+
+## Instalação Rápida
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
+```
+
+## Instalação com Versão Específica
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash -s -- --version 0.0.5
+```
+
+## Verificação Automática de Versão
+
+O MB CLI verifica automaticamente se há uma **nova versão disponível** a cada **1 hora**. Quando encontra, exibe um warning antes de executar qualquer comando:
+
+```
+⚠️  Nova versão disponível: v1.2.0 (atual: v1.1.0)
+Execute: mb update
+```
+
+### Como funciona
+
+- **Intervalo**: Verifica a cada 1 hora desde o último check
+- **Non-blocking**: Falhas de rede ou da API do GitHub são ignoradas silenciosamente
+- **Skip automático**: Não verifica para comandos como `mb update`, `mb --version`, `mb help`, `mb completion`
+- **Builds dev**: Em builds de desenvolvimento (`dev`), o check é desativado
+
+### Desativar verificação automática
+
+Defina a variável de ambiente `MB_DISABLE_UPDATE_CHECK`:
+
+```bash
+# Adicione ao seu .bashrc/.zshrc
+export MB_DISABLE_UPDATE_CHECK=1
+```
+
+Valores aceitos: `1`, `true` (case-insensitive).
+
+## Variáveis de Ambiente do CLI
+
+O MB CLI reconhece variáveis de ambiente para controle de comportamento **do próprio CLI** (diferente das variáveis injetadas nos plugins, documentadas em [Variáveis de Ambiente](../user-guide/environment-variables.mdx)).
+
+### `MB_DISABLE_UPDATE_CHECK`
+
+**Finalidade**: Desativa a verificação automática de nova versão.
+
+```bash
+export MB_DISABLE_UPDATE_CHECK=1  # desativa check
+```
+
+### `MB_PLUGIN_SUBDIR`
+
+**Finalidade**: Define o subdiretório onde o MB CLI procura plugins ao instalar de um repositório Git.
+
+**Default**: `src`
+
+```bash
+# Usar subdiretório customizado
+export MB_PLUGIN_SUBDIR=plugins
+
+# Desativar detecção de subdiretório (plugins na raiz)
+export MB_PLUGIN_SUBDIR=
+```
+
+#### Como funciona a descoberta de subdiretórios
+
+Ao adicionar um plugin de um repositório Git, o MB CLI detecta automaticamente se os plugins estão em um subdiretório (default: `src/`):
+
+```
+meu-repo/
+└── src/
+    ├── plugin-a/
+    │   └── manifest.yaml
+    └── plugin-b/
+        └── manifest.yaml
+```
+
+**Importante**: O nome do subdiretório **não aparece nos comandos**:
+- `src/plugin-a` → `mb plugin-a`
+- `src/plugin-b` → `mb plugin-b`
+
+Isto permite organizar múltiplos plugins em repositórios sem poluir a hierarquia de comandos.
+
+## Pós-Instalação
+
+### Verificar instalação
+
+```bash
+mb --version
+mb help
+```
+
+### Adicionar ao PATH
+
+Se o comando `mb` não for encontrado, garanta que `~/.local/bin` está no seu `PATH`:
+
+```bash
+# Adicione ao ~/.bashrc, ~/.zshrc ou equivalente
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Primeiro uso
+
+Após a instalação, sincronize os plugins (mesmo que ainda não tenha nenhum):
+
+```bash
+mb plugins sync
+```
+
+Isso atualiza o cache de comandos e os helpers de shell.
+
+## Diretórios por Sistema Operacional
+
+O MB CLI usa diretórios padrão para configuração, cache e helpers:
+
+| Sistema | Configuração | Cache |
+|---------|-------------|-------|
+| **Linux** | `~/.config/mb` | `~/.config/mb/cache.db` |
+| **macOS** | `~/Library/Application Support/mb` | `~/Library/Application Support/mb/cache.db` |
+
+A variável de ambiente **`MB_HELPERS_PATH`** (injetada nos plugins) aponta automaticamente para o diretório correto do seu sistema.
+
+## Desinstalar
+
+```bash
+curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/uninstall.sh | bash
+```
+
+Ou remova manualmente:
+
+```bash
+# Binário
+rm -f ~/.local/bin/mb
+
+# Dependências (se instaladas pelo install.sh)
+rm -f ~/.local/bin/gum ~/.local/bin/glow ~/.local/bin/jq ~/.local/bin/fzf ~/.local/bin/yq
+```
+
+Para limpar dados e configuração:
+
+```bash
+# Linux
+rm -rf ~/.config/mb
+
+# macOS
+rm -rf ~/Library/Application\ Support/mb
+```
+
+:::note
+
+A desinstalação pelo script ou remoção manual dos binários **não apaga** os dados de configuração e plugins. Remova os diretórios acima se desejar uma limpeza completa.
+
+:::
+
+## Resumo Rápido
+
+| Ação | Comando |
+|------|---------|
+| Instalar | `curl -sSL …/install.sh \| bash` |
+| Verificar | `mb --version` |
+| Sincronizar | `mb plugins sync` |
+| Desativar update check | `export MB_DISABLE_UPDATE_CHECK=1` |
+| Desinstalar | `curl -sSL …/uninstall.sh \| bash` |
+
+## Próximos Passos
+
+- [Começar](./index.mdx) — Primeiros passos e fluxo básico
+- [Desenvolvimento Local](./local-development.mdx) — Compilar a partir do código
+- [Variáveis de Ambiente dos Plugins](../user-guide/environment-variables.mdx) — Ordem de precedência e uso
+- [Criar um Plugin](../plugin-authoring/create-a-plugin.mdx) — Montar seu primeiro plugin

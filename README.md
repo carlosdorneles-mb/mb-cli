@@ -22,6 +22,8 @@ O MB CLI depende das seguintes ferramentas externas:
 
 O script [`install.sh`](install.sh) cuida de tudo automaticamente — basta executá-lo.
 
+Para detalhes sobre instalação, variáveis de ambiente e comportamento do CLI, veja a [documentação completa](https://carlosdorneles-mb.github.io/mb-cli/).
+
 ## Documentação
 
 Tudo sobre instalação, uso diário, plugins e opções está no site:

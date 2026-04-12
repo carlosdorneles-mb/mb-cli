@@ -17,6 +17,7 @@ import (
 	"mb/internal/cli/update"
 	"mb/internal/deps"
 	"mb/internal/infra/browser"
+	"mb/internal/infra/updatecheck"
 	"mb/internal/ports"
 	"mb/internal/shared/config"
 	"mb/internal/shared/env"
@@ -35,6 +36,45 @@ func docsURLForRuntime(d deps.Dependencies) string {
 		return u
 	}
 	return config.DefaultDocsURL
+}
+
+// shouldSkipUpdateCheck returns true when the command doesn't warrant an update check.
+func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
+	// Skip if disabled via env var
+	if updatecheck.IsDisabled() {
+		return true
+	}
+
+	// Skip for non-release builds
+	if !updatecheck.IsReleaseBuild() {
+		return true
+	}
+
+	// Get the command path (e.g., "update", "completion install")
+	cmdPath := cmd.CommandPath()
+
+	// Skip for update command itself
+	if strings.HasPrefix(cmdPath, "mb update") {
+		return true
+	}
+
+	// Skip for help and version
+	if cmd.Name() == "help" {
+		return true
+	}
+	if cmd.Flags().Lookup("help") != nil && cmd.Flags().Lookup("help").Changed {
+		return true
+	}
+	if cmd.Flags().Lookup("version") != nil && cmd.Flags().Lookup("version").Changed {
+		return true
+	}
+
+	// Skip for completion subcommands
+	if strings.HasPrefix(cmdPath, "mb completion") {
+		return true
+	}
+
+	return false
 }
 
 func NewRootCmd(
@@ -63,10 +103,28 @@ func NewRootCmd(
 			os.Exit(0)
 			return nil
 		},
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
 				return err
 			}
+
+			// Version check: skip for update, help, version commands
+			if !shouldSkipUpdateCheck(cmd) {
+				checker := updatecheck.NewChecker(
+					d.Runtime.ConfigDir,
+					version.Version,
+				)
+				// Non-blocking: errors are silently ignored
+				_ = checker.Run(cmd.Context())
+
+				// Show warning if update available
+				if tag, ok := checker.IsUpdateAvailable(); ok {
+					fmt.Fprintf(cmd.ErrOrStderr(),
+						"\n⚠️  Nova versão disponível: %s (atual: %s)\n"+
+							"Execute: mb update --only-cli\n\n", tag, version.Version)
+				}
+			}
+
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {

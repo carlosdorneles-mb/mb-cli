@@ -4,35 +4,187 @@ sidebar_position: 5
 
 # Variáveis de ambiente
 
-O MB CLI mescla variáveis de várias fontes e injeta o resultado no **processo filho** (plugins ou `mb run`). O ambiente do seu shell **não é alterado**.
+O MB CLI trabalha com dois conjuntos de variáveis de ambiente com finalidades diferentes:
 
-## Resumo
+| Tipo | Quem define? | Quando? | Para quê? |
+|------|--------------|---------|-----------|
+| **Variáveis de controle** | Você (usuário) | Antes de executar o CLI | Controlar comportamento do MB CLI |
+| **Variáveis dos plugins** | O CLI | Durante execução | Configurar ambiente dos plugins |
 
-| O quê | Onde configurar | Persistente? |
-|-------|-----------------|--------------|
-| Defaults globais | `env.defaults` em `~/.config/mb/` (ou equivalente no macOS) | ✅ |
-| Por contexto (staging, prod…) | Vault com `--env-vault <nome>` → `.env.<nome>` no diretório de configuração | ✅ |
-| Por projeto | Chave `envs` no `mbcli.yaml` da raiz do projeto | ✅ (versionado) |
-| Por execução | `--env KEY=VALUE` | ❌ |
+---
+
+## 1. Variáveis de Controle do CLI {/* #cli-control */}
+
+Estas variáveis são definidas **por você** antes de executar o MB CLI para controlar seu comportamento.
+
+### Resumo
+
+| Variável | Finalidade | Valores | Default |
+|----------|------------|---------|---------|
+| `MB_DISABLE_UPDATE_CHECK` | Desativar verificação de versão | `1`, `true` | não definida |
+| `MB_PLUGIN_SUBDIR` | Subdiretório de plugins | nome do dir | `src` |
+| `MB_ENVS_SECRET_STORE` | Preferência de secret store | `keyring`, `1password` | `keyring` |
+
+### `MB_DISABLE_UPDATE_CHECK`
+
+Desativa a verificação automática de nova versão.
+
+```bash
+export MB_DISABLE_UPDATE_CHECK=1
+```
+
+Quando definida como `1` ou `true` (case-insensitive), o CLI não consulta a API do GitHub e não exibe warnings de nova versão.
+
+### `MB_PLUGIN_SUBDIR`
+
+Define o subdiretório onde o MB CLI procura plugins ao instalar de um repositório Git.
+
+```bash
+# Usar subdiretório customizado
+export MB_PLUGIN_SUBDIR=plugins
+
+# Desativar detecção (plugins na raiz)
+export MB_PLUGIN_SUBDIR=
+```
+
+**Exemplo**: Com `MB_PLUGIN_SUBDIR=src` (default), um repositório com estrutura `repo/src/meu-plugin/` gera o comando `mb meu-plugin` (sem prefixo `src`).
+
+### `MB_ENVS_SECRET_STORE`
+
+Define a preferência de secret store para `mb envs`.
+
+```bash
+export MB_ENVS_SECRET_STORE=1password
+```
+
+Determina onde as secrets são armazenadas por padrão ao usar `mb envs set --secret`:
+- `keyring` — usa o keyring do sistema (macOS Keychain, Linux Secret Service)
+- `1password` — usa 1Password (requer `op` no PATH)
+
+> **Nota**: Estas variáveis controlam **apenas o CLI**. Para configurar variáveis que serão injetadas nos plugins, veja a seção [Variáveis Configuráveis pelo Usuário](#user-configurable).
+
+---
+
+## 2. Variáveis dos Plugins {/* #plugin-envs */}
+
+Estas variáveis são definidas **pelo CLI** durante a execução de plugins ou `mb run`. Elas controlam o ambiente do processo filho — o ambiente do seu shell **não é alterado**.
+
+Dividem-se em três categorias:
+
+### 2.1 Variáveis de Contexto (Automáticas) {/* #context-vars */}
+
+Injetadas automaticamente para plugins inspecionarem como foram invocados. São **somente leitura**.
+
+| Variável | Conteúdo | Exemplo |
+|----------|----------|---------|
+| `MB_CTX_INVOCATION` | String da invocação completa | `/bin/mb tools deploy -i` |
+| `MB_CTX_CONFIG_DIR` | Diretório de configuração | `~/.config/mb` |
+| `MB_CTX_COMMAND_PATH` | Caminho do comando | `tools/deploy` |
+| `MB_CTX_COMMAND_NAME` | Nome do comando | `deploy` |
+| `MB_CTX_PARENT_COMMAND_PATH` | Caminho do comando pai | `tools` |
+| `MB_CTX_COBR_COMMAND_PATH` | Caminho completo Cobra | `mb tools deploy` |
+| `MB_CTX_PLUGIN_FLAGS` | Flags do plugin que foram usadas | `install --force` |
+| `MB_CTX_PEER_COMMANDS` | JSON de comandos peer (irmãos) | `["lint","test"]` |
+| `MB_CTX_CHILD_COMMANDS` | JSON de comandos filhos visíveis | `["rollback","status"]` |
+| `MB_CTX_HIDDEN_CHILD_COMMANDS` | JSON de comandos filhos ocultos | `["debug"]` |
+| `MB_CTX_CHILD_COMMAND_ALIASES` | JSON de aliases de comandos filhos | `[{"command":"deploy","aliases":["d"]}]` |
+
+**Uso em scripts de plugin:**
+
+```bash
+#!/bin/bash
+# Adaptar comportamento baseado no contexto
+echo "Executando: $MB_CTX_COMMAND_NAME"
+
+# Iterar comandos peer
+echo "$MB_CTX_PEER_COMMANDS" | jq -r '.[]'
+
+# Verificar se flag foi usada
+if echo "$MB_CTX_PLUGIN_FLAGS" | grep -q '\-\-force'; then
+  echo "Modo forçado ativado"
+fi
+```
+
+**Casos de uso:**
+- **Scripts adaptativos**: comportamento muda baseado no comando ou flags
+- **Descoberta dinâmica**: listar comandos disponíveis no mesmo nível
+- **Logging/auditoria**: registrar como o plugin foi invocado
+- **Helpers reutilizáveis**: funções que funcionam em qualquer contexto
+
+[Referência técnica completa →](../technical-reference/plugin-invocation-context.mdx)
+
+### 2.2 Variáveis de Comportamento
+
+Injetadas pelo CLI para controlar execução de scripts:
+
+| Variável | Quando é injetada | Finalidade |
+|----------|-------------------|------------|
+| `MB_HELPERS_PATH` | Sempre | Caminho para shell helpers (`lib/shell`) |
+| `MB_QUIET` | Com `--quiet` | Modo silencioso (suprimir output) |
+| `MB_VERBOSE` | Com `--verbose` | Modo detalhado (logar mais) |
+| `GUM_*` | Sempre | Tema de cores (laranja `#FFA500`, verde `#00A86B`) |
+
+**`MB_HELPERS_PATH`:**
+```bash
+#!/bin/bash
+source "$MB_HELPERS_PATH/log.sh"
+log info "Iniciando deploy"
+```
+
+**`MB_QUIET` e `MB_VERBOSE`:**
+```bash
+#!/bin/bash
+# Output adaptativo
+if [ "$MB_QUIET" != "1" ]; then
+  echo "Processando..."
+fi
+
+if [ "$MB_VERBOSE" = "1" ]; then
+  echo "Debug: $(env | sort)"
+fi
+```
+
+### 2.3 Variáveis Configuráveis pelo Usuário {/* #user-configurable */}
+
+Estas são as variáveis que **você pode configurar** para injetar nos plugins. São mescladas de várias fontes com ordem de precedência (maior vence):
+
+| # | Camada | Quando entra | Exemplo |
+|---|--------|--------------|---------|
+| 1 | **Sistema** | Sempre — variáveis do shell | `PATH`, `HOME` |
+| 2 | **`env.defaults`** | Sempre — ficheiro base | `~/.config/mb/env.defaults` |
+| 3 | **Vault (`--env-vault`)** | Com `--env-vault <nome>` | `.env.staging` no diretório de configuração |
+| 4 | **`mbcli.yaml` → `envs`** | Sempre — variáveis do projeto | `envs.API_BASE` no YAML |
+| 5 | **`.env` no cwd** | Quando existe no diretório atual | `.env` do projeto |
+| 6 | **`--env-file`** | Com `--env-file <path>` | `--env-file .env.prod` |
+| 7 | **`env_files` do manifest** | Só plugins — arquivos `.env` declarados | `env_files` no `manifest.yaml` |
+| 8 | **`--env KEY=VALUE`** | Sempre — maior precedência | `--env FOO=bar` |
 
 Para definir, listar e remover variáveis, use **`mb envs`**. [Referência completa →](../commands/envs.mdx)
 
-## Ordem de precedência
+### Variáveis personalizadas dos plugins
 
-Da **menor** para a **maior** precedência:
+Alguns plugins podem definir variáveis de ambiente específicas que são necessárias para seu funcionamento. Estas variáveis **não são documentadas pelo CLI** — cada plugin é responsável por documentar suas próprias dependências.
 
-| # | Camada | Quando entra |
-|---|--------|--------------|
-| 1 | **Sistema** | Sempre — variáveis do shell (`os.Environ()`) |
-| 2 | **`env.defaults`** | Sempre — ficheiro base no diretório de configuração (ex.: `~/.config/mb/env.defaults` no Linux) |
-| 3 | **Vault (`--env-vault`)** | Quando se passa `--env-vault <nome>` → `.env.<nome>` no mesmo diretório |
-| 4 | **`mbcli.yaml` → `envs`** | Sempre — escalares na raiz de `envs` (vault de projeto **default**). Com `--env-vault <nome>`, também o sub-mapa homónimo (`envs.<nome>`) |
-| 5 | **`.env` no cwd** | Quando existe um `.env` no diretório de trabalho atual |
-| 6 | **`--env-file`** | Quando se passa `--env-file <path>` |
-| 7 | **`env_files` do manifest** | Só plugins — arquivos `.env` declarados no `manifest.yaml` para o vault efetivo |
-| 8 | **`--env KEY=VALUE`** | Sempre — maior precedência, sobrescreve tudo |
+Para descobrir se um plugin precisa de variáveis personalizadas:
 
-> **Vaults de projeto (`project` / `project/<nome>`)** são lógicos — vêm do `mbcli.yaml` e não podem ser usados com `mb envs set --vault` nem `--env-vault`. Veja [Vaults de projeto](#project-vaults) abaixo.
+```bash
+# Ver o README do plugin (se disponível)
+mb <comando> --readme
+mb <categoria> <comando> --readme
+```
+
+O `--readme` renderiza o arquivo de documentação do plugin (geralmente `README.md`), que deve listar:
+- Variáveis de ambiente necessárias
+- Valores esperados e exemplos
+- Se há valores padrão ou obrigatórios
+
+**Exemplo**:
+
+```bash
+mb deploy production --readme
+```
+
+Se o plugin não tiver `--readme` disponível, consulte a documentação do autor do plugin no repositório de origem.
 
 ### Exemplo de `envs` no `mbcli.yaml`
 
@@ -47,13 +199,17 @@ envs:
 - `API_BASE` e `FEATURE_X` → vault de projeto **`project`** (sempre mesclados)
 - `staging.API_BASE` → vault de projeto **`project/staging`** (só com `--env-vault staging`)
 
-## Secrets
+### Secrets
 
-### Keyring do sistema (`--secret`)
+#### Keyring do sistema (`--secret`)
 
 O valor fica no keyring (macOS Keychain, Linux Secret Service), não em ficheiro. Na listagem aparece como `***`. Use `mb envs list --show-secrets` para ver.
 
-### 1Password (`--secret-op`)
+```bash
+mb envs set TOKEN=abc --secret
+```
+
+#### 1Password (`--secret-op`)
 
 O valor fica no cofre 1Password; a referência `op://` é gravada em `*.opsecrets`. Requer `op` no PATH e sessão ativa.
 
@@ -64,7 +220,7 @@ mb envs set TOKEN=abc --secret-op --vault staging  # cofre específico
 
 Em CI, adicione `--yes` para evitar prompt.
 
-## Vaults de projeto {/* #project-vaults */}
+### Vaults de projeto {/* #project-vaults */}
 
 O ficheiro `mbcli.yaml` na raiz do projeto pode definir variáveis sob a chave `envs`:
 
@@ -85,7 +241,7 @@ mb envs list --vault project        # só a raiz de envs no YAML
 mb envs list --vault project/staging # só o sub-mapa staging
 ```
 
-## Quando usar o quê
+### Quando usar o quê
 
 | Cenário | Recomendação |
 |---------|-------------|
@@ -96,7 +252,7 @@ mb envs list --vault project/staging # só o sub-mapa staging
 | Override rápido numa execução | `--env KEY=VALUE` |
 | Arquivo `.env` de projeto | `.env` no cwd ou `--env-file` |
 
-## `mb run`
+### `mb run`
 
 Execute qualquer programa com o mesmo ambiente mesclado dos plugins:
 
@@ -107,13 +263,11 @@ mb run --env-vault staging -e FOO=bar uv sync
 
 Flags podem ir antes ou depois de `run`, sempre antes do executável. Depois de `--`, nada é interpretado como flag do MB.
 
-## Tema do gum
-
-O CLI injeta variáveis `GUM_*` para scripts de plugins usarem cores consistentes (laranja `#FFA500` para cabeçalhos, verde `#00A86B` para seleção). Para sobrescrever, defina as mesmas chaves em `env.defaults` ou com `--env`.
-
 ## Ver também
 
+- [Variáveis de controle do CLI](../getting-started/installation.mdx) — `MB_DISABLE_UPDATE_CHECK`, `MB_PLUGIN_SUBDIR` (detalhes)
 - [`mb envs`](../commands/envs.mdx) — Referência completa (subcomandos, flags, tabelas)
 - [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
-- [Plugins](../technical-reference/plugins.mdx) — Como o ambiente é injetado no processo
-- [Criar um plugin](../plugin-authoring/create-a-plugin.mdx) — `env_files` no manifest
+- [Contexto de Invocação](../technical-reference/plugin-invocation-context.mdx) — Detalhes técnicos das variáveis `MB_CTX_*`
+- [Helpers de Shell](../plugin-authoring/shell-helpers.mdx) — Funções utilitárias para plugins
+- [Criar um Plugin](../plugin-authoring/create-a-plugin.mdx) — `env_files` no manifest

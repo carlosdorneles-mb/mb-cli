@@ -14,11 +14,13 @@ Neste guia você vai instalar o MB CLI e entender o básico do seu funcionamento
 
 ## Instalação rápida
 
-A forma mais simples é usar o script de instalação, que baixa o binário do MB CLI e suas dependências (**gum**, **glow**, **jq**, **fzf**) direto do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases):
+A forma mais simples é usar o script de instalação, que baixa o binário do MB CLI e suas dependências (**gum**, **glow**, **jq**, **fzf**, **yq**) direto do [GitHub Releases](https://github.com/carlosdorneles-mb/mb-cli/releases):
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/carlosdorneles-mb/mb-cli/main/install.sh | bash
 ```
+
+Para detalhes sobre dependências, variáveis de ambiente e verificação automática de versão, veja [Instalação Detalhada](./installation.mdx).
 
 ## Instalação com versão específica
 
@@ -139,6 +141,7 @@ rm -rf ~/Library/Application\ Support/mb
 
 ## Próximos passos
 
+- [Instalação Detalhada](./installation.mdx) — Dependências, variáveis de ambiente e configuração
 - [Desenvolvimento Local](./local-development.mdx) — compilar a partir do código
 - [Criar um plugin](../plugin-authoring/create-a-plugin.mdx) — montar seu primeiro plugin
 - [Variáveis de ambiente](../user-guide/environment-variables.mdx) — ordem de precedência e uso
