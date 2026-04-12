@@ -32,3 +32,24 @@
 .navbar__title {
   color: #ff8021 !important;
 }
+
+/* Badge de versão no navbar */
+.navbar__items--right a[href*="releases"] {
+  background: var(--ifm-color-primary);
+  color: #fff !important;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85em;
+  font-family: var(--ifm-font-family-monospace);
+  transition: background 0.2s ease;
+}
+
+.navbar__items--right a[href*="releases"]:hover {
+  background: var(--ifm-color-primary-dark);
+  color: #fff !important;
+}
+
+[data-theme='dark'] .navbar__items--right a[href*="releases"] {
+  background: var(--ifm-color-primary);
+}

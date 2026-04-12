@@ -1,8 +1,17 @@
 name: Deploy Docs
 
 on:
-  push:
-    branches: ["main"]
+  # Quando um release é publicado
+  release:
+    types: [published]
+  
+  # Após o workflow de Release completar
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+    branches: [main, master]
+  
+  # Trigger manual (para rebuilds se necessário)
   workflow_dispatch:
 
 permissions:
@@ -22,13 +31,30 @@ jobs:
         working-directory: docs
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necessário para buscar tags
+      
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: docs/package.json
+      
+      - name: Get latest version
+        id: version
+        run: |
+          # Pega a última tag de release
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "N/A")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building docs for $VERSION"
+      
       - run: npm install
-      - run: npm run build
+      
+      - name: Build docs
+        run: npm run build
+        env:
+          LATEST_VERSION: ${{ steps.version.outputs.version }}
+      
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/dist

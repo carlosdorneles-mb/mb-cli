@@ -98,6 +98,13 @@ const config = {
             label: 'Documentação',
           },
           {
+            href: 'https://github.com/carlosdorneles-mb/mb-cli/releases',
+            label: `${process.env.LATEST_VERSION || 'dev'}`,
+            position: 'right',
+            'target': '_blank',
+            'rel': 'noopener noreferrer',
+          },
+          {
             href: 'https://github.com/carlosdorneles-mb/mb-cli',
             label: 'GitHub',
             position: 'right',
