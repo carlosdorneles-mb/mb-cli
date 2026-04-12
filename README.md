@@ -36,7 +36,7 @@ make install-plugins-examples
 
 O projeto segue **Clean Architecture** com injeção de dependência via [`go.uber.org/fx`](https://pkg.go.dev/go.uber.org/fx).
 
-```
+```text
 internal/
 ├── bootstrap/      # Composição raiz — monta a FX App
 ├── cli/            # Camada de apresentação (Cobra apenas)
@@ -51,7 +51,7 @@ internal/
 
 **Fluxo de dependência** (aponta para o centro):
 
-```
+```text
 cli → usecase → domain
   ↘            ↗
    infra → ports

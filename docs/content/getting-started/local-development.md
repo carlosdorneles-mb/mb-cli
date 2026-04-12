@@ -21,7 +21,8 @@ make deps
 
 ```bash
 make build          # binário em bin/mb
-make install        # instala em $GOPATH/bin
+make install        # instala em $GOPATH/bin (modo de desenvolvimento)
+make uninstall      # desinstala o CLI do modo de desenvolvimento
 ```
 
 ## Executar localmente

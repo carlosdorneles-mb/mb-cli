@@ -6,7 +6,7 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
 DOCS_DIR := docs
 
 .PHONY: all build test clean tidy deps \
-	install install-plugins-examples uninstall-plugins-examples \
+	install uninstall install-plugins-examples uninstall-plugins-examples \
 	docs-install docs-dev docs-build docs-preview \
 	run run-local \
 	check-svu release \
@@ -30,7 +30,8 @@ help:
 	@echo "  clean          remove bin/, coverage, caches"
 	@echo ""
 	@echo "Outros:"
-	@echo "  install        instala o binário do CLI em $GOPATH/bin"
+	@echo "  install        instala o binário do CLI (go install; destino: GOBIN ou primeiro GOPATH/bin)"
+	@echo "  uninstall      remove o binário instalado por go install (mesma regra de caminho)"
 	@echo "  tidy           limpa dependências não usadas"
 	@echo "  deps           instala dependências"
 	@echo "  update-deps    atualiza todas as dependências"
@@ -101,6 +102,20 @@ uninstall-plugins-examples:
 # Install binary to $GOPATH/bin or $GOBIN
 install: build
 	go install .
+
+# Remove binary installed by go install (same resolution as the go tool: GOBIN, else first GOPATH/bin)
+uninstall:
+	@gobin=$$(go env GOBIN); \
+	if [ -n "$$gobin" ]; then \
+	  target="$$gobin/$(BINARY_NAME)"; \
+	else \
+	  target="$$(go env GOPATH | cut -d: -f1)/bin/$(BINARY_NAME)"; \
+	fi; \
+	if [ -f "$$target" ]; then \
+	  rm -f "$$target" && echo "Removed $$target"; \
+	else \
+	  echo "Nothing to remove ($$target not found)"; \
+	fi
 
 # Tidy Go module
 tidy:
