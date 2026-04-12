@@ -96,6 +96,8 @@ Ao navegar com ↑↓, o preview mostra informações adicionais:
 
 > `--json` e `--text` são mutuamente exclusivos.
 
+**Variáveis do `mbcli.yaml`:** o `mb envs list` também mostra as variáveis definidas no `mbcli.yaml` da raiz do projeto. Elas aparecem com vault **`project`** (escalares na raiz de `envs`) e **`project/<nome>`** (sub-mapas), e armazenamento **`projeto`**. Essas variáveis são versionadas no repositório e mescladas automaticamente — não é possível editá-las com `mb envs set --vault project`. Para detalhes, veja [Vaults de projeto](../user-guide/environment-variables.mdx#project-vaults).
+
 **Exemplos de uso com JSON:**
 
 ```bash
