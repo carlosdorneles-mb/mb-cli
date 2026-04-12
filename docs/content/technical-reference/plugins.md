@@ -17,7 +17,7 @@ O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo diretório de
 
 **Plugins locais:** com `mb plugins add <path|.>` o path fica em `plugin_sources.local_path`; nada é copiado para `PluginsDir`. No sync, esse path é escaneado como uma fonte extra.
 
-### Subdiretório de plugins
+### Subdiretório de plugins {#subdiretorio-de-plugins}
 
 Ao escanear um pacote instalado, o MB procura por `manifest.yaml` num **subdiretório** configurável. O valor padrão é **`src`**. Para sobrescrever:
 
