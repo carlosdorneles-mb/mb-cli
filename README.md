@@ -4,6 +4,24 @@ Ferramenta de linha de comando para gerir plugins e comandos personalizados no s
 
 <img title="MB CLI" alt="MB CLI" src="mb-cli.png">
 
+## Dependências
+
+O MB CLI depende das seguintes ferramentas externas:
+
+| Ferramenta | Finalidade | Instalação |
+|------------|------------|------------|
+| **gum**    | UI interativa (tabelas, prompts, confirmações) | `install.sh` ou `brew install gum` |
+| **glow**   | Renderização de READMEs no terminal | `install.sh` ou `brew install glow` |
+| **jq**     | Processamento de JSON | `install.sh` ou `brew install jq` |
+| **fzf**    | Busca fuzzy (comandos, plugins) | `install.sh` ou `brew install fzf` |
+| **yq**     | Manipulação de YAML (configuração do projeto) | `install.sh` ou `brew install yq` |
+
+> **macOS com Homebrew:** Todas as dependências (incluindo `mas`) são instaladas automaticamente via `brew install`.
+> 
+> **Linux:** O script `install.sh` instala automaticamente todas as dependências via GitHub Releases.
+
+O script [`install.sh`](install.sh) cuida de tudo automaticamente — basta executá-lo.
+
 ## Documentação
 
 Tudo sobre instalação, uso diário, plugins e opções está no site:
