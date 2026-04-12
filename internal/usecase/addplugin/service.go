@@ -128,42 +128,40 @@ func (s *Service) addRemote(
 		return err
 	}
 
-	opts := ports.GitCloneOpts{}
-	if tag != "" {
-		opts.BranchOrTag = tag
-		opts.UseTag = true
-	} else {
-		latestTag, err := s.git.LatestTag(ctx, normalizedURL)
-		if err != nil {
-			return fmt.Errorf("listar tags: %w", err)
-		}
-		if latestTag != "" {
-			opts.BranchOrTag = latestTag
-			opts.UseTag = true
-		}
-	}
+	// Generate candidate URLs for fallback
+	urlCandidates := s.generateFallbackURLs(normalizedURL)
 
-	if err := s.git.Clone(ctx, normalizedURL, destDir, opts); err != nil {
-		return fmt.Errorf("clone: %w", err)
-	}
+	var lastErr error
+	var version, ref, refType string
+	for _, candidateURL := range urlCandidates {
+		v, r, rt, err := s.cloneWithVersion(
+			ctx, candidateURL, destDir, tag,
+		)
+		if err == nil {
+			version = v
+			ref = r
+			refType = rt
+			lastErr = nil
+			break
+		}
 
-	version, err := s.git.GetVersion(destDir)
-	if err != nil {
+		lastErr = err
+
+		// If it's not an auth error, don't fallback — fail immediately
+		if !isAuthError(err) {
+			return fmt.Errorf("clone: %w", err)
+		}
+
+		// Clean up failed clone attempt
 		_ = s.fsys.RemoveAll(destDir)
-		return fmt.Errorf("obter versão: %w", err)
 	}
 
-	refType := "tag"
-	ref := opts.BranchOrTag
-	if !opts.UseTag {
-		refType = "branch"
-		ref, err = s.git.GetCurrentBranch(destDir)
-		if err != nil {
-			ref = "main"
-		}
-	}
-	if ref == "" {
-		ref = version
+	if lastErr != nil {
+		// All attempts failed with auth errors
+		return fmt.Errorf(
+			"você não tem permissão para instalar o plugin %q. Verifique suas credenciais ou acesso ao repositório",
+			installDir,
+		)
 	}
 
 	ps := plugin.PluginSource{
@@ -178,7 +176,6 @@ func (s *Service) addRemote(
 	if subDir := plugin.SubDir(); subDir != "" {
 		subPath := filepath.Join(destDir, subDir)
 		if info, err := s.fsys.Stat(subPath); err == nil && info.IsDir() {
-			// Verify subdir has at least one manifest.yaml
 			if hasManifests(subPath, s.fsys) {
 				ps.SubDir = subDir
 			}
@@ -205,13 +202,128 @@ func (s *Service) addRemote(
 	if !report.AnyChange {
 		_ = log.Info(
 			ctx,
-			"Pacote %q verificado; nenhum comando novo, atualizado ou removido.",
+			"Pacote %q verificado; nenhum comando novo, atualizado ou removado.",
 			installDir,
 		)
 		return nil
 	}
 	_ = log.Info(ctx, "Pacote %q instalado em %s (versão %s)", installDir, destDir, version)
 	return nil
+}
+
+// cloneWithVersion clones the repo and returns (version, ref, refType, error).
+func (s *Service) cloneWithVersion(
+	ctx context.Context,
+	cloneURL, destDir, tag string,
+) (version, ref, refType string, err error) {
+	opts := ports.GitCloneOpts{}
+	if tag != "" {
+		opts.BranchOrTag = tag
+		opts.UseTag = true
+	} else {
+		latestTag, err := s.git.LatestTag(ctx, cloneURL)
+		if err != nil {
+			return "", "", "", fmt.Errorf("listar tags: %w", err)
+		}
+		if latestTag != "" {
+			opts.BranchOrTag = latestTag
+			opts.UseTag = true
+		}
+	}
+
+	if err := s.git.Clone(ctx, cloneURL, destDir, opts); err != nil {
+		return "", "", "", err
+	}
+
+	version, err = s.git.GetVersion(destDir)
+	if err != nil {
+		return "", "", "", fmt.Errorf("obter versão: %w", err)
+	}
+
+	refType = "tag"
+	ref = opts.BranchOrTag
+	if !opts.UseTag {
+		refType = "branch"
+		ref, err = s.git.GetCurrentBranch(destDir)
+		if err != nil {
+			ref = "main"
+		}
+	}
+	if ref == "" {
+		ref = version
+	}
+
+	return version, ref, refType, nil
+}
+
+// generateFallbackURLs returns a list of URLs to try when cloning fails with auth errors.
+// Order: original URL → HTTPS with .git → SSH (git@host:org/repo.git).
+func (s *Service) generateFallbackURLs(normalizedURL string) []string {
+	seen := make(map[string]bool)
+	var result []string
+
+	addUnique := func(url string) {
+		if url == "" || seen[url] {
+			return
+		}
+		seen[url] = true
+		result = append(result, url)
+	}
+
+	// 1. Original normalized URL
+	addUnique(normalizedURL)
+
+	// 2. If normalized URL doesn't have .git, try with .git
+	if !strings.HasSuffix(normalizedURL, ".git") {
+		addUnique(normalizedURL + ".git")
+	}
+
+	// 3. If it's an HTTP(S) URL, generate SSH equivalent
+	if strings.HasPrefix(normalizedURL, "https://") || strings.HasPrefix(normalizedURL, "http://") {
+		// https://github.com/org/repo → git@github.com:org/repo.git
+		withoutProtocol := strings.TrimPrefix(normalizedURL, "https://")
+		withoutProtocol = strings.TrimPrefix(withoutProtocol, "http://")
+		withoutGitSuffix := strings.TrimSuffix(withoutProtocol, ".git")
+
+		parts := strings.SplitN(withoutGitSuffix, "/", 2)
+		if len(parts) == 2 {
+			sshURL := fmt.Sprintf("git@%s:%s.git", parts[0], parts[1])
+			addUnique(sshURL)
+		}
+	}
+
+	return result
+}
+
+// isAuthError detects authentication failures from git clone output.
+func isAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	lower := strings.ToLower(msg)
+
+	authPatterns := []string{
+		"401",
+		"authentication failed",
+		"could not read",
+		"permission denied",
+		"invalid username or password",
+		"http basic: access denied",
+		"fatal: could not read",
+		"remote: invalid username or password",
+		"remote: authentication required",
+		"remote: unauthorized",
+		"access denied",
+	}
+
+	for _, pattern := range authPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *Service) addLocal(
