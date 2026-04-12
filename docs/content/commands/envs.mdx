@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Gerencia variáveis de ambiente globais injetadas em plugins e no comando `mb run`.
 
-Para entender ordem de precedência, vaults de projeto e quando usar cada abordagem, veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+Para entender ordem de precedência, vaults de projeto e quando usar cada abordagem, veja [Variáveis de ambiente](../user-guide/environment-variables.mdx).
 
 ## Subcomandos
 
@@ -210,7 +210,7 @@ mb envs vaults --json
 
 **JSON:** `[{"vault","path","env_count"},...]`
 
-## Integração com 1Password (`--secret-op`) {#envs-1password-secret-op}
+## Integração com 1Password (`--secret-op`) {/* #envs-1password-secret-op */}
 
 O MB guarda valores no **1Password** via [1Password CLI](https://developer.1password.com/docs/cli/) (`op` no PATH). O **valor** fica no cofre; a **referência `op://`** é gravada em `*.opsecrets` — **não** no keyring.
 
@@ -229,6 +229,6 @@ Na listagem com `--show-secrets`, referências `op://` são resolvidas com `op r
 
 ## Ver também
 
-- [Variáveis de ambiente](../user-guide/environment-variables.md) — Precedência, vaults de projeto, quando usar o quê
-- [`mb run`](../commands/run.md) — Executar programas com ambiente mesclado
-- [Comandos de plugins](../user-guide/plugin-commands.md) — Como plugins herdam o ambiente
+- [Variáveis de ambiente](../user-guide/environment-variables.mdx) — Precedência, vaults de projeto, quando usar o quê
+- [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
+- [Comandos de plugins](../user-guide/plugin-commands.mdx) — Como plugins herdam o ambiente

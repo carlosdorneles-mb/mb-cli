@@ -6,8 +6,8 @@ sidebar_position: 1
 
 Guia passo a passo para montar um pacote de plugins do MB CLI.
 
-- **Referência técnica** (scanner, sync, grupos de help): [Plugins](../technical-reference/plugins.md)
-- **Helpers de shell** (log, memória, k8s, etc.): [Helpers para plugins](./shell-helpers.md)
+- **Referência técnica** (scanner, sync, grupos de help): [Plugins](../technical-reference/plugins.mdx)
+- **Helpers de shell** (log, memória, k8s, etc.): [Helpers para plugins](./shell-helpers.mdx)
 - **Exemplos no repositório**: [examples/plugins](https://github.com/carlosdorneles-mb/mb-cli/tree/main/examples/plugins)
 
 ## 1. Estrutura de pastas
@@ -113,7 +113,7 @@ command: deploy
 group_id: infra
 ```
 
-O `group_id` deve corresponder a um `id` definido num ficheiro **`groups.yaml`** do mesmo pacote. Comandos **top-level** (logo abaixo de `mb`) ignoram `group_id`. Veja [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
+O `group_id` deve corresponder a um `id` definido num ficheiro **`groups.yaml`** do mesmo pacote. Comandos **top-level** (logo abaixo de `mb`) ignoram `group_id`. Veja [Grupos de help](../technical-reference/plugins.mdx#grupos-de-help-groupsyaml-group_id-e-cobra).
 
 ## 3. Exemplos práticos
 
@@ -201,11 +201,11 @@ env_files:
 
 O MB CLI detecta automaticamente se os plugins estão num **subdiretório** do repositório. Por padrão, procura em **`src/`**. Se não encontrar manifests nessa pasta, faz **fallback** para a raiz do pacote.
 
-Para detalhes completos sobre subdiretórios e variável `MB_PLUGIN_SUBDIR`, veja [Subdiretório de plugins](../technical-reference/plugins.md#subdiretorio-de-plugins).
+Para detalhes completos sobre subdiretórios e variável `MB_PLUGIN_SUBDIR`, veja [Subdiretório de plugins](../technical-reference/plugins.mdx#subdiretorio-de-plugins).
 
 ### Nome do pacote
 
-O identificador do pacote segue as regras definidas em [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador). Resumidamente:
+O identificador do pacote segue as regras definidas em [Nome do pacote](../technical-reference/plugins.mdx#nome-do-pacote-identificador). Resumidamente:
 
 - **Remoto (Git):** nome do repositório (ex.: `org/infra-tools` → `infra-tools`)
 - **Local:** nome do diretório (ex.: `/path/meu-plugin` → `meu-plugin`)
@@ -249,7 +249,7 @@ cp -r meu-pacote ~/Library/Application\ Support/mb/plugins/
 mb plugins sync
 ```
 
-## 5. Escrever o script {#5-escrever-o-script}
+## 5. Escrever o script {/* #5-escrever-o-script */}
 
 ### Receber argumentos
 
@@ -265,9 +265,9 @@ log info "Hello, $name!"
 
 ### Variáveis de ambiente
 
-O plugin recebe variáveis mescladas (sistema, defaults, vault, `--env`). Veja [Variáveis de ambiente](../user-guide/environment-variables.md) para a ordem de precedência.
+O plugin recebe variáveis mescladas (sistema, defaults, vault, `--env`). Veja [Variáveis de ambiente](../user-guide/environment-variables.mdx) para a ordem de precedência.
 
-Além disso, variáveis de contexto são injetadas (`MB_CTX_*`): path do comando, comando pai, irmãos, filhos, etc. Veja [Contexto de invocação](../technical-reference/plugin-invocation-context.md).
+Além disso, variáveis de contexto são injetadas (`MB_CTX_*`): path do comando, comando pai, irmãos, filhos, etc. Veja [Contexto de invocação](../technical-reference/plugin-invocation-context.mdx).
 
 ### Usar helpers
 
@@ -292,11 +292,11 @@ if ! mem_has "myplugin" "last_run"; then
 fi
 ```
 
-Lista completa: [Helpers para plugins](./shell-helpers.md).
+Lista completa: [Helpers para plugins](./shell-helpers.mdx).
 
 ### Códigos de saída
 
-Para plugins com `install.sh` / `update.sh` que podem precisar de `sudo`, siga a [convenção de códigos de saída](../technical-reference/plugins.md#plugin-shell-exit-codes-convention):
+Para plugins com `install.sh` / `update.sh` que podem precisar de `sudo`, siga a [convenção de códigos de saída](../technical-reference/plugins.mdx#plugin-shell-exit-codes-convention):
 
 | Código | Significado |
 |--------|-------------|
@@ -337,7 +337,7 @@ mb infra deploy --readme
 
 ## Próximos passos
 
-- [Helpers de shell](./shell-helpers.md) — log, memória, OS, k8s, snap, homebrew…
-- [Comandos de plugins](../user-guide/plugin-commands.md) — `mb plugins list`, `remove`, `update`
-- [Variáveis de ambiente](../user-guide/environment-variables.md) — vaults, secrets, precedência
-- [Plugins (referência técnica)](../technical-reference/plugins.md) — scanner, cache, sync em detalhe
+- [Helpers de shell](./shell-helpers.mdx) — log, memória, OS, k8s, snap, homebrew…
+- [Comandos de plugins](../user-guide/plugin-commands.mdx) — `mb plugins list`, `remove`, `update`
+- [Variáveis de ambiente](../user-guide/environment-variables.mdx) — vaults, secrets, precedência
+- [Plugins (referência técnica)](../technical-reference/plugins.mdx) — scanner, cache, sync em detalhe

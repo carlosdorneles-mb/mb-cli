@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Plugins
 
-Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para **criar** um plugin e usar `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../plugin-authoring/create-a-plugin.md) e [Comandos de plugins](../user-guide/plugin-commands.md).
+Esta página descreve como o MB CLI descobre, armazena e executa plugins — diretório de plugins, cache, sync e resolução de paths. Para **criar** um plugin e usar `mb plugins` no dia a dia, veja o [Guia: Criar um plugin](../plugin-authoring/create-a-plugin.mdx) e [Comandos de plugins](../user-guide/plugin-commands.mdx).
 
 ## Diretório de plugins e plugins locais
 
@@ -17,7 +17,7 @@ O **cache SQLite** do MB fica em **`ConfigDir/cache.db`** (o mesmo diretório de
 
 **Plugins locais:** com `mb plugins add <path|.>` o path fica em `plugin_sources.local_path`; nada é copiado para `PluginsDir`. No sync, esse path é escaneado como uma fonte extra.
 
-### Subdiretório de plugins {#subdiretorio-de-plugins}
+### Subdiretório de plugins {/* #subdiretorio-de-plugins */}
 
 Ao escanear um pacote instalado, o MB procura por `manifest.yaml` num **subdiretório** configurável. O valor padrão é **`src`**. Para sobrescrever:
 
@@ -163,14 +163,14 @@ No **diff** do sync (com logger), só são emitidas linhas para comandos **adici
 
 **Indicação (local)** no Short da folha quando a fonte tem `local_path` em `plugin_sources` (match pelo diretório do plugin).
 
-### Códigos de saída convencionais para scripts shell {#plugin-shell-exit-codes-convention}
+### Códigos de saída convencionais para scripts shell {/* #plugin-shell-exit-codes-convention */}
 
 Plugins que participam em batches como **`mb tools --update-all`** (ou equivalentes) podem usar códigos acordados com o script agregador:
 
 - **86** (`MB_EXIT_UPDATE_SKIPPED_SUDO`) — sem `sudo` não interativo / root para operações de pacote; o batch trata como “saltado”, não como erro fatal.
 - **87** (`MB_EXIT_UPDATE_SKIPPED_NOT_INSTALLED`) — nada a atualizar porque a ferramenta não está instalada; ignorado no batch.
 
-O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `sudo.sh` no diretório de helpers, sincronizado com `mb plugins sync`). Ver [Códigos de saída no guia](../plugin-authoring/create-a-plugin.md#5-escrever-o-script).
+O executor Go repassa o código de saída do subprocesso; mensagens amigáveis para **86** em invocação direta ficam a cargo dos scripts (helper **`warn_and_skip_without_sudo`** em `sudo.sh` no diretório de helpers, sincronizado com `mb plugins sync`). Ver [Códigos de saída no guia](../plugin-authoring/create-a-plugin.mdx#5-escrever-o-script).
 
 ## Execução: flags e argumentos
 
@@ -189,7 +189,7 @@ O processo do plugin **não recebe as flags tratadas pelo CLI**; recebe apenas *
 - **Posicionais** após o consumo das flags acima. Ex.: `mb tools hello foo bar` → `$1`, `$2`.
 - **Ambiente:** sistema + defaults + `env_files` do plugin + `flags[].envs` (apenas das flags usadas) + `--env` + `MB_VERBOSE`/`MB_QUIET` + variáveis de contexto **`MB_CTX_*`** (invocação, path no manifest, irmãos Cobra, etc.).
   - Precedência prática em conflito de chave: `--env` > `flags[].envs` > `env_files`.
-  - Ver [Variáveis de ambiente](../user-guide/environment-variables.md), [Flags globais](../user-guide/global-flags.md) e [Contexto de invocação de plugins](plugin-invocation-context.md).
+  - Ver [Variáveis de ambiente](../user-guide/environment-variables.mdx), [Flags globais](../user-guide/global-flags.mdx) e [Contexto de invocação de plugins](plugin-invocation-context.mdx).
 
 ### `--help` / `-h`
 
@@ -202,4 +202,4 @@ Mostra o help Cobra do comando; o entrypoint **não** é executado.
 
 ## Segurança
 
-Os plugins correm com as permissões do utilizador; o CLI confina paths ao diretório do plugin no scan e no executor e suporta timeout opcional. Ver [Segurança](../user-guide/security.md).
+Os plugins correm com as permissões do utilizador; o CLI confina paths ao diretório do plugin no scan e no executor e suporta timeout opcional. Ver [Segurança](../user-guide/security.mdx).

@@ -18,11 +18,6 @@ const config = {
   tagline: 'CLI em Go para orquestrar plugins com injeção segura de variáveis de ambiente.',
   favicon: 'img/favicon.ico',
 
-  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
-  future: {
-    v4: true, // Improve compatibility with the upcoming Docusaurus v4
-  },
-
   // Set the production url of your site here
   url: 'https://carlosdorneles-mb.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served (GitHub Pages: /<projectName>/)

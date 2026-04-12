@@ -15,7 +15,7 @@ O MB CLI mescla variáveis de várias fontes e injeta o resultado no **processo 
 | Por projeto | Chave `envs` no `mbcli.yaml` da raiz do projeto | ✅ (versionado) |
 | Por execução | `--env KEY=VALUE` | ❌ |
 
-Para definir, listar e remover variáveis, use **`mb envs`**. [Referência completa →](../commands/envs.md)
+Para definir, listar e remover variáveis, use **`mb envs`**. [Referência completa →](../commands/envs.mdx)
 
 ## Ordem de precedência
 
@@ -64,7 +64,7 @@ mb envs set TOKEN=abc --secret-op --vault staging  # cofre específico
 
 Em CI, adicione `--yes` para evitar prompt.
 
-## Vaults de projeto {#project-vaults}
+## Vaults de projeto {/* #project-vaults */}
 
 O ficheiro `mbcli.yaml` na raiz do projeto pode definir variáveis sob a chave `envs`:
 
@@ -113,7 +113,7 @@ O CLI injeta variáveis `GUM_*` para scripts de plugins usarem cores consistente
 
 ## Ver também
 
-- [`mb envs`](../commands/envs.md) — Referência completa (subcomandos, flags, tabelas)
-- [`mb run`](../commands/run.md) — Executar programas com ambiente mesclado
-- [Plugins](../technical-reference/plugins.md) — Como o ambiente é injetado no processo
-- [Criar um plugin](../plugin-authoring/create-a-plugin.md) — `env_files` no manifest
+- [`mb envs`](../commands/envs.mdx) — Referência completa (subcomandos, flags, tabelas)
+- [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
+- [Plugins](../technical-reference/plugins.mdx) — Como o ambiente é injetado no processo
+- [Criar um plugin](../plugin-authoring/create-a-plugin.mdx) — `env_files` no manifest

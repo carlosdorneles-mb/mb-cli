@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Arquitetura
 
-Esta página descreve, em alto nível, como o MB CLI está organizado. Para detalhes de scanner, `groups.yaml` e cache, veja [Plugins](./plugins.md).
+Esta página descreve, em alto nível, como o MB CLI está organizado. Para detalhes de scanner, `groups.yaml` e cache, veja [Plugins](./plugins.mdx).
 
 ## Estrutura de código (`internal/`)
 
@@ -110,7 +110,7 @@ Na inicialização, o CLI lê o cache: **`ListPlugins`**, **`ListCategories`**, 
 **Grupos no help (Cobra):**
 
 - Comandos de categoria **logo abaixo da raiz `mb`** (ex. `mb infra`) ficam no grupo **COMANDOS DE PLUGINS** (`plugin_commands`).
-- Subcomandos **aninhados** (ex. `mb infra ci deploy`): por defeito **COMANDOS** (`commands`); se o manifest tiver **`group_id`** válido em **`plugin_help_groups`**, aparecem na secção com o título definido em `groups.yaml` (merge global no sync). Ver [Plugins — Grupos de help](./plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
+- Subcomandos **aninhados** (ex. `mb infra ci deploy`): por defeito **COMANDOS** (`commands`); se o manifest tiver **`group_id`** válido em **`plugin_help_groups`**, aparecem na secção com o título definido em `groups.yaml` (merge global no sync). Ver [Plugins — Grupos de help](./plugins.mdx#grupos-de-help-groupsyaml-group_id-e-cobra).
 
 ## Cache SQLite
 
@@ -156,4 +156,4 @@ flowchart TB
   sync --> B
 ```
 
-Para detalhes do scanner, validação, sync passo a passo e flags, veja [Plugins](./plugins.md).
+Para detalhes do scanner, validação, sync passo a passo e flags, veja [Plugins](./plugins.mdx).

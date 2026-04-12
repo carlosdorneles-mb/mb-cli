@@ -19,7 +19,7 @@ Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do cam
 
 Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** no `manifest.yaml` define atalhos para esse segmento (ex.: `mb ai sk` se `skills` tiver `aliases: [sk]`). É preciso **`mb plugins sync`** para atualizar o cache após alterar aliases.
 
-**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.md#cache-sqlite-e-sync).
+**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.mdx#cache-sqlite-e-sync).
 
 ## Como descobrir os comandos
 
@@ -27,7 +27,7 @@ Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** n
 - **`mb help`** — Mostra a árvore de comandos, incluindo as categorias e comandos de plugins. Comandos de plugins locais aparecem com a indicação "(local)" na descrição.
 - **Completion** — Depois de `mb plugins sync`, o completion (TAB) sugere categorias e comandos. Instale no perfil com `mb completion install`, remova com `mb completion uninstall`, ou gere o script com `mb completion <bash|zsh|fish|powershell>` (ver `mb completion install --help`).
 
-No help (`mb help`), subcomandos aninhados podem aparecer em **COMANDOS** ou em secções definidas com `groups.yaml` / `group_id` — ver [Grupos de help](../technical-reference/plugins.md#grupos-de-help-groupsyaml-group_id-e-cobra).
+No help (`mb help`), subcomandos aninhados podem aparecer em **COMANDOS** ou em secções definidas com `groups.yaml` / `group_id` — ver [Grupos de help](../technical-reference/plugins.mdx#grupos-de-help-groupsyaml-group_id-e-cobra).
 
 ## Executando um comando de plugin
 
@@ -45,16 +45,16 @@ mb tools meu-comando --readme
 mb infra --readme
 ```
 
-Para **flags globais do CLI**, argumentos posicionais no script e flags desconhecidas, veja [Execução: flags e argumentos](../technical-reference/plugins.md#execução-flags-e-argumentos).
+Para **flags globais do CLI**, argumentos posicionais no script e flags desconhecidas, veja [Execução: flags e argumentos](../technical-reference/plugins.mdx#execução-flags-e-argumentos).
 
 ## Repositório com vários plugins
 
 Um único `mb plugins add <url>` ou `mb plugins add <path>` cobre **toda a árvore** do diretório. Os comandos no CLI seguem a hierarquia de pastas e os `manifest.yaml` (campo `command` por nível quando quiser renomear um segmento), **sem** prefixar pelo identificador do pacote na árvore de comandos. Exemplo: repo com `tools/postman` e `dev/kinfo` → `mb tools postman`, `mb dev kinfo`. 
 
-A coluna **PACOTE** em `mb plugins list` é o identificador da instalação (definido por `--package` ou nome do diretório), usado em `mb plugins remove` e `mb plugins update`. Para regras completas de nomenclatura de pacotes, veja [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador).
+A coluna **PACOTE** em `mb plugins list` é o identificador da instalação (definido por `--package` ou nome do diretório), usado em `mb plugins remove` e `mb plugins update`. Para regras completas de nomenclatura de pacotes, veja [Nome do pacote](../technical-reference/plugins.mdx#nome-do-pacote-identificador).
 
 ## Plugin local vs remoto
 
 Na listagem (`mb plugins list`), a coluna **ORIGEM** indica se o plugin é **local** (instalado por path ou `.`) ou **remoto** (instalado por URL Git). No help (`mb help` ou `mb <categoria> <comando> --help`), comandos de plugins locais exibem **(local)** ao lado da descrição, para você saber que aquele comando vem de um plugin registrado localmente.
 
-Para detalhes de como o CLI descobre e executa os plugins (cache, sync, resolução de paths), veja [Plugins (referência técnica)](../technical-reference/plugins.md).
+Para detalhes de como o CLI descobre e executa os plugins (cache, sync, resolução de paths), veja [Plugins (referência técnica)](../technical-reference/plugins.mdx).

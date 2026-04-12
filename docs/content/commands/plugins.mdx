@@ -24,10 +24,10 @@ mb plugins add https://github.com/org/repo --tag v1.0.0 --package meu-pacote
 
 | Flag | Descrição |
 |---|---|
-| `--package <id>` | Identificador do pacote. Se omitido, usa o nome do repositório ou do diretório. Para regras de nomenclatura, veja [Nome do pacote](../technical-reference/plugins.md#nome-do-pacote-identificador). |
+| `--package <id>` | Identificador do pacote. Se omitido, usa o nome do repositório ou do diretório. Para regras de nomenclatura, veja [Nome do pacote](../technical-reference/plugins.mdx#nome-do-pacote-identificador). |
 | `--tag <tag>` | Instalar tag específica (remoto) |
 
-**Subdiretório de plugins:** o MB detecta automaticamente se os plugins estão em `src/` (ou o valor de `MB_PLUGIN_SUBDIR`). Para detalhes, veja [Subdiretório de plugins](../technical-reference/plugins.md#subdiretorio-de-plugins).
+**Subdiretório de plugins:** o MB detecta automaticamente se os plugins estão em `src/` (ou o valor de `MB_PLUGIN_SUBDIR`). Para detalhes, veja [Subdiretório de plugins](../technical-reference/plugins.mdx#subdiretorio-de-plugins).
 
 Após `add`, o sync é executado automaticamente.
 
@@ -193,4 +193,4 @@ Disparado automaticamente após `plugins add`. Obrigatório se editou ficheiros 
 | **Linux** | `~/.config/mb/plugins` |
 | **macOS** | `~/Library/Application Support/mb/plugins` |
 
-Para detalhes sobre como criar plugins, veja [Criar um plugin](../plugin-authoring/create-a-plugin.md).
+Para detalhes sobre como criar plugins, veja [Criar um plugin](../plugin-authoring/create-a-plugin.mdx).

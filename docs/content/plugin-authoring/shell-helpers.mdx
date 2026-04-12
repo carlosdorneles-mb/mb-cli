@@ -67,7 +67,7 @@ log print "=> Passo visível sem prefixo de nível"
 
 ### context
 
-Funções que leem as variáveis `MB_CTX_*` injetadas pelo runtime do CLI. O significado de cada variável está em [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.md).
+Funções que leem as variáveis `MB_CTX_*` injetadas pelo runtime do CLI. O significado de cada variável está em [Contexto de invocação de plugins](../technical-reference/plugin-invocation-context.mdx).
 
 **Funções principais:**
 
@@ -187,7 +187,7 @@ ver="$(mbcli_yaml_get '.example.version' | jq -r .)"
 log info "Versão em mbcli.yaml: $ver"
 ```
 
-O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso. Veja [Variáveis de ambiente](../user-guide/environment-variables.md).
+O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso. Veja [Variáveis de ambiente](../user-guide/environment-variables.mdx).
 
 ## Utilitários
 

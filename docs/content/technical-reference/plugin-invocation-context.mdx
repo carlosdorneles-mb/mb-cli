@@ -8,7 +8,7 @@ Quando o MB **executa um plugin** (script ou binário registado no manifest), o 
 
 Servem para o script saber **como** o utilizador chamou o `mb` (linha de comandos), **qual** comando do manifest corresponde à folha atual, **que** flags do plugin foram usadas, **que** outros subcomandos existem ao mesmo nível na árvore Cobra (**irmãos**), e **que** subcomandos existem **por baixo** do comando Cobra em execução (**filhos** — visíveis, ocultos e aliases).
 
-Esta página é a **referência das variáveis** definidas pelo runtime do CLI. Para funções shell que apenas **lêem** essas variáveis (`mb_context_dump`, `mb_peer_commands_lines`), veja o helper **context** em [Helpers de shell](../plugin-authoring/shell-helpers.md#context).
+Esta página é a **referência das variáveis** definidas pelo runtime do CLI. Para funções shell que apenas **lêem** essas variáveis (`mb_context_dump`, `mb_peer_commands_lines`), veja o helper **context** em [Helpers de shell](../plugin-authoring/shell-helpers.mdx#context).
 
 ## Variáveis
 
@@ -110,5 +110,5 @@ As variáveis são montadas na execução de plugins (`internal/cli/plugincmd`, 
 
 ## Ver também
 
-- [Plugins](plugins.md) — cache, manifest e execução
-- [Helpers de shell — context](../plugin-authoring/shell-helpers.md#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_child_commands_lines`, `mb_hidden_child_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_child_contains`, `mb_ctx_hidden_child_contains`, `mb_ctx_peer_count`, `mb_ctx_child_count`, `mb_ctx_hidden_child_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`
+- [Plugins](plugins.mdx) — cache, manifest e execução
+- [Helpers de shell — context](../plugin-authoring/shell-helpers.mdx#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_child_commands_lines`, `mb_hidden_child_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_child_contains`, `mb_ctx_hidden_child_contains`, `mb_ctx_peer_count`, `mb_ctx_child_count`, `mb_ctx_hidden_child_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`
