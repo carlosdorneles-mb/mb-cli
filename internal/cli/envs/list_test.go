@@ -49,12 +49,22 @@ func TestEnvListJSON(t *testing.T) {
 	if err := root.Execute(); err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	var got map[string]string
+	var got []map[string]interface{}
 	if err := json.Unmarshal(bytes.TrimSpace(out.Bytes()), &got); err != nil {
 		t.Fatalf("json: %v out=%q", err, out.String())
 	}
-	if len(got) != 2 || got["FOO"] != "bar" || got["BAZ"] != "qux" {
-		t.Fatalf("got %v", got)
+	if len(got) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(got))
+	}
+	// Build a map for easier assertion
+	gotMap := make(map[string]string)
+	for _, entry := range got {
+		key := entry["key"].(string)
+		value := entry["value"].(string)
+		gotMap[key] = value
+	}
+	if gotMap["FOO"] != "bar" || gotMap["BAZ"] != "qux" {
+		t.Fatalf("got %v", gotMap)
 	}
 }
 

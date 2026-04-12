@@ -3,8 +3,15 @@ package deps
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// normalizePathForTest normalizes paths for comparison on macOS where /var -> /private/var
+func normalizePathForTest(path string) string {
+	// Remove /private prefix that macOS may add
+	return strings.TrimPrefix(path, "/private")
+}
 
 func TestResolveMbcliYAMLPath_MBCLIYAMLPath(t *testing.T) {
 	tmp := t.TempDir()
@@ -34,7 +41,8 @@ func TestResolveMbcliYAMLPath_RelativeYAMLPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := filepath.Join(tmp, "rel", "mbcli.yaml")
-	if got != want {
+	// macOS: /var is a symlink to /private/var, so filepath.Clean may resolve it
+	if normalizePathForTest(got) != normalizePathForTest(want) {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }
@@ -53,7 +61,8 @@ func TestResolveMbcliYAMLPath_ProjectRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := filepath.Join(tmp, "subproj", "mbcli.yaml")
-	if got != want {
+	// macOS: /var is a symlink to /private/var, so filepath.Clean may resolve it
+	if normalizePathForTest(got) != normalizePathForTest(want) {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }
