@@ -93,7 +93,7 @@ const config = {
         title: 'MB CLI',
         logo: {
           alt: 'MB CLI Logo',
-          src: 'img/logo.svg',
+          src: 'img/logo.png',
         },
         items: [
           {
