@@ -204,7 +204,7 @@ install_gum_manual() {
   gum_url_tarball="${GUM_RELEASE_BASE}/${gum_tag}/${gum_artifact}"
   gum_tmpdir="$(mktemp -d)"
   gum_tarball="${gum_tmpdir}/${gum_artifact}"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "${glow_tmpdir:-/dev/null}" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "${glow_tmpdir:-}" "${jq_tmpdir:-}" "${fzf_tmpdir:-}"' EXIT
 
   echo "Baixando gum ${gum_tag} (${gum_artifact})..."
   download_file "$gum_url_tarball" "$gum_tarball" || {
@@ -238,7 +238,7 @@ install_glow_manual() {
   glow_url_tarball="${GLOW_RELEASE_BASE}/${glow_tag}/${glow_artifact}"
   glow_tmpdir="$(mktemp -d)"
   glow_tarball="${glow_tmpdir}/${glow_artifact}"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "${jq_tmpdir:-}" "${fzf_tmpdir:-}"' EXIT
 
   echo "Baixando glow ${glow_tag} (${glow_artifact})..."
   download_file "$glow_url_tarball" "$glow_tarball" || {
@@ -266,7 +266,7 @@ install_jq_manual() {
   jq_artifact="jq-${jq_os}-${jq_arch}"
   jq_url="${JQ_RELEASE_BASE}/${jq_tag}/${jq_artifact}"
   jq_tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "$jq_tmpdir" "${fzf_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "$jq_tmpdir" "${fzf_tmpdir:-}"' EXIT
   echo "Baixando jq ${jq_tag} (${jq_artifact})..."
   download_file "$jq_url" "${jq_tmpdir}/jq" || {
     echo "Falha ao baixar jq: ${jq_url}" >&2
