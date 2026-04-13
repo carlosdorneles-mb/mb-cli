@@ -204,7 +204,7 @@ install_gum_manual() {
   gum_url_tarball="${GUM_RELEASE_BASE}/${gum_tag}/${gum_artifact}"
   gum_tmpdir="$(mktemp -d)"
   gum_tarball="${gum_tmpdir}/${gum_artifact}"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "${glow_tmpdir:-/dev/null}" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}" "${yq_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "${glow_tmpdir:-/dev/null}" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}"' EXIT
 
   echo "Baixando gum ${gum_tag} (${gum_artifact})..."
   download_file "$gum_url_tarball" "$gum_tarball" || {
@@ -238,7 +238,7 @@ install_glow_manual() {
   glow_url_tarball="${GLOW_RELEASE_BASE}/${glow_tag}/${glow_artifact}"
   glow_tmpdir="$(mktemp -d)"
   glow_tarball="${glow_tmpdir}/${glow_artifact}"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}" "${yq_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "${jq_tmpdir:-/dev/null}" "${fzf_tmpdir:-/dev/null}"' EXIT
 
   echo "Baixando glow ${glow_tag} (${glow_artifact})..."
   download_file "$glow_url_tarball" "$glow_tarball" || {
@@ -266,7 +266,7 @@ install_jq_manual() {
   jq_artifact="jq-${jq_os}-${jq_arch}"
   jq_url="${JQ_RELEASE_BASE}/${jq_tag}/${jq_artifact}"
   jq_tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "$jq_tmpdir" "${fzf_tmpdir:-/dev/null}" "${yq_tmpdir:-/dev/null}"' EXIT
+  trap 'rm -rf "$tmpdir" "$gum_tmpdir" "$glow_tmpdir" "$jq_tmpdir" "${fzf_tmpdir:-/dev/null}"' EXIT
   echo "Baixando jq ${jq_tag} (${jq_artifact})..."
   download_file "$jq_url" "${jq_tmpdir}/jq" || {
     echo "Falha ao baixar jq: ${jq_url}" >&2
@@ -301,10 +301,10 @@ install_fzf_manual() {
 }
 
 install_yq_manual() {
-  local yq_tag yq_version yq_os yq_arch yq_artifact yq_url_tarball yq_tmpdir yq_tarball yq_binary
+  local yq_tag yq_os yq_arch yq_artifact yq_url yq_stage yq_fallback dest
+  yq_fallback="${HOME}/.local/share/mb-cli/bin"
   yq_tag="$(get_yq_latest_tag)"
   [ -n "$yq_tag" ] || { echo "Não foi possível obter a última versão do yq." >&2; exit 1; }
-  yq_version="${yq_tag#v}"
   case "$OS" in
     linux)  yq_os="linux" ;;
     darwin) yq_os="darwin" ;;
@@ -316,20 +316,32 @@ install_yq_manual() {
     *)     echo "ARCH não mapeado para yq: $ARCH" >&2; exit 1 ;;
   esac
   yq_artifact="yq_${yq_os}_${yq_arch}"
-  yq_url_tarball="${YQ_RELEASE_BASE}/${yq_tag}/${yq_artifact}"
-  yq_tmpdir="$(mktemp -d)"
-  yq_tarball="${yq_tmpdir}/${yq_artifact}"
+  yq_url="${YQ_RELEASE_BASE}/${yq_tag}/${yq_artifact}"
+  yq_stage="$(mktemp -d)"
   echo "Baixando yq ${yq_tag} (${yq_artifact})..."
-  download_file "$yq_url_tarball" "$yq_tarball" || {
-    echo "Falha ao baixar yq: ${yq_url_tarball}" >&2
+  if ! download_file "$yq_url" "${yq_stage}/yq.bin"; then
+    rm -rf "$yq_stage"
+    echo "Falha ao baixar yq: ${yq_url}" >&2
     exit 1
-  }
-  tar -xzf "$yq_tarball" -C "$yq_tmpdir"
-  yq_binary="$(find "$yq_tmpdir" -maxdepth 2 -name yq -type f | head -n1)"
-  [ -n "$yq_binary" ] || { echo "Binário yq não encontrado no tarball." >&2; exit 1; }
-  cp -f "$yq_binary" "${INSTALL_DIR}/yq"
-  chmod +x "${INSTALL_DIR}/yq"
-  echo "yq ${yq_tag} instalado em ${INSTALL_DIR}/yq"
+  fi
+  chmod +x "${yq_stage}/yq.bin"
+  dest="${INSTALL_DIR}/yq"
+  if cp -f "${yq_stage}/yq.bin" "$dest" 2>/dev/null && chmod +x "$dest" 2>/dev/null; then
+    echo "yq ${yq_tag} instalado em ${dest}"
+    rm -rf "$yq_stage"
+    return 0
+  fi
+  mkdir -p "$yq_fallback"
+  if cp -f "${yq_stage}/yq.bin" "${yq_fallback}/yq" && chmod +x "${yq_fallback}/yq"; then
+    rm -rf "$yq_stage"
+    echo "Aviso: não foi possível gravar yq em ${dest} (permissões ou ficheiro existente de outro dono)." >&2
+    echo "yq ${yq_tag} foi instalado em ${yq_fallback}/yq (sem sudo). Adicione ao PATH ou remova o yq antigo em ${INSTALL_DIR}." >&2
+    MB_YQ_EXTRA_PATH="$yq_fallback"
+    return 0
+  fi
+  rm -rf "$yq_stage"
+  echo "Falha ao instalar yq em ${dest} e em ${yq_fallback}." >&2
+  exit 1
 }
 
 do_install() {
@@ -386,7 +398,8 @@ do_install() {
     echo "Dependências (gum, glow, jq, fzf, yq) instaladas via Homebrew."
   else
     # Linux ou macOS sem Homebrew: instala manualmente via GitHub Releases
-    
+    MB_YQ_EXTRA_PATH=""
+
     # Instalar gum (dependência do MB CLI) no mesmo INSTALL_DIR
     install_gum_manual
     
@@ -401,9 +414,13 @@ do_install() {
     
     # Instalar yq (mikefarah/yq) no mesmo INSTALL_DIR
     install_yq_manual
-    
+
     echo ""
-    echo "MB CLI, gum, glow, jq, fzf e yq foram instalados em ${INSTALL_DIR}."
+    if [ -n "${MB_YQ_EXTRA_PATH:-}" ]; then
+      echo "MB CLI, gum, glow, jq e fzf em ${INSTALL_DIR}; yq em ${MB_YQ_EXTRA_PATH}."
+    else
+      echo "MB CLI, gum, glow, jq, fzf e yq foram instalados em ${INSTALL_DIR}."
+    fi
   fi
   if ! echo "$PATH" | grep -qF "${INSTALL_DIR}"; then
     # Escolhe o arquivo de config do shell; só adiciona se o path ainda não estiver lá
@@ -419,6 +436,21 @@ do_install() {
     else
       printf '\n# MB CLI (install.sh)\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rcfile"
       echo "${INSTALL_DIR} foi adicionado ao PATH em $rcfile. Abra um novo terminal ou rode: source $rcfile"
+    fi
+  fi
+  if [ -n "${MB_YQ_EXTRA_PATH:-}" ] && ! echo "$PATH" | grep -qF "${MB_YQ_EXTRA_PATH}"; then
+    if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename "$SHELL" 2>/dev/null)" = "zsh" ]; then
+      rcfile="${HOME}/.zshrc"
+    elif [ "$(basename "$SHELL" 2>/dev/null)" = "bash" ]; then
+      rcfile="${HOME}/.bashrc"
+    else
+      rcfile="${HOME}/.profile"
+    fi
+    if [ -f "$rcfile" ] && grep -qF '.local/share/mb-cli/bin' "$rcfile" 2>/dev/null; then
+      echo "O arquivo $rcfile já parece conter o diretório de yq (fallback) no PATH. Abra um novo terminal ou rode: source $rcfile"
+    else
+      printf '\n# MB CLI (install.sh) — yq (diretório fallback)\nexport PATH="%s:$PATH"\n' "$MB_YQ_EXTRA_PATH" >> "$rcfile"
+      echo "${MB_YQ_EXTRA_PATH} foi adicionado ao PATH em $rcfile. Abra um novo terminal ou rode: source $rcfile"
     fi
   fi
   echo "Depois rode: mb plugins sync"

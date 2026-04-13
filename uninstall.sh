@@ -17,4 +17,4 @@ else
 fi
 
 echo "Os dados do CLI (plugins, config) permanecem em ~/.config/mb (Linux) ou ~/Library/Application Support/mb (macOS)."
-echo "gum, glow, jq e fzf (se instalados pelo install.sh) permanecem em ${INSTALL_DIR}."
+echo "gum, glow, jq, fzf e yq (se instalados pelo install.sh) permanecem em ${INSTALL_DIR} (yq pode estar em ~/.local/share/mb-cli/bin se usou o fallback)."
