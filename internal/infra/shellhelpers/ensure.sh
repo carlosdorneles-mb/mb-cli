@@ -34,6 +34,13 @@ ensure_gum() {
     fi
 }
 
+ensure_fzf() {
+    if ! command -v fzf >/dev/null 2>&1; then
+        log error "Comando 'fzf' não encontrado. Instale: https://github.com/junegunn/fzf"
+        exit 1
+    fi
+}
+
 ensure_kubectl() {
     if ! command -v kubectl >/dev/null 2>&1; then
         log error "Comando 'kubectl' não encontrado. Instale: https://kubernetes.io/docs/tasks/tools/install-kubectl/"
