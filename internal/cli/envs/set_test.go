@@ -86,11 +86,74 @@ func TestEnvSetLogsToStderr(t *testing.T) {
 	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&errBuf)
+	// Sem gum no PATH o logger usa fmt.Fprintf e a mensagem cai no buffer (gum log pode falhar sem TTY).
+	t.Setenv("PATH", t.TempDir())
 	root.SetArgs([]string{"set", "K=v"})
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(errBuf.String(), "K") {
 		t.Errorf("expected log on stderr: %q", errBuf.String())
+	}
+}
+
+func TestParseEnvSetArgsBareKeyRequiresSecretMode(t *testing.T) {
+	_, err := parseEnvSetArgs([]string{"ONLYKEY"}, false)
+	if err == nil {
+		t.Fatal("expected error without secret mode")
+	}
+	pairs, err := parseEnvSetArgs([]string{"ONLYKEY"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pairs) != 1 || pairs[0].key != "ONLYKEY" || pairs[0].needsPrompt != true ||
+		pairs[0].value != "" {
+		t.Fatalf("pairs=%+v", pairs)
+	}
+}
+
+func TestParseEnvSetArgsMixedSecret(t *testing.T) {
+	pairs, err := parseEnvSetArgs([]string{"A", "B=2", "C"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pairs) != 3 {
+		t.Fatalf("len=%d pairs=%+v", len(pairs), pairs)
+	}
+	if pairs[0].key != "A" || !pairs[0].needsPrompt {
+		t.Fatalf("pair0=%+v", pairs[0])
+	}
+	if pairs[1].key != "B" || pairs[1].value != "2" || pairs[1].needsPrompt {
+		t.Fatalf("pair1=%+v", pairs[1])
+	}
+	if pairs[2].key != "C" || !pairs[2].needsPrompt {
+		t.Fatalf("pair2=%+v", pairs[2])
+	}
+}
+
+func TestParseEnvSetArgsEmptyValueWithEquals(t *testing.T) {
+	pairs, err := parseEnvSetArgs([]string{"EMPTY="}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pairs) != 1 || pairs[0].key != "EMPTY" || pairs[0].value != "" || pairs[0].needsPrompt {
+		t.Fatalf("pairs=%+v", pairs)
+	}
+}
+
+func TestEnvSetSecretInlineValueEmitsSecurityWarning(t *testing.T) {
+	d := testDeps(t)
+	var errBuf bytes.Buffer
+	root := NewCmd(testListServiceForDeps(t, d), d)
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&errBuf)
+	t.Setenv("PATH", t.TempDir())
+	root.SetArgs([]string{"set", "TOKEN=secretval", "--secret"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	out := errBuf.String()
+	if !strings.Contains(out, "não é seguro") || !strings.Contains(out, "histórico") {
+		t.Fatalf("expected security warning on stderr, got: %q", out)
 	}
 }

@@ -322,7 +322,11 @@ func TestAddLocalMonorepoSrcPreservesCategoryPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	catManifest := "command: tools\ndescription: tools category\n"
-	if err := os.WriteFile(filepath.Join(srcTools, "manifest.yaml"), []byte(catManifest), 0o644); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(srcTools, "manifest.yaml"),
+		[]byte(catManifest),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	writeMinimalRunnablePluginNamed(t, fooDir, "foo")

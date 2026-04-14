@@ -207,7 +207,9 @@ envs:
 O valor fica no keyring (macOS Keychain, Linux Secret Service), não em ficheiro. Na listagem aparece como `***`. Use `mb envs list --show-secrets` para ver.
 
 ```bash
-mb envs set TOKEN=abc --secret
+mb envs set TOKEN=abc --secret   # funciona, mas o MB avisa: valor na linha pode ir para o histórico da shell
+# Evitar o valor no histórico da shell: só a chave + prompt mascarado (gum ou /dev/tty)
+mb envs set TOKEN --secret
 ```
 
 #### 1Password (`--secret-op`)
@@ -216,10 +218,11 @@ O valor fica no cofre 1Password; a referência `op://` é gravada em `*.opsecret
 
 ```bash
 mb envs set TOKEN=abc --secret-op
+mb envs set TOKEN --secret-op
 mb envs set TOKEN=abc --secret-op --vault staging  # cofre específico
 ```
 
-Em CI, adicione `--yes` para evitar prompt.
+Em CI, use `KEY=VALOR` na linha de comandos (sem prompt) e, para `--secret-op` no vault padrão, adicione `--yes` para evitar o prompt de confirmação.
 
 ### Vaults de projeto {/* #project-vaults */}
 

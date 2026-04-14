@@ -18,17 +18,16 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	var flagSecret, flagSecretOP bool
 	var yes bool
 	cmd := &cobra.Command{
-		Use:     "set <KEY=VALUE> [<KEY=VALUE>...]",
+		Use:     "set <KEY[=VALOR]> [<KEY[=VALOR]>...]",
 		Aliases: []string{"s"},
 		Short:   "Define ou atualiza variáveis no vault padrão ou num vault específico",
-		Args:    cobra.MinimumNArgs(1),
+		Long: "Com --secret ou --secret-op, pode omitir o valor: use só a chave (ex.: API_KEY) e o MB pede o valor " +
+			"com gum input --password (um prompt por chave), sem gravar o segredo no histórico da shell. " +
+			"Com valor na linha de comandos (KEY=VALOR), não há prompt.",
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
-			pairs, err := parseKeyValuePairs(args)
-			if err != nil {
-				return err
-			}
 
 			paths := []string{d.Runtime.DefaultEnvPath}
 			if setVault != "" {
@@ -44,6 +43,19 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 				paths...)
 			if err != nil {
 				return err
+			}
+			secretMode := asSecret || secretOP
+
+			pairs, err := parseEnvSetArgs(args, secretMode)
+			if err != nil {
+				return err
+			}
+
+			if envSetAnyNeedsPrompt(pairs) && !term.IsTerminal(int(os.Stdin.Fd())) {
+				return fmt.Errorf(
+					"definir chave sem valor (sem '=') com --secret ou --secret-op requer um terminal interativo; " +
+						"use KEY=VALOR na linha de comandos ou execute num TTY",
+				)
 			}
 
 			if secretOP && setVault == "" && !yes {
@@ -69,6 +81,30 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 				if !ok {
 					return fmt.Errorf("cancelado")
 				}
+			}
+
+			for i := range pairs {
+				if !pairs[i].needsPrompt {
+					continue
+				}
+				val, perr := system.PromptSecretValue(ctx, pairs[i].key)
+				if perr != nil {
+					return perr
+				}
+				if strings.TrimSpace(val) == "" {
+					return fmt.Errorf("o valor para %q não pode ser vazio", pairs[i].key)
+				}
+				pairs[i].value = val
+			}
+
+			if secretMode && envSetAnyInlineSecretValue(pairs) {
+				_ = log.Warn(
+					ctx,
+					"Passar o segredo na linha de comandos (KEY=VALOR) não é seguro: o valor pode ficar no histórico da shell "+
+						"e em registos de processos. Prefira `mb envs set CHAVE --secret` ou `mb envs set CHAVE --secret-op` sem '=' "+
+						"para o valor ser pedido com mascaramento.",
+				)
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr())
 			}
 
 			for _, kv := range pairs {
@@ -122,9 +158,9 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	cmd.Flags().
 		StringVar(&setVault, "vault", "", "Grava no vault informado em vez do vault padrão (ex.: --vault staging)")
 	cmd.Flags().
-		BoolVar(&flagSecret, "secret", false, "Guarda o valor no keyring do sistema em vez do ficheiro env")
+		BoolVar(&flagSecret, "secret", false, "Guarda o valor no keyring; com KEY sem '=' pede o valor com gum input --password (um por chave)")
 	cmd.Flags().
-		BoolVar(&flagSecretOP, "secret-op", false, "Guarda o valor no 1Password (CLI op); a referência op:// fica em ficheiro .opsecrets")
+		BoolVar(&flagSecretOP, "secret-op", false, "Guarda no 1Password (op); com KEY sem '=' pede o valor com gum input --password (um por chave)")
 	cmd.Flags().
 		BoolVar(&yes, "yes", false, "Confirma gravar com --secret-op no vault padrão sem prompt (útil em CI)")
 	cmd.MarkFlagsMutuallyExclusive("secret", "secret-op")
@@ -133,17 +169,52 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 }
 
 type kvPair struct {
-	key, value string
+	key, value  string
+	needsPrompt bool
 }
 
-func parseKeyValuePairs(args []string) ([]kvPair, error) {
+func envSetAnyNeedsPrompt(pairs []kvPair) bool {
+	for _, p := range pairs {
+		if p.needsPrompt {
+			return true
+		}
+	}
+	return false
+}
+
+// envSetAnyInlineSecretValue reports whether any pair used KEY=VALOR on the command line (not prompted).
+func envSetAnyInlineSecretValue(pairs []kvPair) bool {
+	for _, p := range pairs {
+		if !p.needsPrompt {
+			return true
+		}
+	}
+	return false
+}
+
+// parseEnvSetArgs parses positional arguments for mb envs set.
+// When secretMode is false, every argument must be KEY=VALOR.
+// When secretMode is true, an argument without '=' is treated as KEY with the value to be prompted later.
+func parseEnvSetArgs(args []string, secretMode bool) ([]kvPair, error) {
 	out := make([]kvPair, 0, len(args))
 	for _, a := range args {
 		k, v, ok := strings.Cut(a, "=")
-		if !ok || strings.TrimSpace(k) == "" {
+		if !ok {
+			if !secretMode {
+				return nil, fmt.Errorf("esperado KEY=VALOR em cada argumento, obtido %q", a)
+			}
+			key := strings.TrimSpace(a)
+			if key == "" {
+				return nil, fmt.Errorf("chave vazia em argumento %q", a)
+			}
+			out = append(out, kvPair{key: key, needsPrompt: true})
+			continue
+		}
+		key := strings.TrimSpace(k)
+		if key == "" {
 			return nil, fmt.Errorf("esperado KEY=VALOR em cada argumento, obtido %q", a)
 		}
-		out = append(out, kvPair{key: strings.TrimSpace(k), value: v})
+		out = append(out, kvPair{key: key, value: v, needsPrompt: false})
 	}
 	return out, nil
 }

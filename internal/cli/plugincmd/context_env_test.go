@@ -212,10 +212,16 @@ func TestChildCommandsEnv_partitionAndAliases(t *testing.T) {
 		t.Fatalf("MB_CTX_CHILD_COMMAND_INFO len = %d, want 2: %#v", len(childInfo), childInfo)
 	}
 	if childInfo[0].Name != "a" || childInfo[0].Description != "Short A" {
-		t.Errorf("first MB_CTX_CHILD_COMMAND_INFO = %#v, want name=a description=Short A", childInfo[0])
+		t.Errorf(
+			"first MB_CTX_CHILD_COMMAND_INFO = %#v, want name=a description=Short A",
+			childInfo[0],
+		)
 	}
 	if childInfo[1].Name != "b" || childInfo[1].Description != "" {
-		t.Errorf("second MB_CTX_CHILD_COMMAND_INFO = %#v, want name=b description=\"\"", childInfo[1])
+		t.Errorf(
+			"second MB_CTX_CHILD_COMMAND_INFO = %#v, want name=b description=\"\"",
+			childInfo[1],
+		)
 	}
 }
 

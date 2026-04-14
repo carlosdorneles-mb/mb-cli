@@ -179,11 +179,21 @@ mb envs set TOKEN=abc --secret-op
 mb envs set A=1 B=2 C=3 --secret      # múltiplas chaves de uma vez
 ```
 
+Com **`--secret`** ou **`--secret-op`**, pode omitir o valor na linha de comandos: indique só a chave (sem `=`) e o MB pede o valor com **`gum input --password`** (um prompt por chave, em sequência), para o segredo não ir para o histórico da shell. Se `gum` não existir no `PATH`, usa-se leitura mascarada em `/dev/tty`. Em modo não interactivo (sem TTY), use sempre `KEY=VALOR` na linha de comandos.
+
+Se usar **`KEY=VALOR`** com `--secret` / `--secret-op`, o MB emite um **aviso** (o valor na linha de comandos pode ficar no histórico da shell e em registos de processos); o fluxo recomendado continua a ser só a chave + prompt mascarado.
+
+```bash
+mb envs set API_KEY --secret              # um prompt (gum --password)
+mb envs set A B C --secret                # três prompts em sequência
+mb envs set TOKEN=abc --secret-op         # sem prompt (valor já veio na linha)
+```
+
 | Flag | Descrição |
 |---|---|
 | `--vault <nome>` | Grava em `.env.<nome>` em vez do padrão. Não aceita `project` nem prefixo `project/` (reservados) |
-| `--secret` | Guarda no keyring do sistema (lista `.secrets`) |
-| `--secret-op` | Guarda no 1Password (referência em `*.opsecrets`, requer `op`) |
+| `--secret` | Guarda no keyring do sistema (lista `.secrets`); chave sem `=` pede valor com `gum input --password` |
+| `--secret-op` | Guarda no 1Password (referência em `*.opsecrets`, requer `op`); chave sem `=` pede valor com `gum input --password` |
 | `--yes` | Confirma sem prompt para `--secret-op` (CI) |
 
 > `--secret` e `--secret-op` são mutuamente exclusivos. Sem flags de store, a variável `MB_ENVS_SECRET_STORE` (`plain` / `keyring` / `op`) no ambiente define o destino.
