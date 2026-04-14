@@ -311,6 +311,61 @@ func TestAddCollectionSingleWithCustomPackage(t *testing.T) {
 	}
 }
 
+// Local monorepo with plugins only under src/ (no repo-root manifest) must keep
+// category segments in command_path (same as Git install), not flatten to mb <leaf>.
+func TestAddLocalMonorepoSrcPreservesCategoryPath(t *testing.T) {
+	d, svc := testPluginsDepsWithAdd(t)
+	repoRoot := filepath.Join(t.TempDir(), "myrepo")
+	srcTools := filepath.Join(repoRoot, "src", "tools")
+	fooDir := filepath.Join(srcTools, "foo")
+	if err := os.MkdirAll(fooDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	catManifest := "command: tools\ndescription: tools category\n"
+	if err := os.WriteFile(filepath.Join(srcTools, "manifest.yaml"), []byte(catManifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeMinimalRunnablePluginNamed(t, fooDir, "foo")
+
+	cmd := newPluginsAddCmd(svc, d)
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(os.NewFile(0, os.DevNull))
+	cmd.SetArgs([]string{repoRoot})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+
+	src, err := d.Store.GetPluginSource("myrepo")
+	if err != nil || src == nil {
+		t.Fatalf("expected plugin source myrepo: err=%v src=%v", err, src)
+	}
+	if want := filepath.Join(repoRoot, "src"); src.LocalPath != want {
+		t.Fatalf("LocalPath = %q, want %q", src.LocalPath, want)
+	}
+
+	plugins, err := d.Store.ListPlugins()
+	if err != nil {
+		t.Fatalf("ListPlugins: %v", err)
+	}
+	var paths []string
+	for _, p := range plugins {
+		paths = append(paths, p.CommandPath)
+		if p.CommandPath == "foo" {
+			t.Fatalf("command_path flattened to top-level %q; full list: %v", p.CommandPath, paths)
+		}
+	}
+	found := false
+	for _, p := range plugins {
+		if p.CommandPath == "tools/foo" && p.CommandName == "foo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected tools/foo in plugins, got: %v", paths)
+	}
+}
+
 func TestAddLocalRegistersPlugin(t *testing.T) {
 	d, svc := testPluginsDepsWithAdd(t)
 	pluginDir := t.TempDir()

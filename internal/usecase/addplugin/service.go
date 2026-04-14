@@ -363,10 +363,13 @@ func (s *Service) addLocal(
 		if subDir := plugin.SubDir(); subDir != "" {
 			subPath := filepath.Join(absPath, subDir)
 			if hasManifests(subPath, s.fsys) {
-				if _, err := s.fsys.Stat(filepath.Join(subPath, "manifest.yaml")); err == nil {
-					return s.addLocalSingle(ctx, subPath, pkg, syncOpts, log)
+				// One package rooted at subPath (e.g. repo/src), same scan root as a Git clone
+				// with MB_PLUGIN_SUBDIR. Install name is the repo/package dir, not "src".
+				installDir := strings.TrimSpace(pkg)
+				if installDir == "" {
+					installDir = filepath.Base(absPath)
 				}
-				return s.addLocalCollection(ctx, subPath, pkg, syncOpts, log)
+				return s.upsertLocalSourceAndSync(ctx, subPath, installDir, syncOpts, log)
 			}
 		}
 		return s.addLocalCollection(ctx, absPath, pkg, syncOpts, log)
@@ -480,14 +483,28 @@ func (s *Service) addLocalSingle(
 	syncOpts SyncOptions,
 	log Logger,
 ) error {
-	installDir := pkg
+	installDir := strings.TrimSpace(pkg)
 	if installDir == "" {
 		installDir = filepath.Base(absPath)
+	}
+	return s.upsertLocalSourceAndSync(ctx, absPath, installDir, syncOpts, log)
+}
+
+// upsertLocalSourceAndSync registers or updates a local plugin tree and runs sync.
+// localPath is the directory the scanner walks; installDir is the package id (mb plugins remove).
+func (s *Service) upsertLocalSourceAndSync(
+	ctx context.Context,
+	localPath, installDir string,
+	syncOpts SyncOptions,
+	log Logger,
+) error {
+	if strings.TrimSpace(installDir) == "" {
+		return fmt.Errorf("identificador do pacote vazio")
 	}
 	existing, _ := s.store.GetPluginSource(installDir)
 	if existing != nil {
 		if err := s.store.UpsertPluginSource(
-			plugin.PluginSource{InstallDir: installDir, LocalPath: absPath},
+			plugin.PluginSource{InstallDir: installDir, LocalPath: localPath},
 		); err != nil {
 			return err
 		}
@@ -511,7 +528,7 @@ func (s *Service) addLocalSingle(
 			)
 			return nil
 		}
-		_ = log.Info(ctx, "Pacote %q atualizado (path local: %s)", installDir, absPath)
+		_ = log.Info(ctx, "Pacote %q atualizado (path local: %s)", installDir, localPath)
 		return nil
 	}
 
@@ -519,7 +536,7 @@ func (s *Service) addLocalSingle(
 		installDir = s.uniqueInstallDir(installDir)
 	}
 	if err := s.store.UpsertPluginSource(
-		plugin.PluginSource{InstallDir: installDir, LocalPath: absPath},
+		plugin.PluginSource{InstallDir: installDir, LocalPath: localPath},
 	); err != nil {
 		return err
 	}
@@ -543,7 +560,7 @@ func (s *Service) addLocalSingle(
 		)
 		return nil
 	}
-	_ = log.Info(ctx, "Pacote %q registrado localmente em %s", installDir, absPath)
+	_ = log.Info(ctx, "Pacote %q registrado localmente em %s", installDir, localPath)
 	return nil
 }
 

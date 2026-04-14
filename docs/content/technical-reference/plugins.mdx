@@ -35,6 +35,7 @@ Ao instalar sem `--package`, o identificador do pacote é:
 |--------|--------------|---------|
 | Git | Último segmento da URL | `org/infra-tools` → `infra-tools` |
 | Local | Nome do diretório | `/path/meu-plugin` → `meu-plugin` |
+| Local (monorepo: sem `manifest.yaml` na raiz, manifests em `src/` ou `MB_PLUGIN_SUBDIR`) | Nome do diretório do repositório (ou `--package`) | `mb plugins add .` em `…/meu-repo` → um pacote `meu-repo` com `local_path` em `…/meu-repo/src`, como após instalar o mesmo repo por Git |
 | Coleção | Nome de cada subdiretório | `repo/foo/`, `repo/bar/` → `foo`, `bar` |
 
 Esse identificador aparece como **PACOTE** em `mb plugins list` e é usado em
