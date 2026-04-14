@@ -300,10 +300,15 @@ Casks e fórmulas via Homebrew.
 
 Instalar e gerenciar apps via Flatpak/Flathub.
 
+Em **Linux**, se o comando `flatpak` não existir, `flatpak_ensure_flathub` (e portanto `flatpak_install`) tenta instalar o motor via pacotes de sistema: **Debian/Ubuntu e derivados** (`apt`/`apt-get`: `flatpak` e, em seguida, `gnome-software-plugin-flatpak` — este último é opcional e falhas silenciosam com `log debug` se o pacote não existir); **Fedora/RHEL e derivados** (`dnf` ou `yum`: `flatpak`). É necessário **sudo** (`required_sudo`). Em **Arch** ou outras distros não cobertas, mantém-se apenas a mensagem e o link [flatpak.org/setup](https://flatpak.org/setup/). Em **macOS** o helper não instala Flatpak nem configura Flathub (`flatpak_ensure_flathub` devolve sucesso sem efeito).
+
+O remoto Flathub é adicionado ao nível **utilizador** (`flatpak remote-add --user`) com o URL `https://dl.flathub.org/repo/flathub.flatpakrepo`.
+
 | Função | Descrição |
 |--------|-----------|
 | `flatpak_is_available` | Exit 0 se `flatpak` no PATH |
-| `flatpak_ensure_flathub` | Garante repositório Flathub configurado |
+| `flatpak_bootstrap_host_linux` | Instala o pacote `flatpak` no host (Debian ou RHEL) quando o CLI falta; no-op em macOS |
+| `flatpak_ensure_flathub` | Garante motor (bootstrap em distros suportadas) e repositório Flathub `--user` |
 | `flatpak_is_installed <app_id>` | Exit 0 se instalado |
 | `flatpak_get_installed_version <app_id>` / `flatpak_get_latest_version <app_id>` | Versão ou `unknown` |
 | `flatpak_install <app_id> [friendly]` | Instala do Flathub |

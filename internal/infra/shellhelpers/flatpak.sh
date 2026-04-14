@@ -8,6 +8,7 @@
 #
 # Public functions:
 #   flatpak_is_available           - Check if Flatpak is installed
+#   flatpak_bootstrap_host_linux   - Install flatpak package on Debian/RHEL when CLI missing (Linux only)
 #   flatpak_ensure_flathub         - Ensure Flathub is configured
 #   flatpak_is_installed           - Check if an app is installed
 #   flatpak_get_installed_version  - Get installed version of an app
@@ -18,6 +19,11 @@
 #   flatpak_update_metadata        - Update Flathub metadata
 
 . "$MB_HELPERS_PATH/log.sh"
+. "$MB_HELPERS_PATH/os.sh"
+. "$MB_HELPERS_PATH/sudo.sh"
+
+# URL canónica do repositório Flathub (remoto --user).
+FLATHUB_FLATPAKREPO_URL='https://dl.flathub.org/repo/flathub.flatpakrepo'
 
 # Returns 0 if Flatpak is installed on the system, 1 otherwise.
 # Usage:
@@ -28,6 +34,59 @@ flatpak_is_available() {
     command -v flatpak &> /dev/null
 }
 
+# Instala o pacote flatpak no host (Debian/Ubuntu/Mint/… ou Fedora/RHEL/…) quando o CLI não existe.
+# macOS: no-op (0). Outros Linux: 1 com indicação para flatpak.org/setup.
+# Requer sudo interativo para apt/dnf/yum. Em Debian tenta também gnome-software-plugin-flatpak (opcional).
+# Returns: 0 se flatpak ficou disponível ou não era necessário (mac); 1 se falhou ou distro não suportada.
+flatpak_bootstrap_host_linux() {
+    if is_mac; then
+        return 0
+    fi
+    if ! is_linux; then
+        log info "Instale o Flatpak manualmente: https://flatpak.org/setup/"
+        return 1
+    fi
+    if flatpak_is_available; then
+        return 0
+    fi
+
+    if is_linux_debian; then
+        required_sudo
+        local deb_pkg
+        deb_pkg=$(get_debian_pkg_manager)
+        if [ -z "$deb_pkg" ] || [ "$deb_pkg" = "unknown" ]; then
+            log error "Gestor de pacotes Debian não encontrado (apt/apt-get)."
+            return 1
+        fi
+        log info "A instalar o motor Flatpak (${deb_pkg})..."
+        if ! sudo "$deb_pkg" install -y flatpak; then
+            log error "Falha ao instalar o pacote flatpak."
+            return 1
+        fi
+        if ! sudo "$deb_pkg" install -y gnome-software-plugin-flatpak; then
+            log debug "Pacote gnome-software-plugin-flatpak não instalado (opcional ou indisponível nesta distro)."
+        fi
+        flatpak_is_available && return 0
+        return 1
+    fi
+
+    if is_linux_redhat; then
+        required_sudo
+        local rh_pkg
+        rh_pkg=$(get_redhat_pkg_manager)
+        log info "A instalar o motor Flatpak (${rh_pkg})..."
+        if ! sudo "$rh_pkg" install -y flatpak; then
+            log error "Falha ao instalar o pacote flatpak."
+            return 1
+        fi
+        flatpak_is_available && return 0
+        return 1
+    fi
+
+    log info "Distribuição não suportada para instalação automática do Flatpak. Veja: https://flatpak.org/setup/"
+    return 1
+}
+
 # Ensures the Flathub repository is configured, adding it if needed (--user level).
 # Returns 0 if already configured or successfully added, 1 on error.
 # Usage:
@@ -35,10 +94,21 @@ flatpak_is_available() {
 # Example:
 #   flatpak_ensure_flathub
 flatpak_ensure_flathub() {
+    if is_mac; then
+        return 0
+    fi
+
     if ! flatpak_is_available; then
-        log error "Flatpak não está instalado. Por favor, instale o Flatpak primeiro."
-        log info "Veja: https://flatpak.org/setup/"
-        return 1
+        if is_linux && ! flatpak_bootstrap_host_linux; then
+            log error "Flatpak não está instalado. Por favor, instale o Flatpak primeiro."
+            log info "Veja: https://flatpak.org/setup/"
+            return 1
+        fi
+        if ! flatpak_is_available; then
+            log error "Flatpak não está instalado. Por favor, instale o Flatpak primeiro."
+            log info "Veja: https://flatpak.org/setup/"
+            return 1
+        fi
     fi
 
     # Check if flathub is already added
@@ -48,7 +118,7 @@ flatpak_ensure_flathub() {
     fi
 
     log info "Adicionando repositório Flathub..."
-    if ! flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; then
+    if ! flatpak remote-add --user --if-not-exists flathub "$FLATHUB_FLATPAKREPO_URL"; then
         log error "Falha ao adicionar repositório Flathub"
         return 1
     fi
