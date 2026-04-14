@@ -20,7 +20,7 @@ Os ficheiros são criados/atualizados pelo **`mb plugins sync`**. Se ainda não 
 | **`mbcli-yaml`** | Lê/escreve `mbcli.yaml` do projeto | Todas |
 | **`sudo`** | Validação de privilégio (`warn_and_skip_without_sudo`) | Todas |
 | **`ensure`** | Pré-requisitos de CLI (`ensure_yq`, etc.) | Todas |
-| **`shell-rc`** | Manipulação de `.bashrc`/`.zshrc` | Todas |
+| **`shell-rc`** | Blocos geridos em `~/.config/mb/shell-extras.sh` + stub mínimo em `.bashrc`/`.zshrc` | Todas |
 | **`kubernetes`** | Operações básicas com `kubectl` | Todas |
 | **`snap`** | Instalar/atualizar apps via Snap Store | Linux |
 | **`homebrew`** | Instalar/atualizar casks e fórmulas | macOS |
@@ -251,12 +251,17 @@ Pré-requisitos de CLI. Cada função loga erro e faz `exit 1` se o comando não
 
 ### shell-rc
 
-Manipulação de ficheiros de configuração do shell (`.bashrc` / `.zshrc`). Blocos idempotentes com marcadores.
+Blocos idempotentes com marcadores `# mb-cli-plugins:<tool>:begin` / `:end`. O corpo vive em **`${XDG_CONFIG_HOME:-$HOME/.config}/mb/shell-extras.sh`**; se `~/.bashrc` e/ou `~/.zshrc` **já existirem**, acrescenta-se um **stub** (uma linha de `source` desse ficheiro) quando ainda não estiver presente. Não cria `~/.bashrc` / `~/.zshrc` automaticamente.
+
+Se o mesmo marcador ainda existir só nos RCs (instalação antiga), na próxima `shell_rc_ensure_block` o bloco é **removido** dali e passa a existir só em `shell-extras.sh` (sem duplicar init).
 
 | Função | Descrição |
 |--------|-----------|
-| `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` | Acrescenta bloco se marcadores ainda não existem |
-| `shell_rc_remove_block MARKER_BEGIN MARKER_END` | Remove bloco entre marcadores |
+| `shell_rc_extras_path` | Imprime o caminho de `shell-extras.sh` |
+| `shell_rc_touch_extras_file` | Cria o directório `mb` e o ficheiro inicial se faltar |
+| `shell_rc_ensure_stub` | Garante a linha `source` de `shell-extras.sh` nos RC existentes |
+| `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` | Garante stub + ficheiro extras; acrescenta o bloco em `shell-extras.sh` (migra legado dos RCs se necessário) |
+| `shell_rc_remove_block MARKER_BEGIN MARKER_END` | Remove o bloco de `shell-extras.sh` e dos RCs (limpeza legada) |
 
 ## Package managers
 
