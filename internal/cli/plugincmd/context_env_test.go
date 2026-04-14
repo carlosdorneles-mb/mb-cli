@@ -109,6 +109,14 @@ func TestAppendPluginInvocationEnv(t *testing.T) {
 	if m["MB_CTX_CHILD_COMMAND_ALIASES"] != "[]" {
 		t.Errorf("MB_CTX_CHILD_COMMAND_ALIASES = %q, want []", m["MB_CTX_CHILD_COMMAND_ALIASES"])
 	}
+
+	var childInfo []childCommandInfo
+	if err := json.Unmarshal([]byte(m["MB_CTX_CHILD_COMMAND_INFO"]), &childInfo); err != nil {
+		t.Fatalf("MB_CTX_CHILD_COMMAND_INFO json: %v", err)
+	}
+	if len(childInfo) != 0 {
+		t.Errorf("MB_CTX_CHILD_COMMAND_INFO = %#v, want []", childInfo)
+	}
 }
 
 func TestPeerCommandsJSON_nilCmd(t *testing.T) {
@@ -129,6 +137,9 @@ func TestVisibleHiddenChildCommandsJSON_nilCmd(t *testing.T) {
 	if got := childCommandAliasesJSON(nil); got != "[]" {
 		t.Errorf("childCommandAliasesJSON(nil) = %q", got)
 	}
+	if got := visibleChildCommandsInfoJSON(nil); got != "[]" {
+		t.Errorf("visibleChildCommandsInfoJSON(nil) = %q", got)
+	}
 }
 
 func TestChildCommandsEnv_partitionAndAliases(t *testing.T) {
@@ -136,8 +147,8 @@ func TestChildCommandsEnv_partitionAndAliases(t *testing.T) {
 
 	root := &cobra.Command{Use: "mb"}
 	tools := &cobra.Command{Use: "tools", Hidden: false}
-	leafA := &cobra.Command{Use: "a"}
-	leafB := &cobra.Command{Use: "b", Aliases: []string{"bee", "beta"}}
+	leafA := &cobra.Command{Use: "a", Short: "Short A"}
+	leafB := &cobra.Command{Use: "b", Aliases: []string{"bee", "beta"}, Short: "  "}
 	hidden := &cobra.Command{Use: "secret", Hidden: true, Aliases: []string{"s"}}
 	tools.AddCommand(leafA)
 	tools.AddCommand(leafB)
@@ -191,6 +202,20 @@ func TestChildCommandsEnv_partitionAndAliases(t *testing.T) {
 	// tools is under mb; peers are other root commands — none registered here besides tools? Actually only tools under root, so peers empty
 	if len(peers) != 0 {
 		t.Errorf("MB_CTX_PEER_COMMANDS = %v, want [] (only tools under root in this tree)", peers)
+	}
+
+	var childInfo []childCommandInfo
+	if err := json.Unmarshal([]byte(m["MB_CTX_CHILD_COMMAND_INFO"]), &childInfo); err != nil {
+		t.Fatalf("MB_CTX_CHILD_COMMAND_INFO json: %v", err)
+	}
+	if len(childInfo) != 2 {
+		t.Fatalf("MB_CTX_CHILD_COMMAND_INFO len = %d, want 2: %#v", len(childInfo), childInfo)
+	}
+	if childInfo[0].Name != "a" || childInfo[0].Description != "Short A" {
+		t.Errorf("first MB_CTX_CHILD_COMMAND_INFO = %#v, want name=a description=Short A", childInfo[0])
+	}
+	if childInfo[1].Name != "b" || childInfo[1].Description != "" {
+		t.Errorf("second MB_CTX_CHILD_COMMAND_INFO = %#v, want name=b description=\"\"", childInfo[1])
 	}
 }
 

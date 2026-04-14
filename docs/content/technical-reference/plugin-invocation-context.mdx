@@ -23,13 +23,14 @@ Esta página é a **referência das variáveis** definidas pelo runtime do CLI. 
 | `MB_CTX_PLUGIN_FLAGS` | Nomes **longos** das flags do plugin que foram passadas (separados por espaço), ordenados. Em comandos só com entrypoint, inclui flags locais alteradas exceto `--readme`. Em comandos com `flags` no manifest, só entram flags definidas no manifest. |
 | `MB_CTX_PEER_COMMANDS` | JSON com um array de strings: nomes dos **outros** comandos irmãos sob o mesmo pai Cobra (ordenados); o comando atual não entra na lista. |
 | `MB_CTX_CHILD_COMMANDS` | JSON com um array de strings: **filhos directos** do comando Cobra actual com `Hidden == false`, ordenados por nome. |
+| `MB_CTX_CHILD_COMMAND_INFO` | JSON com um array de objetos `{"name":"…","description":"…"}` — mesmos filhos visíveis que `MB_CTX_CHILD_COMMANDS`; `description` é o texto curto Cobra (`Short`), sem espaços extremos; string vazia se não houver `Short`. |
 | `MB_CTX_HIDDEN_CHILD_COMMANDS` | JSON com um array de strings: filhos directos com `Hidden == true`, ordenados. |
 | `MB_CTX_CHILD_COMMAND_ALIASES` | JSON com um array de objetos `{"name":"…","aliases":["…"]}` — só entradas com `aliases` não vazio; `aliases` ordenado; inclui filhos ocultos se tiverem aliases. |
 
 ## Irmãos vs filhos (Cobra)
 
 - **`MB_CTX_PEER_COMMANDS`** — irmãos do **mesmo** comando-pai Cobra que o `cmd` actual. Ex.: no `mb tools vscode`, o pai é `tools`, logo os peers são outros comandos sob `tools` (ex.: `bruno`, `flutter`), **não** inclui `vscode`.
-- **`MB_CTX_CHILD_COMMANDS` / `MB_CTX_HIDDEN_CHILD_COMMANDS` / `MB_CTX_CHILD_COMMAND_ALIASES`** — filhos **directos** do `cmd` actual. Ex.: no `mb tools --install`, o `cmd` é `tools`; os peers são comandos sob `mb` ao lado de `tools`; os **child** são os subcomandos de `tools` (ex.: `vscode`, `bruno`).
+- **`MB_CTX_CHILD_COMMANDS` / `MB_CTX_CHILD_COMMAND_INFO` / `MB_CTX_HIDDEN_CHILD_COMMANDS` / `MB_CTX_CHILD_COMMAND_ALIASES`** — filhos **directos** do `cmd` actual. Ex.: no `mb tools --install`, o `cmd` é `tools`; os peers são comandos sob `mb` ao lado de `tools`; os **child** são os subcomandos de `tools` (ex.: `vscode`, `bruno`). Use `MB_CTX_CHILD_COMMAND_INFO` quando precisar do `Short` de cada filho (ex.: UIs com duas colunas).
 
 ## Exemplo: comando aninhado com flag
 
@@ -51,6 +52,7 @@ MB_CTX_COBR_COMMAND_PATH=mb tools vscode
 MB_CTX_PLUGIN_FLAGS=install
 MB_CTX_PEER_COMMANDS=["bruno","flutter"]
 MB_CTX_CHILD_COMMANDS=[]
+MB_CTX_CHILD_COMMAND_INFO=[]
 MB_CTX_HIDDEN_CHILD_COMMANDS=[]
 MB_CTX_CHILD_COMMAND_ALIASES=[]
 ```
@@ -111,4 +113,4 @@ As variáveis são montadas na execução de plugins (`internal/cli/plugincmd`, 
 ## Ver também
 
 - [Plugins](plugins.mdx) — cache, manifest e execução
-- [Helpers de shell — context](../plugin-authoring/shell-helpers.mdx#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_child_commands_lines`, `mb_hidden_child_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_child_contains`, `mb_ctx_hidden_child_contains`, `mb_ctx_peer_count`, `mb_ctx_child_count`, `mb_ctx_hidden_child_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`
+- [Helpers de shell — context](../plugin-authoring/shell-helpers.mdx#context) — helper `context.sh`: `mb_context_dump`, `mb_context_dump_json`, `mb_peer_commands_lines`, `mb_child_commands_lines`, `mb_child_command_info_json`, `mb_hidden_child_commands_lines`, `mb_ctx_has_plugin_flag`, `mb_ctx_peer_contains`, `mb_ctx_child_contains`, `mb_ctx_hidden_child_contains`, `mb_ctx_peer_count`, `mb_ctx_child_count`, `mb_ctx_hidden_child_count`, `mb_ctx_cache_db`, `mb_ctx_parent_is`, `mb_ctx_command_path_is`, `mb_ctx_path_depth`

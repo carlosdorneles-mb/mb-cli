@@ -6,7 +6,7 @@
 # mb_context_dump prints known MB_CTX_* context variables for debugging.
 mb_context_dump() {
 	local v
-	for v in MB_CTX_INVOCATION MB_CTX_CONFIG_DIR MB_CTX_COMMAND_PATH MB_CTX_COMMAND_NAME MB_CTX_PARENT_COMMAND_PATH MB_CTX_COBR_COMMAND_PATH MB_CTX_PLUGIN_FLAGS MB_CTX_PEER_COMMANDS MB_CTX_CHILD_COMMANDS MB_CTX_HIDDEN_CHILD_COMMANDS MB_CTX_CHILD_COMMAND_ALIASES; do
+	for v in MB_CTX_INVOCATION MB_CTX_CONFIG_DIR MB_CTX_COMMAND_PATH MB_CTX_COMMAND_NAME MB_CTX_PARENT_COMMAND_PATH MB_CTX_COBR_COMMAND_PATH MB_CTX_PLUGIN_FLAGS MB_CTX_PEER_COMMANDS MB_CTX_CHILD_COMMANDS MB_CTX_CHILD_COMMAND_INFO MB_CTX_HIDDEN_CHILD_COMMANDS MB_CTX_CHILD_COMMAND_ALIASES; do
 		printf '%s=%s\n' "$v" "${!v-}"
 	done
 }
@@ -16,6 +16,7 @@ mb_context_dump() {
 mb_context_dump_json() {
 	local peers="${MB_CTX_PEER_COMMANDS:-[]}"
 	local child="${MB_CTX_CHILD_COMMANDS:-[]}"
+	local child_info="${MB_CTX_CHILD_COMMAND_INFO:-[]}"
 	local hidden="${MB_CTX_HIDDEN_CHILD_COMMANDS:-[]}"
 	local aliases="${MB_CTX_CHILD_COMMAND_ALIASES:-[]}"
 	if command -v jq >/dev/null 2>&1; then
@@ -29,6 +30,7 @@ mb_context_dump_json() {
 			--arg plugin_flags_str "${MB_CTX_PLUGIN_FLAGS-}" \
 			--arg peer_json "$peers" \
 			--arg child_json "$child" \
+			--arg child_info_json "$child_info" \
 			--arg hidden_json "$hidden" \
 			--arg aliases_json "$aliases" \
 			'{
@@ -41,6 +43,7 @@ mb_context_dump_json() {
 				plugin_flags: (if $plugin_flags_str == "" then [] else ($plugin_flags_str | split(" ") | map(select(length > 0))) end),
 				peer_commands: (try ($peer_json | fromjson) catch []),
 				child_commands: (try ($child_json | fromjson) catch []),
+				child_command_info: (try ($child_info_json | fromjson) catch []),
 				hidden_child_commands: (try ($hidden_json | fromjson) catch []),
 				child_command_aliases: (try ($aliases_json | fromjson) catch [])
 			}'
@@ -61,6 +64,7 @@ def loads_arr(key):
 
 peers = loads_arr("MB_CTX_PEER_COMMANDS")
 child = loads_arr("MB_CTX_CHILD_COMMANDS")
+child_info = loads_arr("MB_CTX_CHILD_COMMAND_INFO")
 hidden = loads_arr("MB_CTX_HIDDEN_CHILD_COMMANDS")
 aliases = loads_arr("MB_CTX_CHILD_COMMAND_ALIASES")
 obj = {
@@ -73,6 +77,7 @@ obj = {
     "plugin_flags": parts,
     "peer_commands": peers,
     "child_commands": child,
+    "child_command_info": child_info,
     "hidden_child_commands": hidden,
     "child_command_aliases": aliases,
 }
@@ -119,6 +124,11 @@ mb_child_commands_lines() {
 		part="${part// /}"
 		[[ -n "$part" ]] && printf '%s\n' "$part"
 	done
+}
+
+# mb_child_command_info_json — imprime MB_CTX_CHILD_COMMAND_INFO (JSON `[{name,description},…]`); vazio → `[]`.
+mb_child_command_info_json() {
+	printf '%s\n' "${MB_CTX_CHILD_COMMAND_INFO:-[]}"
 }
 
 # mb_hidden_child_commands_lines — um nome por linha a partir de MB_CTX_HIDDEN_CHILD_COMMANDS.

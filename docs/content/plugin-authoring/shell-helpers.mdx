@@ -77,6 +77,7 @@ Funções que leem as variáveis `MB_CTX_*` injetadas pelo runtime do CLI. O sig
 | `mb_context_dump_json` | Imite um objeto JSON com todo o contexto (usa `jq` ou `python3`) |
 | `mb_peer_commands_lines` | Lista comandos irmãos (um por linha) |
 | `mb_child_commands_lines` / `mb_hidden_child_commands_lines` | Lista comandos filhos visíveis/ocultos |
+| `mb_child_command_info_json` | Imprime `MB_CTX_CHILD_COMMAND_INFO` (JSON `[{name,description},…]`; ausente → `[]`) |
 | `mb_ctx_has_plugin_flag <flag>` | Exit 0 se flag está em `MB_CTX_PLUGIN_FLAGS` |
 | `mb_ctx_peer_contains <nome>` | Exit 0 se `<nome>` é comando irmão |
 | `mb_ctx_child_contains` / `mb_ctx_hidden_child_contains` | Idem para filhos visíveis/ocultos |

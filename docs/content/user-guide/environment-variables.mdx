@@ -86,6 +86,7 @@ Injetadas automaticamente para plugins inspecionarem como foram invocados. São 
 | `MB_CTX_PLUGIN_FLAGS` | Flags do plugin que foram usadas | `install --force` |
 | `MB_CTX_PEER_COMMANDS` | JSON de comandos peer (irmãos) | `["lint","test"]` |
 | `MB_CTX_CHILD_COMMANDS` | JSON de comandos filhos visíveis | `["rollback","status"]` |
+| `MB_CTX_CHILD_COMMAND_INFO` | JSON de `{name,description}` por filho visível (descrição = Cobra `Short`, ordenado por nome) | `[{"name":"vscode","description":"Instala…"}]` |
 | `MB_CTX_HIDDEN_CHILD_COMMANDS` | JSON de comandos filhos ocultos | `["debug"]` |
 | `MB_CTX_CHILD_COMMAND_ALIASES` | JSON de aliases de comandos filhos | `[{"command":"deploy","aliases":["d"]}]` |
 

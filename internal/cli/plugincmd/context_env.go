@@ -45,6 +45,7 @@ func appendPluginInvocationEnv(
 
 	merged = append(merged, "MB_CTX_PEER_COMMANDS="+peerCommandsJSON(cmd))
 	merged = append(merged, "MB_CTX_CHILD_COMMANDS="+visibleChildCommandsJSON(cmd))
+	merged = append(merged, "MB_CTX_CHILD_COMMAND_INFO="+visibleChildCommandsInfoJSON(cmd))
 	merged = append(merged, "MB_CTX_HIDDEN_CHILD_COMMANDS="+hiddenChildCommandsJSON(cmd))
 	merged = append(merged, "MB_CTX_CHILD_COMMAND_ALIASES="+childCommandAliasesJSON(cmd))
 
@@ -121,6 +122,34 @@ func visibleChildCommandsJSON(cmd *cobra.Command) string {
 	}
 	sort.Strings(names)
 	b, err := json.Marshal(names)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
+
+// childCommandInfo is serialized into MB_CTX_CHILD_COMMAND_INFO (visible children only).
+type childCommandInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func visibleChildCommandsInfoJSON(cmd *cobra.Command) string {
+	if cmd == nil {
+		return "[]"
+	}
+	entries := make([]childCommandInfo, 0)
+	for _, c := range cmd.Commands() {
+		if c.Hidden {
+			continue
+		}
+		entries = append(entries, childCommandInfo{
+			Name:        c.Name(),
+			Description: strings.TrimSpace(c.Short),
+		})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
+	b, err := json.Marshal(entries)
 	if err != nil {
 		return "[]"
 	}
