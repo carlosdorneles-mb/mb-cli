@@ -115,13 +115,8 @@ func mbcliListFilter(listVault string) (mode string, nested string, err error) {
 	default:
 		if strings.HasPrefix(listVault, "project/") {
 			suf := strings.TrimPrefix(listVault, "project/")
-			if suf == "" {
-				return "", "", fmt.Errorf(
-					`vault "project/" inválido: indique um nome após a barra (ex.: project/staging)`,
-				)
-			}
-			if err := envvault.Validate(suf); err != nil {
-				return "", "", fmt.Errorf("vault de projeto: %w", err)
+			if err := envvault.ValidateMbcliYAMLProjectNestedSuffix(suf); err != nil {
+				return "", "", err
 			}
 			return "projectNestedOnly", suf, nil
 		}

@@ -14,13 +14,6 @@ import (
 	"mb/internal/shared/system"
 )
 
-func vaultCellMBRun(v string) string {
-	if strings.TrimSpace(v) == "" {
-		return "(nenhum)"
-	}
-	return v
-}
-
 func truncateForTable(s string, max int) string {
 	if len(s) <= max {
 		return s
@@ -99,7 +92,7 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 				for _, row := range rowsMerged {
 					jsonRows = append(jsonRows, aliasListJSONRow{
 						Name:      row.Name,
-						EnvVault:  row.EnvVault,
+						EnvVault:  aliasListVaultDisplay(row.Source, row.EnvVault),
 						Command:   append([]string(nil), row.Command...),
 						Source:    row.Source,
 						MbcliPath: row.MbcliPath,
@@ -117,16 +110,17 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 			fzfRows := make([][]string, 0, len(rowsMerged))
 			for _, row := range rowsMerged {
 				cmdLine := strings.Join(row.Command, " ")
+				vDisp := aliasListVaultDisplay(row.Source, row.EnvVault)
 				entries = append(entries, system.AliasEntry{
 					Name:      row.Name,
-					EnvVault:  row.EnvVault,
+					EnvVault:  vDisp,
 					Command:   cmdLine,
 					Source:    row.Source,
 					MbcliPath: row.MbcliPath,
 				})
 				fzfRows = append(fzfRows, []string{
 					row.Name,
-					vaultCellMBRun(row.EnvVault),
+					vDisp,
 					sourceCell(row.Source),
 				})
 			}
@@ -145,7 +139,7 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 
 	cmd.Flags().BoolVar(
 		&asJSON, "json", false,
-		"Emite aliases como array JSON (name, envVault, command[], source, mbcliPath)",
+		"Emite aliases como array JSON (name, envVault com rótulo project/project/n para mbcli.yaml, command[], source, mbcliPath)",
 	)
 	return cmd
 }
@@ -173,7 +167,7 @@ func outputAliasPipeTable(
 		cmdLine := strings.Join(row.Command, " ")
 		rows = append(rows, []string{
 			row.Name,
-			vaultCellMBRun(row.EnvVault),
+			aliasListVaultDisplay(row.Source, row.EnvVault),
 			truncateForTable(cmdLine, maxCmd),
 			sourceCell(row.Source),
 		})

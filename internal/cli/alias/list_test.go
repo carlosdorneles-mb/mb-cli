@@ -143,9 +143,71 @@ aliases:
 	if got[0]["name"] != "same" || got[0]["source"] != "project" {
 		t.Fatalf("%v", got[0])
 	}
+	if ev, _ := got[0]["envVault"].(string); ev != "project" {
+		t.Fatalf("envVault want project got %q", ev)
+	}
 	cmdArr, _ := got[0]["command"].([]any)
 	if len(cmdArr) != 2 || cmdArr[1] != "project" {
 		t.Fatalf("command %#v", got[0]["command"])
+	}
+}
+
+func TestAliasList_JSON_mbcliNestedVaultLabel(t *testing.T) {
+	home := t.TempDir()
+	if err := os.Chdir(home); err != nil {
+		t.Fatal(err)
+	}
+	cfgDir := filepath.Join(home, "mbcfg")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	def := filepath.Join(cfgDir, "env.defaults")
+	if err := os.WriteFile(def, []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	aliasesPath := filepath.Join(cfgDir, "aliases.yaml")
+	if err := os.WriteFile(aliasesPath, []byte("version: 1\naliases: {}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mbcli := filepath.Join(home, "mbcli.yaml")
+	if err := os.WriteFile(mbcli, []byte(`aliases:
+  staging:
+    dep:
+      command: [echo, nested]
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MBCLI_YAML_PATH", mbcli)
+
+	rt := &deps.RuntimeConfig{
+		Paths: deps.Paths{
+			ConfigDir:      cfgDir,
+			DefaultEnvPath: def,
+			PluginsDir:     filepath.Join(cfgDir, "plugins"),
+		},
+	}
+	d := deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil, nil)
+	cmd := newListCmd(d)
+	cmd.SetContext(context.Background())
+	cmd.SetArgs([]string{"--json"})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var got []map[string]any
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 row got %d", len(got))
+	}
+	if got[0]["name"] != "dep" || got[0]["source"] != "project" {
+		t.Fatalf("%v", got[0])
+	}
+	if ev, _ := got[0]["envVault"].(string); ev != "project/staging" {
+		t.Fatalf("envVault want project/staging got %q", ev)
 	}
 }
 

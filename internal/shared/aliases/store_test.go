@@ -32,11 +32,12 @@ func TestSave_roundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Aliases) != 1 || got.Aliases["x"].EnvVault != "st" {
+	sk := StoreKey("st", "x")
+	if len(got.Aliases) != 1 || got.Aliases[sk].EnvVault != "st" {
 		t.Fatalf("got %#v", got.Aliases)
 	}
-	if len(got.Aliases["x"].Command) != 2 {
-		t.Fatalf("command: %#v", got.Aliases["x"].Command)
+	if len(got.Aliases[sk].Command) != 2 {
+		t.Fatalf("command: %#v", got.Aliases[sk].Command)
 	}
 }
 
@@ -90,9 +91,9 @@ aliases:
 		t.Fatal(err)
 	}
 	project := map[string]Entry{
-		"shared": {Command: []string{"echo", "project"}},
+		StoreKey("", "shared"): {Command: []string{"echo", "project"}},
 	}
-	argv, _, ok, err := ResolveForRunWithProject(dir, project, "shared", nil)
+	argv, _, ok, err := ResolveForRunWithProject(dir, project, "", "shared", nil)
 	if err != nil || !ok || len(argv) != 2 || argv[0] != "echo" || argv[1] != "project" {
 		t.Fatalf("got argv=%v ok=%v err=%v", argv, ok, err)
 	}
@@ -106,9 +107,9 @@ func TestResolveForRunWithProject_onlyProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := map[string]Entry{
-		"onlyp": {Command: []string{"id"}},
+		StoreKey("", "onlyp"): {Command: []string{"id"}},
 	}
-	argv, _, ok, err := ResolveForRunWithProject(dir, project, "onlyp", nil)
+	argv, _, ok, err := ResolveForRunWithProject(dir, project, "", "onlyp", nil)
 	if err != nil || !ok || len(argv) != 1 || argv[0] != "id" {
 		t.Fatalf("got argv=%v ok=%v err=%v", argv, ok, err)
 	}
@@ -120,5 +121,48 @@ func TestEffectiveEnvVault(t *testing.T) {
 	}
 	if got := EffectiveEnvVault("", "alias"); got != "alias" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestResolveForRunWithProject_ambiguousRequiresCliVault(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	raw := []byte(`version: 2
+aliases:
+  dup:
+    - echo
+    - root
+  st:
+    dup:
+      - echo
+      - st
+`)
+	if err := os.WriteFile(FilePath(dir), raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, err := ResolveForRunWithProject(dir, nil, "", "dup", nil)
+	if err == nil {
+		t.Fatal("expected ambiguous error")
+	}
+	argv, _, ok, err := ResolveForRunWithProject(dir, nil, "st", "dup", nil)
+	if err != nil || !ok || len(argv) != 2 || argv[1] != "st" {
+		t.Fatalf("argv=%v ok=%v err=%v", argv, ok, err)
+	}
+}
+
+func TestResolveForRunWithProject_singleEntryWithoutCliVault(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	raw := []byte(`version: 2
+aliases:
+  only:
+    - 'true'
+`)
+	if err := os.WriteFile(FilePath(dir), raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	argv, _, ok, err := ResolveForRunWithProject(dir, nil, "", "only", nil)
+	if err != nil || !ok || len(argv) != 1 || argv[0] != "true" {
+		t.Fatalf("argv=%v ok=%v err=%v", argv, ok, err)
 	}
 }

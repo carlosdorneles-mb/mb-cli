@@ -49,7 +49,7 @@ const FeatureList = [
       <>
         Defina nomes curtos para comandos que você repete; o perfil do shell carrega o atalho. Com{' '}
         <code>mb run &lt;nome&gt;</code> o mesmo alias usa o ambiente mesclado do MB (incluindo{' '}
-        <code>--env-vault</code> opcional no alias).
+        <code>--vault</code> opcional no <code>mb alias set</code>).
       </>
     ),
     link: '/docs/commands/alias',

@@ -58,6 +58,7 @@ Para ajuda deste comando use: mb help run`,
 			expanded, aliasVault, _, err := alib.ResolveForRunWithProject(
 				d.Runtime.ConfigDir,
 				projectAliases,
+				d.Runtime.EnvVault,
 				rest[0],
 				rest[1:],
 			)

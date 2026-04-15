@@ -7,7 +7,21 @@ import (
 	alib "mb/internal/shared/aliases"
 )
 
-// aliasListRow is one merged row for mb alias list (project overlays global for same name).
+func sortAliasStoreKeys(keys []string) {
+	sort.Slice(keys, func(i, j int) bool {
+		vi, ni, okI := alib.ParseStoreKey(keys[i])
+		vj, nj, okJ := alib.ParseStoreKey(keys[j])
+		if !okI || !okJ {
+			return keys[i] < keys[j]
+		}
+		if ni != nj {
+			return ni < nj
+		}
+		return vi < vj
+	})
+}
+
+// aliasListRow is one merged row for mb alias list (project overlays global for same store key).
 type aliasListRow struct {
 	Name      string
 	EnvVault  string
@@ -30,34 +44,38 @@ func loadMergedAliasRows(cfgDir string) ([]aliasListRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	nameSet := make(map[string]struct{})
+	keySet := make(map[string]struct{})
 	for k := range global.Aliases {
-		nameSet[k] = struct{}{}
+		keySet[k] = struct{}{}
 	}
 	for k := range project {
-		nameSet[k] = struct{}{}
+		keySet[k] = struct{}{}
 	}
-	names := make([]string, 0, len(nameSet))
-	for k := range nameSet {
-		names = append(names, k)
+	keys := make([]string, 0, len(keySet))
+	for k := range keySet {
+		keys = append(keys, k)
 	}
-	sort.Strings(names)
-	out := make([]aliasListRow, 0, len(names))
-	for _, name := range names {
-		if e, ok := project[name]; ok {
+	sortAliasStoreKeys(keys)
+	out := make([]aliasListRow, 0, len(keys))
+	for _, sk := range keys {
+		vault, name, ok := alib.ParseStoreKey(sk)
+		if !ok {
+			continue
+		}
+		if e, ok := project[sk]; ok {
 			out = append(out, aliasListRow{
 				Name:      name,
-				EnvVault:  e.EnvVault,
+				EnvVault:  vault,
 				Command:   append([]string(nil), e.Command...),
 				Source:    "project",
 				MbcliPath: mbcliPath,
 			})
 			continue
 		}
-		e := global.Aliases[name]
+		e := global.Aliases[sk]
 		out = append(out, aliasListRow{
 			Name:      name,
-			EnvVault:  e.EnvVault,
+			EnvVault:  vault,
 			Command:   append([]string(nil), e.Command...),
 			Source:    "config",
 			MbcliPath: "",

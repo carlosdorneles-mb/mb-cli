@@ -260,7 +260,7 @@ Para **criar, atualizar ou remover** variáveis nesse YAML a partir do terminal,
 |---------|-------------|
 | Variável usada em todos os projetos | `mb envs set` (env.defaults) |
 | Variável por ambiente (staging, prod) | Vault: `mb envs set --vault staging` + `--env-vault staging` |
-| Atalho com vault só em `mb run` | [`mb alias set … --env-vault …`](../commands/alias.mdx) — o mesmo nome no shell não usa o merge do MB |
+| Atalho com vault só em `mb run` | [`mb alias set … --vault …`](../commands/alias.mdx) — o mesmo nome no shell não usa o merge do MB |
 | Atalho compartilhado pela equipe (só `mb run`) | Chave `aliases` no [`mbcli.yaml`](../commands/alias.mdx#aliases-em-mbcliyaml-repositório) com `mb alias set --mbcli-yaml` |
 | Variável compartilhada pela equipe | `envs` no `mbcli.yaml` (versionado); editar com [`mb envs set --mbcli-yaml`](../commands/envs.mdx) |
 | Secret (tokens, senhas) | `mb envs set --secret` (keyring) ou `--secret-op` (1Password) |

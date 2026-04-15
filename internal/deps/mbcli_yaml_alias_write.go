@@ -11,7 +11,26 @@ import (
 	alib "mb/internal/shared/aliases"
 )
 
-// UpsertMbcliYAMLAlias writes or updates a flat alias under aliases in mbcli.yaml.
+// WriteMbcliYAMLAliasSection replaces the aliases section in mbcli.yaml from an in-memory map
+// keyed by alib.StoreKey. Other top-level keys are preserved.
+func WriteMbcliYAMLAliasSection(mbcliPath string, entries map[string]alib.Entry) error {
+	root, err := readMbcliYAMLRootMap(mbcliPath)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		delete(root, "aliases")
+	} else {
+		aliasesMap, err := alib.AliasesYAMLMapFromEntries(entries)
+		if err != nil {
+			return err
+		}
+		root["aliases"] = aliasesMap
+	}
+	return writeMbcliYAMLRootAtomic(mbcliPath, root)
+}
+
+// UpsertMbcliYAMLAlias writes or updates one alias (name + entry.Env_vault slot) in mbcli.yaml.
 // Other top-level keys are preserved when possible. Creates the file if missing.
 // Rewriting may drop comments and reorder keys (yaml.Marshal).
 func UpsertMbcliYAMLAlias(mbcliPath, name string, e alib.Entry) error {
@@ -21,42 +40,36 @@ func UpsertMbcliYAMLAlias(mbcliPath, name string, e alib.Entry) error {
 	if err := alib.ValidateEntry(e); err != nil {
 		return err
 	}
-	root, err := readMbcliYAMLRootMap(mbcliPath)
-	if err != nil {
-		return err
-	}
 	entries, err := ParseMbcliAliases(mbcliPath)
 	if err != nil {
 		return err
 	}
-	entries[name] = e
-	root["aliases"] = aliasesEntriesToYAMLMap(entries)
-	return writeMbcliYAMLRootAtomic(mbcliPath, root)
+	entries[alib.StoreKey(e.EnvVault, name)] = e
+	return WriteMbcliYAMLAliasSection(mbcliPath, entries)
 }
 
-// RemoveMbcliYAMLAlias removes a flat alias name from mbcli.yaml aliases.
-func RemoveMbcliYAMLAlias(mbcliPath, name string) error {
+// RemoveMbcliYAMLAlias removes one alias identified by display name and env_vault (empty string = sem vault).
+func RemoveMbcliYAMLAlias(mbcliPath, name, envVault string) error {
 	if err := alib.ValidateName(name); err != nil {
 		return err
 	}
-	root, err := readMbcliYAMLRootMap(mbcliPath)
-	if err != nil {
-		return err
-	}
 	entries, err := ParseMbcliAliases(mbcliPath)
 	if err != nil {
 		return err
 	}
-	if _, ok := entries[name]; !ok {
-		return fmt.Errorf("alias %q não existe em %q", name, mbcliPath)
+	sk := alib.StoreKey(envVault, name)
+	if _, ok := entries[sk]; !ok {
+		return fmt.Errorf("alias %q (vault %s) não existe em %q", name, formatVaultLabelWrite(envVault), mbcliPath)
 	}
-	delete(entries, name)
-	if len(entries) == 0 {
-		delete(root, "aliases")
-	} else {
-		root["aliases"] = aliasesEntriesToYAMLMap(entries)
+	delete(entries, sk)
+	return WriteMbcliYAMLAliasSection(mbcliPath, entries)
+}
+
+func formatVaultLabelWrite(v string) string {
+	if v == "" {
+		return "(nenhum)"
 	}
-	return writeMbcliYAMLRootAtomic(mbcliPath, root)
+	return v
 }
 
 func readMbcliYAMLRootMap(mbcliPath string) (map[string]any, error) {
@@ -78,22 +91,6 @@ func readMbcliYAMLRootMap(mbcliPath string) (map[string]any, error) {
 		return map[string]any{}, nil
 	}
 	return root, nil
-}
-
-func aliasesEntriesToYAMLMap(entries map[string]alib.Entry) map[string]any {
-	out := make(map[string]any, len(entries))
-	for k, e := range entries {
-		cmd := make([]any, len(e.Command))
-		for i, s := range e.Command {
-			cmd[i] = s
-		}
-		m := map[string]any{"command": cmd}
-		if e.EnvVault != "" {
-			m["env_vault"] = e.EnvVault
-		}
-		out[k] = m
-	}
-	return out
 }
 
 func writeMbcliYAMLRootAtomic(mbcliPath string, root map[string]any) error {

@@ -59,8 +59,84 @@ func TestAliasSet_updateWithoutYes_nonInteractiveErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Aliases["dev"].Command) != 2 || got.Aliases["dev"].Command[1] != "old" {
-		t.Fatalf("alias should be unchanged, got %#v", got.Aliases["dev"])
+	sk := alib.StoreKey("", "dev")
+	if len(got.Aliases[sk].Command) != 2 || got.Aliases[sk].Command[1] != "old" {
+		t.Fatalf("alias should be unchanged, got %#v", got.Aliases[sk])
+	}
+}
+
+func TestAliasSet_sameCommandNewVault_withYes_updatesVault(t *testing.T) {
+	cfgDir := t.TempDir()
+	path := alib.FilePath(cfgDir)
+	initial := &alib.File{
+		Version: 1,
+		Aliases: map[string]alib.Entry{
+			"dev": {Command: []string{"echo", "hi"}},
+		},
+	}
+	if err := alib.Save(path, initial); err != nil {
+		t.Fatal(err)
+	}
+
+	d := testDepsForAlias(t, cfgDir)
+	cmd := newSetCmd(d)
+	cmd.SetContext(context.Background())
+	cmd.SetArgs([]string{"dev", "--yes", "--vault", "staging", "--", "echo", "hi"})
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SetErr(bytes.NewBuffer(nil))
+	cmd.SetOut(bytes.NewBuffer(nil))
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := alib.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := got.Aliases[alib.StoreKey("", "dev")]
+	if root.EnvVault != "" || len(root.Command) != 2 || root.Command[1] != "hi" {
+		t.Fatalf("root dev=%+v", root)
+	}
+	st := got.Aliases[alib.StoreKey("staging", "dev")]
+	if st.EnvVault != "staging" || len(st.Command) != 2 || st.Command[1] != "hi" {
+		t.Fatalf("staging dev=%+v", st)
+	}
+	if len(got.Aliases) != 2 {
+		t.Fatalf("want two slots (nome+vault), got %d", len(got.Aliases))
+	}
+}
+
+func TestAliasSet_idempotentNoPrompt_nonInteractiveOK(t *testing.T) {
+	cfgDir := t.TempDir()
+	path := alib.FilePath(cfgDir)
+	initial := &alib.File{
+		Version: 1,
+		Aliases: map[string]alib.Entry{
+			"dev": {Command: []string{"echo", "x"}, EnvVault: "st"},
+		},
+	}
+	if err := alib.Save(path, initial); err != nil {
+		t.Fatal(err)
+	}
+
+	d := testDepsForAlias(t, cfgDir)
+	cmd := newSetCmd(d)
+	cmd.SetContext(context.Background())
+	cmd.SetArgs([]string{"dev", "--vault", "st", "--", "echo", "x"})
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SetErr(bytes.NewBuffer(nil))
+	cmd.SetOut(bytes.NewBuffer(nil))
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := alib.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := got.Aliases[alib.StoreKey("st", "dev")]
+	if e.EnvVault != "st" || len(e.Command) != 2 || e.Command[1] != "x" {
+		t.Fatalf("got %#v", e)
 	}
 }
 
@@ -93,8 +169,9 @@ func TestAliasSet_updateWithYes_writes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Aliases["dev"].Command) != 2 || got.Aliases["dev"].Command[1] != "new" {
-		t.Fatalf("expected updated command, got %#v", got.Aliases["dev"])
+	sk := alib.StoreKey("", "dev")
+	if len(got.Aliases[sk].Command) != 2 || got.Aliases[sk].Command[1] != "new" {
+		t.Fatalf("expected updated command, got %#v", got.Aliases[sk])
 	}
 }
 
@@ -121,7 +198,7 @@ func TestAliasSet_createWithoutConfirm_nonInteractiveOK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e, ok := got.Aliases["newalias"]
+	e, ok := got.Aliases[alib.StoreKey("", "newalias")]
 	if !ok || len(e.Command) != 1 || e.Command[0] != "true" {
 		t.Fatalf("expected new alias, got %#v", got.Aliases)
 	}
@@ -156,7 +233,7 @@ func TestAliasUnset_withoutYes_nonInteractiveErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := got.Aliases["dev"]; !ok {
+	if _, ok := got.Aliases[alib.StoreKey("", "dev")]; !ok {
 		t.Fatal("alias should still exist")
 	}
 }
@@ -189,7 +266,7 @@ func TestAliasUnset_withYes_removes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := got.Aliases["dev"]; ok {
+	if _, ok := got.Aliases[alib.StoreKey("", "dev")]; ok {
 		t.Fatal("expected alias removed")
 	}
 }
@@ -259,7 +336,7 @@ func TestAliasUnset_missingOneErrorsAndLeavesFileUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := got.Aliases["dev"]; !ok {
+	if _, ok := got.Aliases[alib.StoreKey("", "dev")]; !ok {
 		t.Fatal("alias dev should still exist")
 	}
 }
@@ -292,7 +369,7 @@ func TestAliasUnset_dedupeWithYes_removesOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := got.Aliases["dev"]; ok {
+	if _, ok := got.Aliases[alib.StoreKey("", "dev")]; ok {
 		t.Fatal("expected alias removed")
 	}
 }

@@ -10,22 +10,10 @@ import (
 	"golang.org/x/term"
 
 	"mb/internal/deps"
+	"mb/internal/shared/sliceutil"
 	"mb/internal/shared/system"
 	appenvs "mb/internal/usecase/envs"
 )
-
-func dedupeKeysPreserveOrder(keys []string) []string {
-	seen := make(map[string]struct{}, len(keys))
-	out := make([]string, 0, len(keys))
-	for _, k := range keys {
-		if _, ok := seen[k]; ok {
-			continue
-		}
-		seen[k] = struct{}{}
-		out = append(out, k)
-	}
-	return out
-}
 
 func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 	var unsetVault string
@@ -34,21 +22,23 @@ func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "unset <KEY> [<KEY>...]",
 		Aliases: []string{"u"},
-		Short:   "Remove variáveis do vault padrão ou de um vault específico",
-		Long: `Remove as chaves do arquivo de ambiente do vault escolhido.
+		Short: "Remove chaves do vault padrão, de um vault nomeado ou do mbcli.yaml (plano, keyring e 1Password)",
+		Long: `Remove uma ou mais chaves do mesmo sítio onde mb envs set as gravaria.
 
-Sem --vault, o alvo é o vault padrão.
-Com --vault <nome>, o alvo é o arquivo .env.<nome>.
+Sem --vault, o alvo é o vault padrão (env.defaults e, se existirem, entradas em .secrets / .opsecrets para essa chave). Com --vault <nome>, o alvo é .env.<nome> e os respetivos ficheiros de segredo desse vault. A remoção inclui valor em texto plano, valor no keyring e referência/campo no 1Password quando aplicável. Se a chave não existir, o comando não falha: regista que nada foi removido e segue para as restantes.
 
-Com --mbcli-yaml, o alvo é a chave envs do mbcli.yaml do repositório (raiz ou --vault <nome> para submapa).`,
-		Example: `# Vault padrão (env.defaults)
+Com --mbcli-yaml, remove apenas chaves em envs do mbcli.yaml (raiz de envs ou submapa envs.<nome> com --vault <nome>). Em modo não interativo é obrigatório --yes.`,
+		Example: `  # Vault padrão (env.defaults e segredos associados)
   mb envs unset API_URL
 
-  # Vault explícito (.env.staging)
+  # Vault explícito (.env.<nome>)
   mb envs unset API_URL --vault staging
 
-  # Várias chaves
-  mb envs unset A B C`,
+  # Várias chaves de uma vez
+  mb envs unset A B C
+
+  # mbcli.yaml (confirmação automática em CI)
+  mb envs unset OLD_FLAG --mbcli-yaml --yes`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -58,7 +48,7 @@ Com --mbcli-yaml, o alvo é a chave envs do mbcli.yaml do repositório (raiz ou 
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
 
 			if mbcliYAML {
-				keys := dedupeKeysPreserveOrder(args)
+				keys := sliceutil.DedupeStringsPreserveOrder(args)
 				mbcliPath, err := deps.ResolveMbcliYAMLPath()
 				if err != nil {
 					return err

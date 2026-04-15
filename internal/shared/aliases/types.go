@@ -1,6 +1,7 @@
 package aliases
 
 // File is the on-disk schema for ~/.config/mb/aliases.yaml.
+// Aliases map keys are StoreKey(env_vault, displayName); see StoreKey / ParseStoreKey.
 type File struct {
 	Version int              `yaml:"version"`
 	Aliases map[string]Entry `yaml:"aliases"`

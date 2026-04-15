@@ -56,6 +56,49 @@ func TestNewRunCmd_RunsTrue(t *testing.T) {
 	}
 }
 
+func TestNewRunCmd_ambiguousAliasRequiresEnvVault(t *testing.T) {
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	aliasYAML := `version: 2
+aliases:
+  dup:
+    - "true"
+  st:
+    dup:
+      - "true"
+`
+	if err := os.WriteFile(alib.FilePath(tmp), []byte(aliasYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rt := &deps.RuntimeConfig{
+		Paths: deps.Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+			PluginsDir:     filepath.Join(tmp, "plugins"),
+		},
+	}
+	d := deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil, nil)
+	root := &cobra.Command{Use: "mb"}
+	root.AddCommand(NewRunCmd(d))
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"run", "dup"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("expected error for ambiguous alias")
+	}
+	root2 := &cobra.Command{Use: "mb"}
+	root2.AddCommand(NewRunCmd(d))
+	root2.SetOut(io.Discard)
+	root2.SetErr(io.Discard)
+	root2.SetArgs([]string{"--env-vault", "st", "run", "dup"})
+	if err := root2.Execute(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestNewRunCmd_ResolvesAlias(t *testing.T) {
 	tmp := t.TempDir()
 	def := filepath.Join(tmp, "env.defaults")

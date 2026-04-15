@@ -11,7 +11,7 @@ func TestGenerateBashZsh(t *testing.T) {
 	f := &File{
 		Version: 1,
 		Aliases: map[string]Entry{
-			"dev": {Command: []string{"docker", "compose", "up"}},
+			StoreKey("", "dev"): {Command: []string{"docker", "compose", "up"}},
 		},
 	}
 	s, err := generateBashZsh(f)

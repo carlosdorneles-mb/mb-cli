@@ -22,10 +22,35 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set <KEY[=VALOR]> [<KEY[=VALOR]>...]",
 		Aliases: []string{"s"},
-		Short:   "Define ou atualiza variáveis no vault padrão ou num vault específico",
-		Long: "Com --secret ou --secret-op, pode omitir o valor: use só a chave (ex.: API_KEY) e o MB pede o valor " +
-			"com gum input --password (um prompt por chave), sem gravar o segredo no histórico da shell. " +
-			"Com valor na linha de comandos (KEY=VALOR), não há prompt.",
+		Short: "Define ou atualiza variáveis persistidas: texto plano, keyring (--secret) ou 1Password (--secret-op)",
+		Long: `Grava variáveis de ambiente persistentes usadas pelo MB (plugins, mb run, etc.).
+
+Sem --secret nem --secret-op, cada argumento tem de ser CHAVE=VALOR. O valor fica em env.defaults (vault padrão) ou em .env.<nome> quando usa --vault <nome>.
+
+Com --secret, o valor vai para o keyring e a chave fica registada em .secrets. Com --secret-op, o valor vai para o 1Password e a referência op:// fica em .opsecrets. Com uma destas flags pode passar só a chave (sem '=') para o MB pedir o valor com gum input --password (um prompt por chave), evitando deixar o segredo no histórico da shell. Com CHAVE=VALOR na linha de comandos não há prompt.
+
+A preferência keyring/op pode também vir da variável MB_ENVS_SECRET_STORE ou dos ficheiros de ambiente já considerados pelo MB.
+
+Com --mbcli-yaml, grava na chave envs do mbcli.yaml do repositório (apenas texto plano; não pode combinar com --secret nem --secret-op). Alterar valores já existentes pode pedir confirmação; em CI use --yes.
+
+Gravar com --secret-op no vault padrão pode implicar confirmação extra; em modo não interativo use --yes.`,
+		Example: `  # Texto plano no vault padrão
+  mb envs set API_URL=https://api.example.com
+
+  # Vários pares
+  mb envs set LOG_LEVEL=debug FEATURE=on
+
+  # Vault nomeado (.env.<nome>)
+  mb envs set NODE_ENV=production --vault staging
+
+  # Keyring: pede o valor de forma mascarada
+  mb envs set API_TOKEN --secret
+
+  # 1Password no vault prod
+  mb envs set DB_PASSWORD --secret-op --vault prod
+
+  # Variáveis partilhadas no repositório (mbcli.yaml)
+  mb envs set CI=true --mbcli-yaml`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
