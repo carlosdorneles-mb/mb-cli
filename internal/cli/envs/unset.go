@@ -1,23 +1,46 @@
 package envs
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"mb/internal/deps"
 	"mb/internal/shared/system"
 	appenvs "mb/internal/usecase/envs"
 )
 
+func dedupeKeysPreserveOrder(keys []string) []string {
+	seen := make(map[string]struct{}, len(keys))
+	out := make([]string, 0, len(keys))
+	for _, k := range keys {
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, k)
+	}
+	return out
+}
+
 func newUnsetCmd(d deps.Dependencies) *cobra.Command {
 	var unsetVault string
+	var mbcliYAML bool
+	var yes bool
 	cmd := &cobra.Command{
 		Use:     "unset <KEY> [<KEY>...]",
 		Aliases: []string{"u"},
 		Short:   "Remove variáveis do vault padrão ou de um vault específico",
-		Long: `Remove as chaves do ficheiro de ambiente do vault escolhido.
+		Long: `Remove as chaves do arquivo de ambiente do vault escolhido.
 
 Sem --vault, o alvo é o vault padrão.
-Com --vault <nome>, o alvo é o ficheiro .env.<nome>.`,
+Com --vault <nome>, o alvo é o arquivo .env.<nome>.
+
+Com --mbcli-yaml, o alvo é a chave envs do mbcli.yaml do repositório (raiz ou --vault <nome> para submapa).`,
 		Example: `# Vault padrão (env.defaults)
   mb envs unset API_URL
 
@@ -29,7 +52,61 @@ Com --vault <nome>, o alvo é o ficheiro .env.<nome>.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
+			if ctx == nil {
+				ctx = context.Background()
+			}
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+
+			if mbcliYAML {
+				keys := dedupeKeysPreserveOrder(args)
+				mbcliPath, err := deps.ResolveMbcliYAMLPath()
+				if err != nil {
+					return err
+				}
+				missing, err := deps.MbcliYAMLEnvKeysMissing(mbcliPath, unsetVault, keys)
+				if err != nil {
+					return err
+				}
+				if len(missing) > 0 {
+					return fmt.Errorf(
+						"variáveis inexistentes em mbcli.yaml (vault %s): %s (use mb envs unset sem --mbcli-yaml para remover do diretório de configuração)",
+						mbcliUnsetVaultLabel(unsetVault),
+						strings.Join(missing, ", "),
+					)
+				}
+				prompt := buildMbcliUnsetEnvPrompt(mbcliPath, unsetVault, keys)
+				if !yes {
+					if !term.IsTerminal(int(os.Stdin.Fd())) {
+						return fmt.Errorf(
+							"remover variáveis de mbcli.yaml em modo não interativo requer a flag --yes",
+						)
+					}
+					ok, cerr := system.Confirm(ctx, prompt, cmd.InOrStdin(), cmd.ErrOrStderr())
+					if cerr != nil {
+						return cerr
+					}
+					if !ok {
+						_ = log.Info(ctx, "Operação cancelada.")
+						return nil
+					}
+				}
+				if err := deps.RemoveMbcliYAMLEnvKeys(mbcliPath, unsetVault, keys); err != nil {
+					return err
+				}
+				if len(keys) == 1 {
+					_ = log.Info(ctx, "Variável %q removida de mbcli.yaml (%q).", keys[0], mbcliPath)
+					return nil
+				}
+				_ = log.Info(
+					ctx,
+					"Removidas %d variáveis de mbcli.yaml (%q): %s.",
+					len(keys),
+					mbcliPath,
+					strings.Join(keys, ", "),
+				)
+				return nil
+			}
+
 			for _, key := range args {
 				removed, err := appenvs.Unset(
 					d.SecretStore,
@@ -62,8 +139,54 @@ Com --vault <nome>, o alvo é o ficheiro .env.<nome>.`,
 		&unsetVault,
 		"vault",
 		"",
-		"Remove do vault informado em vez do vault padrão (ex.: --vault staging)",
+		"Remove do vault informado em vez do vault padrão (ex.: --vault staging); com --mbcli-yaml, submapa envs.<nome> no YAML",
+	)
+	cmd.Flags().BoolVar(
+		&mbcliYAML,
+		"mbcli-yaml",
+		false,
+		"Remove apenas chaves em mbcli.yaml (não altera env.defaults nem .env.<vault>)",
+	)
+	cmd.Flags().BoolVar(
+		&yes,
+		"yes",
+		false,
+		"Confirma remoção em mbcli.yaml sem prompt (CI / não interativo)",
 	)
 	cmd.GroupID = "commands"
 	return cmd
+}
+
+func mbcliUnsetVaultLabel(vault string) string {
+	if vault == "" {
+		return "raiz (project)"
+	}
+	return vault
+}
+
+func buildMbcliUnsetEnvPrompt(mbcliPath, vault string, keys []string) string {
+	def, byV, _ := deps.ParseMbcliProjectEnvs(mbcliPath)
+	if len(keys) == 1 {
+		k := keys[0]
+		var v string
+		if vault == "" {
+			v = def[k]
+		} else if inner, ok := byV[vault]; ok {
+			v = inner[k]
+		}
+		return fmt.Sprintf("Deseja remover a variável %q (= %q) de mbcli.yaml?", k, v)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Remover %d variáveis de mbcli.yaml?\n\n", len(keys))
+	for _, k := range keys {
+		var v string
+		if vault == "" {
+			v = def[k]
+		} else if inner, ok := byV[vault]; ok {
+			v = inner[k]
+		}
+		fmt.Fprintf(&b, "- %q = %q\n", k, v)
+	}
+	b.WriteString("\nConfirmar remoção?")
+	return b.String()
 }

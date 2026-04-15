@@ -96,7 +96,7 @@ Ao navegar com ↑↓, o preview mostra informações adicionais:
 
 > `--json` e `--text` são mutuamente exclusivos.
 
-**Variáveis do `mbcli.yaml`:** o `mb envs list` também mostra as variáveis definidas no `mbcli.yaml` da raiz do projeto. Elas aparecem com vault **`project`** (escalares na raiz de `envs`) e **`project/<nome>`** (sub-mapas), e armazenamento **`projeto`**. Essas variáveis são versionadas no repositório e mescladas automaticamente — não é possível editá-las com `mb envs set --vault project`. Para detalhes, veja [Vaults de projeto](../user-guide/environment-variables.mdx#project-vaults).
+**Variáveis do `mbcli.yaml`:** o `mb envs list` também mostra as variáveis definidas no `mbcli.yaml` da raiz do projeto. Elas aparecem com vault **`project`** (escalares na raiz de `envs`) e **`project/<nome>`** (sub-mapas), e armazenamento **`projeto`**. Para **editar** essas entradas pelo CLI, use **`mb envs set … --mbcli-yaml`** e **`mb envs unset … --mbcli-yaml`** (mesma ideia que [`mb alias set --mbcli-yaml`](./alias.mdx)). Não use `--vault project` nem `project/…` com `--mbcli-yaml` — para a raiz do YAML omita `--vault`; para submapa use só o nome (ex.: `--vault staging`). Detalhes em [Vaults de projeto](../user-guide/environment-variables.mdx#project-vaults).
 
 **Exemplos de uso com JSON:**
 
@@ -177,6 +177,10 @@ mb envs set A=1 B=2 C=3 --vault staging
 mb envs set DB_PASS=segredo --secret
 mb envs set TOKEN=abc --secret-op
 mb envs set A=1 B=2 C=3 --secret      # múltiplas chaves de uma vez
+
+# Variáveis versionadas no mbcli.yaml (sem --vault = raiz de envs; --vault = submapa)
+mb envs set API_BASE=https://api.example --mbcli-yaml --yes
+mb envs set LOG_LEVEL=debug --mbcli-yaml --vault staging --yes
 ```
 
 Com **`--secret`** ou **`--secret-op`**, pode omitir o valor na linha de comandos: indique só a chave (sem `=`) e o MB pede o valor com **`gum input --password`** (um prompt por chave, em sequência), para o segredo não ir para o histórico da shell. Se `gum` não existir no `PATH`, usa-se leitura mascarada em `/dev/tty`. Em modo não interactivo (sem TTY), use sempre `KEY=VALOR` na linha de comandos.
@@ -191,12 +195,13 @@ mb envs set TOKEN=abc --secret-op         # sem prompt (valor já veio na linha)
 
 | Flag | Descrição |
 |---|---|
-| `--vault <nome>` | Grava em `.env.<nome>` em vez do padrão. Não aceita `project` nem prefixo `project/` (reservados) |
+| `--vault <nome>` | Sem `--mbcli-yaml`: grava em `.env.<nome>` em vez do padrão. Não aceita `project` nem prefixo `project/` (reservados). Com **`--mbcli-yaml`**: grava em `envs.<nome>` no `mbcli.yaml` (submapa); não use `project` nem `project/` como nome de vault — use sem `--vault` para a raiz de `envs` |
+| `--mbcli-yaml` | Grava na chave **`envs`** do `mbcli.yaml` do repositório (caminho: `MBCLI_YAML_PATH` / `MBCLI_PROJECT_ROOT` / cwd). **Não** combina com `--secret` nem `--secret-op` (só valores em texto no YAML). Regravar o YAML pode alterar ordem de chaves e não preserva comentários |
 | `--secret` | Guarda no keyring do sistema (lista `.secrets`); chave sem `=` pede valor com `gum input --password` |
 | `--secret-op` | Guarda no 1Password (referência em `*.opsecrets`, requer `op`); chave sem `=` pede valor com `gum input --password` |
-| `--yes` | Confirma sem prompt para `--secret-op` (CI) |
+| `--yes` | Confirma sem prompt: `--secret-op` no vault padrão, ou alterações em `mbcli.yaml` com `--mbcli-yaml` (CI) |
 
-> `--secret` e `--secret-op` são mutuamente exclusivos. Sem flags de store, a variável `MB_ENVS_SECRET_STORE` (`plain` / `keyring` / `op`) no ambiente define o destino.
+> `--secret` e `--secret-op` são mutuamente exclusivos. **`--mbcli-yaml`** é mutuamente exclusivo com **`--secret`** e **`--secret-op`**. Sem flags de store, a variável `MB_ENVS_SECRET_STORE` (`plain` / `keyring` / `op`) no ambiente define o destino.
 
 ### `mb envs unset`
 
@@ -205,9 +210,20 @@ Remove uma ou mais chaves.
 ```bash
 mb envs unset API_KEY
 mb envs unset A B C --vault staging
+
+mb envs unset OLD_API --mbcli-yaml --yes
+mb envs unset CACHE_TTL --mbcli-yaml --vault staging --yes
 ```
 
-Se a chave não existir, exit code 0. Se não restar conteúdo num vault explícito, os ficheiros `.env.<vault>`, `.secrets` e `.opsecrets` são apagados. `env.defaults` nunca é removido.
+| Flag | Descrição |
+|------|-----------|
+| `--vault <nome>` | Com **`--mbcli-yaml`**: remove de `envs.<nome>` no YAML. Sem `--mbcli-yaml`: mesmo comportamento de antes (`.env.<nome>`) |
+| `--mbcli-yaml` | Remove só chaves em **`envs`** do `mbcli.yaml` |
+| `--yes` | Com **`--mbcli-yaml`**, confirma remoção sem prompt (CI) |
+
+Com **`--mbcli-yaml`**, todas as chaves precisam existir no alvo; uma confirmação em lote (use **`--yes`** fora do TTY). Erros listam chaves inexistentes sem alterar o arquivo (comportamento diferente do modo em disco).
+
+Sem `--mbcli-yaml`: se a chave não existir, exit code 0. Se não restar conteúdo num vault explícito, os arquivos `.env.<vault>`, `.secrets` e `.opsecrets` são apagados. `env.defaults` nunca é removido.
 
 ### `mb envs vaults`
 
@@ -218,7 +234,7 @@ mb envs vaults
 mb envs vaults --json
 ```
 
-**Output:** tabela **VAULT** / **ARQUIVO** / **ENVS**. Inclui `default`, vaults em disco `.env.<nome>` no diretório de configuração (ex.: `~/.config/mb/.env.staging` no Linux), e linhas `project` / `project/<nome>` quando `mbcli.yaml` tem `envs`. O ficheiro `.env.project` é ignorado (nome reservado).
+**Output:** tabela **VAULT** / **ARQUIVO** / **ENVS**. Inclui `default`, vaults em disco `.env.<nome>` no diretório de configuração (ex.: `~/.config/mb/.env.staging` no Linux), e linhas `project` / `project/<nome>` quando `mbcli.yaml` tem `envs`. O arquivo `.env.project` é ignorado (nome reservado).
 
 **JSON:** `[{"vault","path","env_count"},...]`
 
@@ -237,7 +253,7 @@ O MB cria ou reutiliza um item do tipo **senha** com título `mb-cli env / defau
 
 Na listagem com `--show-secrets`, referências `op://` são resolvidas com `op read`. Se a sessão 1Password não estiver ativa, o comando falha com mensagem clara.
 
-`mb envs unset` (com o mesmo `--vault`) remove a chave dos ficheiros, `.secrets`, `*.opsecrets`, keyring e item 1Password.
+`mb envs unset` (com o mesmo `--vault`, sem `--mbcli-yaml`) remove a chave dos arquivos, `.secrets`, `*.opsecrets`, keyring e item 1Password.
 
 ## Ver também
 

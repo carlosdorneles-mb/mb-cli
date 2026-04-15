@@ -141,6 +141,40 @@ func TestParseEnvSetArgsEmptyValueWithEquals(t *testing.T) {
 	}
 }
 
+func TestEnvSetMbcliYAMLWritesYAML(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	y := filepath.Join(tmp, "mbcli.yaml")
+	t.Setenv("MBCLI_YAML_PATH", y)
+	d := testDeps(t)
+	root := NewCmd(testListServiceForDeps(t, d), d)
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(os.NewFile(0, os.DevNull))
+	root.SetArgs([]string{"set", "FROMCLI=ok", "--mbcli-yaml", "--yes"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	b, err := os.ReadFile(y)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "FROMCLI") || !strings.Contains(s, "ok") {
+		t.Fatalf("mbcli.yaml: %s", s)
+	}
+}
+
+func TestEnvSetMbcliYAMLMutuallyExclusiveWithSecret(t *testing.T) {
+	d := testDeps(t)
+	root := NewCmd(testListServiceForDeps(t, d), d)
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	root.SetArgs([]string{"set", "K=v", "--mbcli-yaml", "--secret"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("expected cobra mutual exclusive error")
+	}
+}
+
 func TestEnvSetSecretInlineValueEmitsSecurityWarning(t *testing.T) {
 	d := testDepsWithSecretStore(t, make(memorySecretStore))
 	var errBuf bytes.Buffer

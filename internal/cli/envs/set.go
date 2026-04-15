@@ -1,6 +1,7 @@
 package envs
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -17,6 +18,7 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	var setVault string
 	var flagSecret, flagSecretOP bool
 	var yes bool
+	var mbcliYAML bool
 	cmd := &cobra.Command{
 		Use:     "set <KEY[=VALOR]> [<KEY[=VALOR]>...]",
 		Aliases: []string{"s"},
@@ -27,7 +29,77 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
+			if ctx == nil {
+				ctx = context.Background()
+			}
 			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+
+			if mbcliYAML {
+				if flagSecret || flagSecretOP {
+					return fmt.Errorf(
+						"--mbcli-yaml não pode ser usado com --secret nem --secret-op (variáveis em mbcli.yaml são só em texto)",
+					)
+				}
+				mbcliPath, err := deps.ResolveMbcliYAMLPath()
+				if err != nil {
+					return err
+				}
+				pairs, err := parseEnvSetArgs(args, false)
+				if err != nil {
+					return err
+				}
+				pairMap := make(map[string]string, len(pairs))
+				for _, kv := range pairs {
+					pairMap[kv.key] = kv.value
+				}
+				def, byV, err := deps.ParseMbcliProjectEnvs(mbcliPath)
+				if err != nil {
+					return err
+				}
+				var changeLines []string
+				for _, kv := range pairs {
+					var old string
+					found := false
+					if setVault == "" {
+						old, found = def[kv.key]
+					} else {
+						if inner, ok := byV[setVault]; ok {
+							old, found = inner[kv.key]
+						}
+					}
+					if found && old != kv.value {
+						changeLines = append(
+							changeLines,
+							fmt.Sprintf("- %s: %q -> %q", kv.key, old, kv.value),
+						)
+					}
+				}
+				if len(changeLines) > 0 && !yes {
+					if !term.IsTerminal(int(os.Stdin.Fd())) {
+						return fmt.Errorf(
+							"atualizar variáveis existentes em mbcli.yaml requer terminal interativo ou use a flag --yes",
+						)
+					}
+					prompt := fmt.Sprintf(
+						"Atualizar variáveis no mbcli.yaml?\n\n%s\n\nConfirmar?",
+						strings.Join(changeLines, "\n"),
+					)
+					ok, cerr := system.Confirm(ctx, prompt, cmd.InOrStdin(), cmd.ErrOrStderr())
+					if cerr != nil {
+						return cerr
+					}
+					if !ok {
+						return fmt.Errorf("cancelado")
+					}
+				}
+				if err := deps.UpsertMbcliYAMLEnvs(mbcliPath, setVault, pairMap); err != nil {
+					return err
+				}
+				for _, kv := range pairs {
+					_ = log.Info(ctx, "Variável %q salva em mbcli.yaml (%q).", kv.key, mbcliPath)
+				}
+				return nil
+			}
 
 			paths := []string{d.Runtime.DefaultEnvPath}
 			if setVault != "" {
@@ -162,8 +234,17 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	cmd.Flags().
 		BoolVar(&flagSecretOP, "secret-op", false, "Guarda no 1Password (op); com KEY sem '=' pede o valor com gum input --password (um por chave)")
 	cmd.Flags().
-		BoolVar(&yes, "yes", false, "Confirma gravar com --secret-op no vault padrão sem prompt (útil em CI)")
+		BoolVar(&yes, "yes", false,
+			"Confirma sem prompt: --secret-op no vault padrão ou alterações em mbcli.yaml com --mbcli-yaml (útil em CI)",
+		)
+	cmd.Flags().BoolVar(
+		&mbcliYAML,
+		"mbcli-yaml",
+		false,
+		"Grava no mbcli.yaml do repositório (chave envs) em vez de env.defaults ou .env.<vault>",
+	)
 	cmd.MarkFlagsMutuallyExclusive("secret", "secret-op")
+	cmd.MarkFlagsMutuallyExclusive("mbcli-yaml", "secret", "secret-op")
 	cmd.GroupID = "commands"
 	return cmd
 }
