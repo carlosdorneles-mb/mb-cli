@@ -23,6 +23,8 @@ Tudo abaixo fica no **diretório de configuração do MB** — a pasta onde tamb
 
 ## Aliases em `mbcli.yaml` (repositório) {/* #aliases-em-mbcliyaml-repositório */}
 
+**Detalhes completos** (caminho do ficheiro, leitura vs escrita, `envs` + `aliases`, integração com `mb run`): [Guia `mbcli.yaml`](../user-guide/mbcli-yaml.mdx).
+
 O caminho do arquivo segue as mesmas regras que `envs` no repositório: `MBCLI_YAML_PATH`, ou `${MBCLI_PROJECT_ROOT}/mbcli.yaml`, ou `./mbcli.yaml` no diretório atual. Ver [Variáveis de ambiente — `mbcli.yaml`](../user-guide/environment-variables.mdx).
 
 - **`mb alias set … --mbcli-yaml`** / **`mb alias unset … --mbcli-yaml`** — grava ou remove entradas na chave `aliases` desse arquivo. Se o arquivo não existir, o `set` cria um mínimo com `aliases`.

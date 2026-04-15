@@ -65,7 +65,8 @@ function HomepageHeader() {
             </Heading>
             <p className={styles.heroSubtitle}>
               MB CLI é uma ferramenta CLI em Go que transforma plugins em comandos dinâmicos,
-              com cache, injeção segura de variáveis de ambiente e helpers de shell poderosos.
+              com cache, injeção segura de variáveis de ambiente, atalhos pessoais para comandos
+              longos e helpers de shell poderosos.
             </p>
             <div className={styles.heroButtons}>
               <Link

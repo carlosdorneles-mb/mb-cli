@@ -25,6 +25,7 @@ const sidebars = {
       link: { type: 'generated-index' },
       items: [
         'user-guide/environment-variables',
+        'user-guide/mbcli-yaml',
         'user-guide/plugin-commands',
         'user-guide/global-flags',
         'user-guide/security',

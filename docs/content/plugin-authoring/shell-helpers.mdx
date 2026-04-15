@@ -188,7 +188,7 @@ ver="$(mbcli_yaml_get '.example.version' | jq -r .)"
 log info "Versão em mbcli.yaml: $ver"
 ```
 
-O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso, e a chave **`aliases`** para atalhos de repositório usados em **`mb run`** e em **`mb alias list`**. Veja [Variáveis de ambiente](../user-guide/environment-variables.mdx) e [`mb alias`](../commands/alias.mdx).
+O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso, e a chave **`aliases`** para atalhos de repositório usados em **`mb run`** e em **`mb alias list`**. Para a lógica do ficheiro e comandos que o alteram, veja o [Guia `mbcli.yaml`](../user-guide/mbcli-yaml.mdx); para merge de ambiente e exemplos, [Variáveis de ambiente](../user-guide/environment-variables.mdx) e [`mb alias`](../commands/alias.mdx).
 
 ## Utilitários
 
