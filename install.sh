@@ -149,16 +149,53 @@ detect_os_arch() {
   esac
 }
 
-download_file() {
+# Um único pedido HTTP(S). Erros transitórios (ex.: curl 56 reset) são repetidos em download_file.
+_download_file_once() {
   local url="$1" dest="$2"
   if command -v curl >/dev/null 2>&1; then
-    curl -sSLf -o "$dest" "$url"
+    if [ -t 2 ]; then
+      curl -Lf --progress-bar --connect-timeout 30 -o "$dest" "$url"
+    else
+      curl -sSLf --connect-timeout 30 -o "$dest" "$url"
+    fi
   elif command -v wget >/dev/null 2>&1; then
-    wget -q -O "$dest" "$url"
+    if [ -t 2 ]; then
+      if wget --help 2>&1 | grep -qF -- '--show-progress'; then
+        wget --show-progress -O "$dest" "$url"
+      else
+        wget -nv -O "$dest" "$url"
+      fi
+    else
+      wget -q -O "$dest" "$url"
+    fi
   else
+    echo "Requer curl ou wget para download." >&2
+    return 1
+  fi
+}
+
+download_file() {
+  local url="$1" dest="$2"
+  local attempt=1 max_attempts=5 delay=2
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
     echo "Requer curl ou wget para download." >&2
     exit 1
   fi
+  while [ "$attempt" -le "$max_attempts" ]; do
+    rm -f "$dest" 2>/dev/null || true
+    if _download_file_once "$url" "$dest"; then
+      return 0
+    fi
+    if [ "$attempt" -eq "$max_attempts" ]; then
+      return 1
+    fi
+    echo "Falha de rede ao baixar (tentativa ${attempt}/${max_attempts}); nova tentativa em ${delay}s..." >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+    [ "$delay" -le 32 ] || delay=32
+  done
+  return 1
 }
 
 verify_checksum() {
