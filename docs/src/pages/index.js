@@ -222,13 +222,21 @@ function KeyFeaturesSection() {
       linkText: 'Variáveis de ambiente',
     },
     {
-      icon: '🗄️',
-      title: 'Cache inteligente',
+      icon: '⌨️',
+      title: 'Atalhos pessoais',
       description:
-        'SQLite guarda plugins, categorias e hashes. Sync detecta mudanças e atualiza apenas o necessário.',
-      link: '/docs/technical-reference/architecture',
-      linkText: 'Arquitetura',
+        'Defina nomes curtos para comandos repetidos; o perfil carrega o atalho no shell. Com mb run <nome>, o mesmo alias usa o ambiente mesclado do MB (vault opcional).',
+      link: '/docs/commands/alias',
+      linkText: 'Referência mb alias',
     },
+    // {
+    //   icon: '🗄️',
+    //   title: 'Cache inteligente',
+    //   description:
+    //     'SQLite guarda plugins, categorias e hashes. Sync detecta mudanças e atualiza apenas o necessário.',
+    //   link: '/docs/technical-reference/architecture',
+    //   linkText: 'Arquitetura',
+    // },
     {
       icon: '🛠️',
       title: 'Helpers de shell',

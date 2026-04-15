@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"mb/internal/deps"
+	alib "mb/internal/shared/aliases"
 	"mb/internal/shared/config"
 )
 
@@ -50,6 +51,38 @@ func TestNewRunCmd_RunsTrue(t *testing.T) {
 	root.SetOut(&buf)
 	root.SetErr(&buf)
 	root.SetArgs([]string{"run", "true"})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNewRunCmd_ResolvesAlias(t *testing.T) {
+	tmp := t.TempDir()
+	def := filepath.Join(tmp, "env.defaults")
+	if err := os.WriteFile(def, []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	aliasYAML := `version: 1
+aliases:
+  doit:
+    command: ["true"]
+`
+	if err := os.WriteFile(alib.FilePath(tmp), []byte(aliasYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rt := &deps.RuntimeConfig{
+		Paths: deps.Paths{
+			ConfigDir:      tmp,
+			DefaultEnvPath: def,
+			PluginsDir:     filepath.Join(tmp, "plugins"),
+		},
+	}
+	d := deps.NewDependencies(rt, config.AppConfig{}, nil, nil, nil, nil, nil)
+	root := &cobra.Command{Use: "mb"}
+	root.AddCommand(NewRunCmd(d))
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"run", "doit"})
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}

@@ -16,18 +16,18 @@ const FeatureList = [
     link: '/docs/user-guide/plugin-commands',
     linkText: 'Comandos de plugins',
   },
-  {
-    icon: '🗄️',
-    title: 'Cache e sync',
-    description: (
-      <>
-        Cache SQLite guarda plugins e categorias; <code>mb plugins sync</code> atualiza
-        a partir do diretório de plugins e dos paths locais registrados.
-      </>
-    ),
-    link: '/docs/technical-reference/architecture',
-    linkText: 'Arquitetura',
-  },
+  // {
+  //   icon: '🗄️',
+  //   title: 'Cache e sync',
+  //   description: (
+  //     <>
+  //       Cache SQLite guarda plugins e categorias; <code>mb plugins sync</code> atualiza
+  //       a partir do diretório de plugins e dos paths locais registrados.
+  //     </>
+  //   ),
+  //   link: '/docs/technical-reference/architecture',
+  //   linkText: 'Arquitetura',
+  // },
   {
     icon: '🔒',
     title: 'Ambiente e plugins',
@@ -41,6 +41,19 @@ const FeatureList = [
       { to: '/docs/user-guide/environment-variables', text: 'Variáveis de ambiente' },
       { to: '/docs/plugin-authoring/create-a-plugin', text: 'Criar um plugin' },
     ],
+  },
+  {
+    icon: '⌨️',
+    title: 'Atalhos pessoais',
+    description: (
+      <>
+        Defina nomes curtos para comandos que você repete; o perfil do shell carrega o atalho. Com{' '}
+        <code>mb run &lt;nome&gt;</code> o mesmo alias usa o ambiente mesclado do MB (incluindo{' '}
+        <code>--env-vault</code> opcional no alias).
+      </>
+    ),
+    link: '/docs/commands/alias',
+    linkText: 'Referência mb alias',
   },
 ];
 

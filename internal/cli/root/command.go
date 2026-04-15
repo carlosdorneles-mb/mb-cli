@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"mb/internal/cli/alias"
 	"mb/internal/cli/completion"
 	"mb/internal/cli/envs"
 	"mb/internal/cli/plugincmd"
@@ -152,6 +153,10 @@ func NewRootCmd(
 	runCmd.GroupID = "commands"
 	rootCmd.AddCommand(runCmd)
 
+	aliasCmd := alias.NewCmd(d)
+	aliasCmd.GroupID = "commands"
+	rootCmd.AddCommand(aliasCmd)
+
 	pluginsCmd := plugins.NewPluginsCmd(addPluginSvc, syncSvc, rmSvc, upSvc, d)
 	pluginsCmd.GroupID = "commands"
 	rootCmd.AddCommand(pluginsCmd)
@@ -164,6 +169,7 @@ func NewRootCmd(
 
 	rootCmd.InitDefaultCompletionCmd()
 	customizeCompletionPT(rootCmd)
+	customizeAliasPT(rootCmd)
 
 	rootCmd.InitDefaultHelpCmd()
 	for _, c := range rootCmd.Commands() {
@@ -228,6 +234,36 @@ func findCommand(cmds []*cobra.Command, name string) *cobra.Command {
 		}
 	}
 	return nil
+}
+
+func customizeAliasPT(rootCmd *cobra.Command) {
+	aliasCmd := findCommand(rootCmd.Commands(), "alias")
+	if aliasCmd == nil {
+		return
+	}
+	shortPT := map[string]string{
+		"set":   "Define ou atualiza um alias",
+		"list":  "Lista aliases (fzf e preview no TTY; tabela em pipe; --json para jq)",
+		"unset": "Remove um ou mais aliases registrados",
+	}
+	for _, sub := range aliasCmd.Commands() {
+		if short, ok := shortPT[sub.Name()]; ok {
+			sub.Short = short
+		}
+	}
+	if f := aliasCmd.PersistentFlags().Lookup("shell"); f != nil {
+		f.Usage = "Shell alvo (bash, zsh, fish, powershell); por padrão detecta via SHELL"
+	}
+	if setCmd := findCommand(aliasCmd.Commands(), "set"); setCmd != nil {
+		if f := setCmd.Flags().Lookup("yes"); f != nil {
+			f.Usage = "Confirma alterações a aliases existentes sem prompt (CI / não interativo)"
+		}
+	}
+	if unsetCmd := findCommand(aliasCmd.Commands(), "unset"); unsetCmd != nil {
+		if f := unsetCmd.Flags().Lookup("yes"); f != nil {
+			f.Usage = "Confirma a remoção sem prompt (CI / não interativo)"
+		}
+	}
 }
 
 func customizeCompletionPT(rootCmd *cobra.Command) {

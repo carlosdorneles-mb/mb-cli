@@ -1,0 +1,154 @@
+---
+sidebar_position: 7
+---
+
+# `mb alias`
+
+Comandos para criar **atalhos** (aliases) persistentes no MB CLI: você associa um **nome curto** a uma lista de argumentos de programa — o mesmo formato que o sistema usa para `argv`. O MB grava isso em disco, gera scripts de shell e pode acrescentar ao **perfil do seu shell** um bloco que carrega esses scripts automaticamente.
+
+**Em resumo:**
+
+- No **terminal**, depois de carregar o perfil, você pode digitar o nome do alias como se fosse um comando — ele roda com o ambiente **normal** daquele shell (sem o merge de variáveis do MB).
+- Com **`mb run <nome>`**, o MB troca o nome pelos argumentos salvos e aplica o **mesmo ambiente mesclado** dos plugins (incluindo vault, se estiver configurado no alias).
+
+Para variáveis globais, vaults e ordem de precedência, veja [Variáveis de ambiente](../user-guide/environment-variables.mdx). Para detalhes de execução, veja [`mb run`](./run.mdx).
+
+## Onde os arquivos ficam (sem supor um único caminho)
+
+Tudo abaixo fica no **diretório de configuração do MB** — a pasta onde também estão `config.yaml` e `env.defaults`. O caminho **depende do sistema operacional** (por exemplo Linux costuma seguir `XDG_CONFIG_HOME`; no macOS costuma ser outra pasta dentro de *Application Support*). Tabela resumida: [Instalação — Diretórios por sistema operacional](../getting-started/installation.mdx#diretórios-por-sistema-operacional).
+
+- **`aliases.yaml`** — na raiz desse diretório. Esquema: `version` e, para cada alias, `command` (lista de strings) e opcionalmente `env_vault` (nome do vault usado só em `mb run`).
+- **Subpasta `shell/`** — scripts gerados (`aliases.bash`, `aliases.fish`, `aliases.ps1`, etc.) que o bloco do perfil passa a carregar.
+
+## Perfil do shell e flag `--shell`
+
+Ao rodar qualquer subcomando de `mb alias` (exceto pedidos de ajuda ou `mb alias` sozinho, que só mostram ajuda), o MB garante no **arquivo de perfil** do shell um bloco delimitado por:
+
+```text
+# mb-cli user aliases BEGIN
+# mb-cli user aliases END
+```
+
+Dentro do bloco há uma linha que carrega os scripts da subpasta `shell/` do diretório de configuração. O bloco é **idempotente**: rodar `mb alias` de novo não duplica o trecho.
+
+- **`mb alias --shell <tipo>`** — força o shell alvo (`bash`, `zsh`, `fish`, `powershell`). Se você omitir, o MB usa a variável `SHELL` para escolher o perfil.
+- Para **tirar só** a integração com o MB, edite o arquivo de perfil e apague (ou comente) tudo entre `BEGIN` e `END`.
+
+Depois de mudanças, abra um terminal novo ou rode `source` no arquivo de perfil que o MB indicou.
+
+## `mb alias set`
+
+Cria um alias novo ou **atualiza** um que já existe (comando e/ou vault).
+
+### Sintaxe
+
+```text
+mb alias set <nome> [--env-vault <vault>] [--yes] [-- <comando>...]
+```
+
+- **`--`** — obrigatório **antes** do primeiro token do comando que você quer guardar. Tudo depois do `--` vira argumento do alias; o MB não trata como flag dele.
+- **`--env-vault <vault>`** — opcional. Se estiver definido, **`mb run <nome>`** usa esse vault no merge (arquivo `.env.<vault>`, secrets daquele vault, etc.). Chamar o alias **direto no shell** (sem `mb run`) **não** aplica esse merge.
+- **`--yes` / `-y`** — confirma alteração em alias **já existente** sem perguntar no terminal (útil em CI ou scripts).
+
+### Atualizar só o vault
+
+Com **apenas** o `<nome>` na linha e a flag **`--env-vault`** presente (incluindo `""` para limpar), o MB só mexe no vault associado — o comando gravado continua o mesmo — desde que o alias já exista.
+
+```bash
+mb alias set dev --env-vault staging
+mb alias set dev --env-vault ""
+```
+
+### Confirmação
+
+Criar alias **novo** não pede confirmação. **Mudar** comando ou vault de um alias que já existe pede confirmação em terminal interativo; fora disso use `--yes`.
+
+### Exemplos
+
+```bash
+mb alias set dev -- docker compose up
+
+mb alias set build --env-vault staging -- npm run build
+
+# Para o merge do mb run enxergar variáveis: use um shell com -c (o mb run não expande $ nos argumentos sozinho)
+mb alias set api --env-vault staging -- sh -c 'echo API=$API_KEY'
+
+# Quebra de linha no terminal (barra invertida antes de Enter)
+mb alias set dev -- \
+  docker compose \
+  up -d
+
+mb alias set dev --yes -- docker compose pull
+```
+
+### Aspas, `$` e `mb run`
+
+1. **Na hora de definir o alias**, o **seu** shell (bash/zsh) interpreta a linha primeiro. Aspas **duplas** fazem variáveis expandirem **antes** do MB receber os argumentos. Para guardar texto com `$` literal, prefira **aspas simples** no shell (por exemplo `'echo $HOME'`) ou escape correto.
+2. O **`mb run`** chama o programa com **lista de argumentos direta** — não há shell no meio. Por isso `$VAR` nos argumentos **não** vira valor automaticamente. Para usar variáveis vindas do ambiente mesclado pelo MB, o comando do alias precisa passar por um **shell** que faça essa expansão, por exemplo: `sh -c 'echo aqui $MINHA_VAR'`.
+
+## `mb alias list`
+
+Lista todos os aliases em ordem alfabética pelo nome.
+
+### Modos de saída
+
+| Situação | O que aparece |
+|----------|----------------|
+| **Terminal** (stdout é TTY) | Tabela **fzf** com colunas **ALIAS** e **VAULT** (vault usado no `mb run`) e painel de **preview** com o comando completo. Exige `fzf`, `gum` e `jq` no `PATH`. |
+| **Pipe ou redirecionamento** | Tabela com **gum** (ALIAS, VAULT, COMANDO truncado). |
+| **`--json`** | Sempre imprime um array JSON (não depende de TTY), bom para usar com `jq`. |
+
+### Formato `--json`
+
+Cada item do array tem:
+
+| Campo | Tipo | Significado |
+|-------|------|-------------|
+| `name` | string | Nome do alias |
+| `envVault` | string | Vault associado (pode ser vazio) |
+| `command` | array de strings | Argumentos do alias (`argv`) |
+
+```bash
+mb alias list --json | jq '.[] | select(.envVault == "staging")'
+```
+
+### Preview e o caractere `$`
+
+No modo interativo, o preview mostra o comando **como está salvo** no arquivo; o texto com `$` não deve sumir por causa de expansão indevida no script de preview.
+
+## `mb alias unset`
+
+Remove um ou mais aliases de uma vez.
+
+### Sintaxe
+
+```text
+mb alias unset <nome> [<nome>...]
+```
+
+- **Validação antes de tudo:** cada nome é checado **antes** de qualquer pergunta ou gravação. Se algum não existir, aparece o erro `aliases inexistentes: ...` e o arquivo **`aliases.yaml` não é alterado**.
+- **Nomes repetidos** na linha de comando são tratados uma vez só, na ordem da **primeira** aparição (ex.: `a b a` vira `a b`).
+- **Uma confirmação para o lote inteiro.** Se você cancelar, **nenhum** dos nomes é removido.
+- **`--yes` / `-y`** — pula a pergunta para **todos** os nomes da lista (no Cobra, a flag pode ir no fim: `mb alias unset a b --yes`).
+
+```bash
+mb alias unset dev
+mb alias unset api worker
+mb alias unset api worker --yes
+```
+
+## Ver também
+
+- [`mb run`](./run.mdx) — Ambiente mesclado e uso do primeiro token como alias
+- [`mb envs`](./envs.mdx) — Variáveis persistentes e vaults
+- [Variáveis de ambiente](../user-guide/environment-variables.mdx) — Precedência, vaults de projeto e `mb run`
+- [Instalação](../getting-started/installation.mdx) — Onde fica o diretório de configuração em cada SO
+
+## Ajuda no terminal
+
+```bash
+mb help alias
+mb alias set --help
+mb alias list --help
+mb alias unset --help
+```

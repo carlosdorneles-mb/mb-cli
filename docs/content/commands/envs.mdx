@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # `mb envs`
 
-Gerencia variáveis de ambiente globais injetadas em plugins e no comando `mb run`.
+Gerencia variáveis de ambiente globais injetadas em **plugins**, no comando **`mb run`** e (quando o alias tiver `--env-vault`) na execução **`mb run <nome>`** com um atalho definido em **[`mb alias`](./alias.mdx)**.
 
 Para entender ordem de precedência, vaults de projeto e quando usar cada abordagem, veja [Variáveis de ambiente](../user-guide/environment-variables.mdx).
 
@@ -243,4 +243,5 @@ Na listagem com `--show-secrets`, referências `op://` são resolvidas com `op r
 
 - [Variáveis de ambiente](../user-guide/environment-variables.mdx) — Precedência, vaults de projeto, quando usar o quê
 - [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
+- [`mb alias`](../commands/alias.mdx) — Atalhos no shell e `mb run` com vault opcional no alias
 - [Comandos de plugins](../user-guide/plugin-commands.mdx) — Como plugins herdam o ambiente

@@ -11,6 +11,7 @@ import (
 
 	"mb/internal/cli/runtimeflags"
 	"mb/internal/deps"
+	alib "mb/internal/shared/aliases"
 	"mb/internal/shared/env"
 )
 
@@ -46,11 +47,28 @@ Para ajuda deste comando use: mb help run`,
 			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
 				return err
 			}
-			merged, err := deps.BuildMergedOSEnviron(d, nil)
+			expanded, aliasVault, _, err := alib.ResolveForRun(
+				d.Runtime.ConfigDir,
+				rest[0],
+				rest[1:],
+			)
 			if err != nil {
 				return err
 			}
-			name := rest[0]
+			dRun := d
+			if aliasVault != "" && d.Runtime.EnvVault == "" {
+				rtCopy := *d.Runtime
+				rtCopy.EnvVault = aliasVault
+				dRun.Runtime = &rtCopy
+			}
+			merged, err := deps.BuildMergedOSEnviron(dRun, nil)
+			if err != nil {
+				return err
+			}
+			if len(expanded) < 1 {
+				return fmt.Errorf("comando vazio após resolver alias")
+			}
+			name := expanded[0]
 			bin, err := exec.LookPath(name)
 			if err != nil {
 				return fmt.Errorf("comando não encontrado %q: %w", name, err)
@@ -61,7 +79,7 @@ Para ajuda deste comando use: mb help run`,
 				ctx, cancel = context.WithTimeout(ctx, d.Runtime.PluginTimeout)
 				defer cancel()
 			}
-			c := exec.CommandContext(ctx, bin, rest[1:]...)
+			c := exec.CommandContext(ctx, bin, expanded[1:]...)
 			c.Env = merged
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout

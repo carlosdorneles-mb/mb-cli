@@ -15,7 +15,8 @@ internal/
 │   ├── plugins/        #   Comandos: mb plugins add, list, remove, update, sync
 │   ├── plugincmd/      #   Comandos dinâmicos gerados por plugins instalados
 │   ├── completion/     #   Autocomplete shell (install, uninstall, generate)
-│   ├── run/            #   mb run <processo>
+│   ├── alias/          #   mb alias set|list|unset — aliases em ~/.config/mb/aliases.yaml
+│   ├── run/            #   mb run <processo> (resolve aliases MB antes do PATH)
 │   ├── update/         #   mb update (self-update e tools update)
 │   └── runtimeflags/   #   Flags de runtime injetadas nos plugins
 ├── usecase/            # Casos de Uso / Regras de Aplicação
@@ -55,6 +56,7 @@ internal/
 │   └── runtime/        #   Paths (ConfigDir, PluginsDir, CacheDBPath) + AppConfig
 ├── shared/             # Utilitários Transversais
 │   ├── config/         #   Carregamento e validação de config.yaml
+│   ├── aliases/        #   aliases.yaml, scripts gerados em shell/, resolução para mb run
 │   ├── env/            #   Merge de variáveis de ambiente (defaults + group + inline)
 │   ├── envgroup/       #   Grupos de ambiente (.env.staging, .env.production)
 │   ├── safepath/       #   Validação segura de paths (previne path traversal)
@@ -64,6 +66,14 @@ internal/
 └── fakes/              # Test Doubles — mocks para testes unitários
     └── ports.go        #   FakeFS, FakeGit, FakeLogger, FakeShellInstaller, ...
 ```
+
+## Aliases do usuário (`mb alias`)
+
+- Estado em `~/.config/mb/aliases.yaml`; scripts gerados em `~/.config/mb/shell/` (`aliases.bash`, `aliases.fish`, `aliases.ps1`).
+- Em cada utilização de `mb alias` (ou subcomando), o CLI garante o bloco idempotente no perfil do shell padrão para o shell detectado (`SHELL` ou `--shell`; marcadores `# mb-cli user aliases BEGIN/END`).
+- `mb alias list` no terminal (TTY) usa fzf com preview quando `fzf`, `gum` e `jq` estão no `PATH`; em pipe ou com `--json`, não depende dessas ferramentas para listar.
+- Invocar o nome **no shell** (com o perfil a carregar os scripts gerados) executa o comando **sem** o ambiente mesclado do MB (`env.defaults`, vaults, etc.).
+- `mb run <nome>` resolve o alias **antes** de `exec.LookPath` e aplica o `env_vault` guardado no alias **só quando** `--env-vault` não foi passado na linha de comandos.
 
 ## Camadas e Responsabilidades
 

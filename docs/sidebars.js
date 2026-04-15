@@ -37,6 +37,7 @@ const sidebars = {
       link: { type: 'generated-index' },
       items: [
         'commands/envs',
+        'commands/alias',
         'commands/plugins',
         'commands/run',
         'commands/update',

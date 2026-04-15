@@ -251,6 +251,7 @@ mb envs list --vault project/staging # só o sub-mapa staging
 |---------|-------------|
 | Variável usada em todos os projetos | `mb envs set` (env.defaults) |
 | Variável por ambiente (staging, prod) | Vault: `mb envs set --vault staging` + `--env-vault staging` |
+| Atalho com vault só em `mb run` | [`mb alias set … --env-vault …`](../commands/alias.mdx) — o mesmo nome no shell não usa o merge do MB |
 | Variável compartilhada pela equipe | `envs` no `mbcli.yaml` (versionado) |
 | Secret (tokens, senhas) | `mb envs set --secret` (keyring) ou `--secret-op` (1Password) |
 | Override rápido numa execução | `--env KEY=VALUE` |
@@ -265,6 +266,8 @@ mb run python script.py
 mb run --env-vault staging -e FOO=bar uv sync
 ```
 
+O primeiro token pode ser um **alias** criado com [`mb alias`](../commands/alias.mdx). O vault salvo no alias entra no merge **a menos que** você informe `--env-vault` no `mb run` — nesse caso, o valor da linha de comando **prevalece**.
+
 Flags podem ir antes ou depois de `run`, sempre antes do executável. Depois de `--`, nada é interpretado como flag do MB.
 
 ## Ver também
@@ -272,6 +275,7 @@ Flags podem ir antes ou depois de `run`, sempre antes do executável. Depois de 
 - [Variáveis de controle do CLI](../getting-started/installation.mdx) — `MB_DISABLE_UPDATE_CHECK`, `MB_PLUGIN_SUBDIR` (detalhes)
 - [`mb envs`](../commands/envs.mdx) — Referência completa (subcomandos, flags, tabelas)
 - [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
+- [`mb alias`](../commands/alias.mdx) — Atalhos no shell e `mb run` com `env_vault` opcional
 - [Contexto de Invocação](../technical-reference/plugin-invocation-context.mdx) — Detalhes técnicos das variáveis `MB_CTX_*`
 - [Helpers de Shell](../plugin-authoring/shell-helpers.mdx) — Funções utilitárias para plugins
 - [Criar um Plugin](../plugin-authoring/create-a-plugin.mdx) — `env_files` no manifest

@@ -19,6 +19,8 @@ Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do cam
 
 Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** no `manifest.yaml` define atalhos para esse segmento (ex.: `mb ai sk` se `skills` tiver `aliases: [sk]`). É preciso **`mb plugins sync`** para atualizar o cache após alterar aliases.
 
+> **Não confundir** com o comando **`mb alias`** do CLI: *aliases* no manifest são atalhos de **nome de segmento** dentro da árvore de plugins; **[`mb alias`](../commands/alias.mdx)** são atalhos **pessoais** (comando + argumentos guardados em `aliases.yaml`, integração com o perfil do shell e uso com `mb run`).
+
 **Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.mdx#cache-sqlite-e-sync).
 
 ## Como descobrir os comandos

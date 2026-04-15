@@ -4,9 +4,9 @@ sidebar_position: 1
 
 # Introdução ao MB CLI
 
-O **MB CLI** é uma ferramenta de linha de comando que transforma **plugins em comandos dinâmicos**, com cache SQLite, injeção segura de variáveis de ambiente e helpers de shell poderosos.
+O **MB CLI** é uma ferramenta de linha de comando que transforma **plugins em comandos dinâmicos**, com cache SQLite, injeção segura de variáveis de ambiente e helpers de shell poderosos. Com **[`mb alias`](./commands/alias.mdx)** você define **atalhos com nome** (guardados no seu perfil de shell) e pode executá-los com o mesmo ambiente mesclado dos plugins usando **`mb run <nome>`**.
 
-> Em vez de manter vários scripts espalhados, você instala ou registra **plugins** e passa a invocá-los de forma uniforme: `mb <categoria> <comando>`, com ajuda integrada e controle total do ambiente de execução.
+> Em vez de manter vários scripts espalhados, você instala ou registra **plugins** e passa a invocá-los de forma uniforme: `mb <categoria> <comando>`, com ajuda integrada e controle total do ambiente de execução. Comandos longos que você repete também podem virar atalhos com **`mb alias`**.
 
 ## Por que MB CLI?
 
@@ -17,6 +17,7 @@ O **MB CLI** é uma ferramenta de linha de comando que transforma **plugins em c
 | Descoberta difícil de comandos | `mb help` e `mb plugins list` mostram tudo disponível |
 | Reinstalar para adicionar funcionalidade | `mb plugins sync` atualiza comandos sem reinstalar o CLI |
 | Sem reutilização entre projetos | Helpers de shell embutidos: log, memória, k8s, Homebrew, Flatpak… |
+| Comandos longos repetidos no dia a dia | **[`mb alias`](./commands/alias.mdx)** — atalho no shell; com **`mb run <nome>`** o mesmo atalho herda o ambiente mesclado (e vault opcional no alias) |
 
 ## Como funciona
 
@@ -49,6 +50,7 @@ O **MB CLI** é uma ferramenta de linha de comando que transforma **plugins em c
 - **Sincronização simples** — `mb plugins sync` atualiza comandos disponíveis sem reinstalar o programa principal.
 - **Organização por pastas e manifesto** — cada plugin se descreve num `manifest.yaml` (nome, descrição, como executar). A estrutura de pastas define categorias e subcomandos.
 - **Ambiente sob controle** — variáveis do sistema, de arquivos e da linha de comando (`--env`) são aplicadas de forma previsível e isolada por plugin.
+- **Atalhos pessoais** — com [`mb alias`](./commands/alias.mdx) você grava um nome curto para um comando; no terminal o perfil carrega o atalho, e com `mb run <nome>` o MB aplica o mesmo merge de ambiente dos plugins (incluindo [`mb envs`](./commands/envs.mdx) quando configurado).
 - **Helpers de shell prontos** — bibliotecas de funções para log, memória, Kubernetes, Homebrew, Flatpak, GitHub e mais, disponíveis via `$MB_HELPERS_PATH`.
 
 ## Quick start
@@ -80,6 +82,7 @@ mb <categoria> <comando> [flags]
 **Comandos do CLI** (referência de uso)
 
 - [`mb envs`](./commands/envs.mdx) — listar, definir e remover variáveis de ambiente
+- [`mb alias`](./commands/alias.mdx) — definir, listar e remover atalhos (shell e `mb run`)
 - [`mb plugins`](./commands/plugins.mdx) — adicionar, listar, remover, atualizar e sincronizar
 - [`mb run`](./commands/run.mdx) — executar qualquer programa com o ambiente mesclado
 - [`mb update`](./commands/update.mdx) — atualizar plugins, CLI, ferramentas e sistema

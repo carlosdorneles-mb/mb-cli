@@ -39,6 +39,13 @@ type EnvEntry struct {
 	Path         string `json:"path"`
 }
 
+// AliasEntry represents an alias row for fzf preview (command is joined argv for jq in preview.sh).
+type AliasEntry struct {
+	Name     string `json:"name"`
+	EnvVault string `json:"envVault"`
+	Command  string `json:"command"`
+}
+
 // FzfTable displays data in fzf table mode with headers and returns the selected row.
 // If not a TTY or fzf not found, falls back to GumTable.
 func FzfTable(
@@ -199,6 +206,36 @@ func createHeaderText(headers []string, widths []int) string {
 	return sb.String()
 }
 
+// parseFzfIndexedSelection parses fzf stdout "N\t<formatted row>" where N is a 1-based index into rows.
+func parseFzfIndexedSelection(selectedLine string, rows [][]string) ([]string, bool) {
+	selectedLine = strings.TrimSpace(selectedLine)
+	if selectedLine == "" {
+		return nil, false
+	}
+	tabIdx := strings.Index(selectedLine, "\t")
+	if tabIdx > 0 {
+		var n int
+		if _, err := fmt.Sscanf(selectedLine[:tabIdx], "%d", &n); err == nil {
+			if n >= 1 && n <= len(rows) {
+				return rows[n-1], true
+			}
+		}
+	}
+	selectedParts := strings.Split(selectedLine, " │ ")
+	if len(selectedParts) > 0 {
+		firstCol := strings.TrimSpace(selectedParts[0])
+		if idx := strings.Index(firstCol, "\t"); idx > 0 {
+			firstCol = firstCol[idx+1:]
+		}
+		for _, row := range rows {
+			if len(row) > 0 && row[0] == firstCol {
+				return row, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // FzfTableWithPreview displays data in fzf with a preview panel using gum format.
 // The previewFn is called to get preview text, but we use gum format for better rendering.
 func FzfTableWithPreview(
@@ -226,6 +263,9 @@ func FzfTableWithPreview(
 	_, gumErr := exec.LookPath("gum")
 	if gumErr != nil {
 		// No gum, fall back to regular FzfTable
+		return FzfTable(ctx, headers, rows, out)
+	}
+	if _, err := exec.LookPath("jq"); err != nil {
 		return FzfTable(ctx, headers, rows, out)
 	}
 
@@ -283,23 +323,29 @@ if [ -z "$ENTRY" ] || [ "$ENTRY" = "null" ]; then
   exit 0
 fi
 
-# Generate markdown with proper newlines
+# Generate markdown with proper newlines (jq via vars + printf: avoids $ re-expansion inside "echo ... $(jq)" )
+PKG=$(echo "$ENTRY" | jq -r '.package // "N/A"')
+CMD=$(echo "$ENTRY" | jq -r '.command // "N/A"')
+DESC=$(echo "$ENTRY" | jq -r '.description // "N/A"')
+VER=$(echo "$ENTRY" | jq -r '.version // "N/A"')
+ORIG=$(echo "$ENTRY" | jq -r '.origin // "N/A"')
+URL=$(echo "$ENTRY" | jq -r '.url // "N/A"')
 {
-  echo "### $(echo "$ENTRY" | jq -r '.package // "N/A"')"
+  printf '%%s\n' "### ${PKG}"
   echo ""
-  echo "**Comando:** $(echo "$ENTRY" | jq -r '.command // "N/A"')"
-  echo "**Descrição:** $(echo "$ENTRY" | jq -r '.description // "N/A"')"
-  echo "**Versão:** $(echo "$ENTRY" | jq -r '.version // "N/A"')"
-  echo "**Origem:** $(echo "$ENTRY" | jq -r '.origin // "N/A"')"
-  echo "**URL:** $(echo "$ENTRY" | jq -r '.url // "N/A"')"
+  printf '%%s\n' "**Comando:** ${CMD}"
+  printf '%%s\n' "**Descrição:** ${DESC}"
+  printf '%%s\n' "**Versão:** ${VER}"
+  printf '%%s\n' "**Origem:** ${ORIG}"
+  printf '%%s\n' "**URL:** ${URL}"
 
   REF=$(echo "$ENTRY" | jq -r '.ref // ""')
   if [ -n "$REF" ]; then
     REFTYPE=$(echo "$ENTRY" | jq -r '.refType // ""')
     if [ -n "$REFTYPE" ]; then
-      echo "**Ref:** $REF ($REFTYPE)"
+      printf '%%s\n' "**Ref:** ${REF} (${REFTYPE})"
     else
-      echo "**Ref:** $REF"
+      printf '%%s\n' "**Ref:** ${REF}"
     fi
   fi
 } | gum format
@@ -347,38 +393,9 @@ fi
 	}
 
 	// Parse selected line
-	selectedLine := strings.TrimSpace(output.String())
-	if selectedLine == "" {
-		return nil, nil
+	if row, ok := parseFzfIndexedSelection(output.String(), rows); ok {
+		return row, nil
 	}
-
-	// Remove tab-separated index prefix and find matching row
-	// selectedLine format is "INDEX\tFORMATTED_ROW"
-	tabIdx := strings.Index(selectedLine, "\t")
-	if tabIdx > 0 {
-		indexStr := selectedLine[:tabIdx]
-		var index int
-		fmt.Sscanf(indexStr, "%d", &index)
-		if index >= 0 && index < len(rows) {
-			return rows[index], nil
-		}
-	}
-
-	// Fallback: try matching by first column (package name)
-	selectedParts := strings.Split(selectedLine, " │ ")
-	if len(selectedParts) > 0 {
-		firstCol := strings.TrimSpace(selectedParts[0])
-		// Remove index prefix if still present
-		if idx := strings.Index(firstCol, "\t"); idx > 0 {
-			firstCol = firstCol[idx+1:]
-		}
-		for _, row := range rows {
-			if len(row) > 0 && row[0] == firstCol {
-				return row, nil
-			}
-		}
-	}
-
 	return nil, nil
 }
 
@@ -408,6 +425,9 @@ func FzfTableWithPreviewForEnv(
 	_, gumErr := exec.LookPath("gum")
 	if gumErr != nil {
 		// No gum, fall back to regular FzfTable
+		return FzfTable(ctx, headers, rows, out)
+	}
+	if _, err := exec.LookPath("jq"); err != nil {
 		return FzfTable(ctx, headers, rows, out)
 	}
 
@@ -465,14 +485,19 @@ if [ -z "$ENTRY" ] || [ "$ENTRY" = "null" ]; then
   exit 0
 fi
 
-# Generate markdown with proper newlines
+# Generate markdown with proper newlines (jq via vars + printf: avoids $ re-expansion inside "echo ... $(jq)" )
+KEY=$(echo "$ENTRY" | jq -r '.key // "N/A"')
+DISPLAY=$(echo "$ENTRY" | jq -r '.displayValue // "N/A"')
+VAULT_NAME=$(echo "$ENTRY" | jq -r '.vault // "N/A"')
+STORAGE=$(echo "$ENTRY" | jq -r '.storage // "N/A"')
+ENV_PATH=$(echo "$ENTRY" | jq -r '.path // "N/A"')
 {
-  echo "### $(echo "$ENTRY" | jq -r '.key // "N/A"')"
+  printf '%%s\n' "### ${KEY}"
   echo ""
-  echo "**Valor:** $(echo "$ENTRY" | jq -r '.displayValue // "N/A"')"
-  echo "**Vault:** $(echo "$ENTRY" | jq -r '.vault // "N/A"')"
-  echo "**Armazenamento:** $(echo "$ENTRY" | jq -r '.storage // "N/A"')"
-  echo "**Arquivo:** $(echo "$ENTRY" | jq -r '.path // "N/A"')"
+  printf '%%s\n' "**Valor:** ${DISPLAY}"
+  printf '%%s\n' "**Vault:** ${VAULT_NAME}"
+  printf '%%s\n' "**Armazenamento:** ${STORAGE}"
+  printf '%%s\n' "**Arquivo:** ${ENV_PATH}"
 
   IS_SECRET=$(echo "$ENTRY" | jq -r '.isSecret // false')
   if [ "$IS_SECRET" = "true" ]; then
@@ -524,35 +549,141 @@ fi
 	}
 
 	// Parse selected line
-	selectedLine := strings.TrimSpace(output.String())
-	if selectedLine == "" {
-		return nil, nil
+	if row, ok := parseFzfIndexedSelection(output.String(), rows); ok {
+		return row, nil
+	}
+	return nil, nil
+}
+
+// FzfTableWithPreviewForAliases displays aliases in fzf with a preview panel (vault for mb run + command).
+func FzfTableWithPreviewForAliases(
+	ctx context.Context,
+	headers []string,
+	rows [][]string,
+	out io.Writer,
+	entries []AliasEntry,
+) (selectedRow []string, err error) {
+	if len(rows) == 0 {
+		return nil, GumTable(ctx, headers, rows, out)
 	}
 
-	// Remove tab-separated index prefix and find matching row
-	tabIdx := strings.Index(selectedLine, "\t")
-	if tabIdx > 0 {
-		indexStr := selectedLine[:tabIdx]
-		var index int
-		fmt.Sscanf(indexStr, "%d", &index)
-		if index >= 0 && index < len(rows) {
-			return rows[index], nil
-		}
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return nil, GumTable(ctx, headers, rows, out)
 	}
 
-	// Fallback: try matching by first column
-	selectedParts := strings.Split(selectedLine, " │ ")
-	if len(selectedParts) > 0 {
-		firstCol := strings.TrimSpace(selectedParts[0])
-		if idx := strings.Index(firstCol, "\t"); idx > 0 {
-			firstCol = firstCol[idx+1:]
-		}
-		for _, row := range rows {
-			if len(row) > 0 && row[0] == firstCol {
-				return row, nil
+	fzfPath, err := exec.LookPath("fzf")
+	if err != nil {
+		return nil, GumTable(ctx, headers, rows, out)
+	}
+
+	_, gumErr := exec.LookPath("gum")
+	if gumErr != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+	if _, err := exec.LookPath("jq"); err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	widths := calculateColumnWidths(headers, rows)
+	headerText := createHeaderText(headers, widths)
+
+	var input bytes.Buffer
+	for i, row := range rows {
+		fmt.Fprintf(&input, "%d\t%s", i+1, formatRowFixedWidth(row, widths))
+		input.WriteString("\n")
+	}
+
+	tmpDir, err := os.MkdirTemp("", "mb-fzf-*")
+	if err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	entriesJSON, err := json.Marshal(entries)
+	if err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+	entriesFile := filepath.Join(tmpDir, "entries.json")
+	if err := os.WriteFile(entriesFile, entriesJSON, 0644); err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	previewScript := filepath.Join(tmpDir, "preview.sh")
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+NUMINDEX="$1"
+if [ -z "$NUMINDEX" ]; then
+  echo "**Nenhum alias selecionado**" | gum format
+  exit 0
+fi
+
+INDEX=$(($NUMINDEX - 1))
+if [ "$INDEX" -lt 0 ]; then
+  echo "**Nenhum alias selecionado**" | gum format
+  exit 0
+fi
+
+ENTRIES_FILE="%s"
+ENTRY=$(cat "$ENTRIES_FILE" | jq ".[$INDEX]")
+if [ -z "$ENTRY" ] || [ "$ENTRY" = "null" ]; then
+  echo "**Erro ao ler dados do alias**" | gum format
+  exit 0
+fi
+
+VAULT_RAW=$(echo "$ENTRY" | jq -r '.envVault // ""')
+if [ -z "$VAULT_RAW" ]; then
+  VAULT_LABEL="(nenhum)"
+else
+  VAULT_LABEL="$VAULT_RAW"
+fi
+NAME=$(echo "$ENTRY" | jq -r '.name // "N/A"')
+CMD=$(echo "$ENTRY" | jq -r '.command // "N/A"')
+{
+  printf '%%s\n' "### ${NAME}"
+  echo ""
+  printf '%%s\n' "**Vault (mb run):** ${VAULT_LABEL}"
+  printf '%%s\n' "**Comando:** ${CMD}"
+} | gum format
+`, entriesFile)
+
+	if err := os.WriteFile(previewScript, []byte(scriptContent), 0755); err != nil {
+		return FzfTable(ctx, headers, rows, out)
+	}
+
+	args := []string{
+		"--prompt", "Filtrar> ",
+		"--layout", "reverse",
+		"--height", "~80%",
+		"--cycle",
+		"--header", headerText,
+		"--delimiter", "\t",
+		"--with-nth", "2..",
+		"--preview", previewScript + " {1}",
+		"--preview-window", "right:50%",
+		"--bind", "enter:accept",
+		"--bind", "esc:cancel",
+		"--bind", "ctrl-c:cancel",
+	}
+
+	var output bytes.Buffer
+	cmd := exec.CommandContext(ctx, fzfPath, args...)
+	cmd.Stdin = &input
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	err = cmd.Run()
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
+				return nil, nil
 			}
 		}
+		return nil, GumTable(ctx, headers, rows, out)
 	}
 
+	if row, ok := parseFzfIndexedSelection(output.String(), rows); ok {
+		return row, nil
+	}
 	return nil, nil
 }

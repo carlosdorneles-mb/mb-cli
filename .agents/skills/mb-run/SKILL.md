@@ -12,7 +12,7 @@ description: >-
 
 ## Quando aplicar
 
-- Implementar ou corrigir **`mb run`** ou o fluxo de **ambiente** partilhado com plugins.
+- Implementar ou corrigir **`mb run`** ou o fluxo de **ambiente** compartilhado com plugins.
 - Explicar diferenças entre **`mb run`** e execução de **plugin** (sem `env_files` do manifest).
 - Ajustar **`DisableFlagParsing`**, **`runtimeflags.ParseLeadingRuntimeFlags`**, ajuda (`mb help run`), timeout, ou propagação de código de saída.
 
@@ -20,8 +20,9 @@ description: >-
 
 | Aspeto | Detalhe |
 |--------|---------|
-| Uso | `mb run <comando> [args...]` — o primeiro argumento é resolvido com **`exec.LookPath`** (PATH ou caminho absoluto) |
-| Ambiente | **`deps.BuildMergedOSEnviron(d, nil)`** — igual aos plugins para camadas de ficheiro + inline, **sem** overlay de `env_files` do manifest (`overlay == nil`) |
+| Uso | `mb run <comando> [args...]` — o primeiro token pode ser um **alias MB** (`~/.config/mb/aliases.yaml` via `internal/shared/aliases`); caso contrário **`exec.LookPath`**. Argumentos extra apendem-se ao comando do alias |
+| Aliases MB vs shell | **`mb alias`** salva atalhos e tenta atualizar o perfil do shell automaticamente; chamá-los no shell **não** aplica o ambiente mesclado. **`mb run <alias>`** sim — e o **`env_vault`** do alias só aplica se **`--env-vault`** não vier já na linha (CLI > alias) |
+| Ambiente | **`deps.BuildMergedOSEnviron(d, nil)`** — igual aos plugins para camadas de arquivo + inline, **sem** overlay de `env_files` do manifest (`overlay == nil`) |
 | Flags globais do `mb` | **Antes** de `run`, ou **prefixo logo após** `run` (antes do executável): `-e`/`--env`, `--env-file`, `--env-vault`, `-v`/`--verbose`, `-q`/`--quiet` — via **`runtimeflags.ParseLeadingRuntimeFlags`** em conjunto com o que o root já parseou. Com **`DisableFlagParsing: true`**, o Cobra **não** parseia; o `run` descasca só esse prefixo e o resto vai ao filho (ex.: `mb run grep -r`) |
 | Ajuda | **`mb help run`** — `mb run --help` pode ser entregue ao executável filho (documentado no Long) |
 | Timeout | Se **`Runtime.PluginTimeout > 0`**, o contexto do **`exec.CommandContext`** tem deadline (mesma config que plugins) |
@@ -34,24 +35,25 @@ Para a **ordem completa** de variáveis (`env.defaults`, `--env-vault`, `./.env`
 
 | Área | Caminho |
 |------|---------|
-| Comando | `internal/cli/run/run.go` — `NewRunCmd` |
-| Flags globais partilhadas | `internal/cli/runtimeflags/runtimeflags.go` — `RegisterRuntimePersistentFlags`, `ParseLeadingRuntimeFlags` |
+| Comando | `internal/cli/run/run.go` — `NewRunCmd` — resolução de alias antes de `LookPath` |
+| Aliases persistidos | `internal/shared/aliases` — `aliases.yaml`, `WriteShellScripts` |
+| Flags globais compartilhadas | `internal/cli/runtimeflags/runtimeflags.go` — `RegisterRuntimePersistentFlags`, `ParseLeadingRuntimeFlags` |
 | Root | `internal/cli/root/command.go` — chama `RegisterRuntimePersistentFlags` nas `PersistentFlags` |
 | Merge de ambiente | `internal/deps/execenv.go` — `BuildMergedOSEnviron`, `BuildMergedOSEnvironWithExtraInline` |
-| Camadas de ficheiro / secrets | `internal/deps/envdefaults.go` — `BuildEnvFileValues` |
+| Camadas de arquivo / secrets | `internal/deps/envdefaults.go` — `BuildEnvFileValues` |
 
-Detalhe por ficheiro: [reference.md](reference.md).
+Detalhe por arquivo: [reference.md](reference.md).
 
 ## Regras de produto (resumo)
 
-1. **`mb run` não lê `env_files` do manifest** — só plugins aplicam esse overlay (`plugincmd` passa overlay não-nulo). O utilizador usa **`--env-file`** na linha do `mb` se precisar de ficheiros extra.
-2. O ambiente efetivo é o mesmo **pipeline** que plugins: sistema → ficheiros mb → `--env` com maior precedência, mais injeções fixas (gum, verbosidade, helpers).
+1. **`mb run` não lê `env_files` do manifest** — só plugins aplicam esse overlay (`plugincmd` passa overlay não-nulo). O usuário usa **`--env-file`** na linha do `mb` se precisar de arquivos extra.
+2. O ambiente efetivo é o mesmo **pipeline** que plugins: sistema → arquivos mb → `--env` com maior precedência, mais injeções fixas (gum, verbosidade, helpers).
 3. **Stdin/stdout/stderr** são os do terminal (`os.Stdin`, etc.).
 
 ## Armadilhas
 
 - Esquecer que só o **prefixo** após `run` é MB — **`mb run cmd --env X=1`** envia `--env` ao **filho**; usar **`mb run -e X=1 cmd`** ou **`mb --env X=1 run cmd`**.
-- Confundir **`mb run myplugin`** com **`mb categoria comando`** — `run` é só executável no PATH, não resolve comandos do cache SQLite.
+- Confundir **`mb run myplugin`** com **`mb categoria comando`** — `run` não usa o cache SQLite de plugins; resolve **aliases MB** primeiro, depois PATH.
 
 ## Documentação no repositório
 
@@ -65,4 +67,4 @@ Detalhe por ficheiro: [reference.md](reference.md).
 go test ./internal/cli/run/... ./internal/cli/runtimeflags/... ./internal/cli/root/... ./internal/deps/... -count=1
 ```
 
-Ao alterar merge de ambiente partilhado, validar também **`cli/plugincmd`** e testes em **`internal/deps`**.
+Ao alterar merge de ambiente compartilhado, validar também **`cli/plugincmd`** e testes em **`internal/deps`**.
