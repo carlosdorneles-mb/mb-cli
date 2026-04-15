@@ -18,7 +18,17 @@ Para variáveis globais, vaults e ordem de precedência, veja [Variáveis de amb
 Tudo abaixo fica no **diretório de configuração do MB** — a pasta onde também estão `config.yaml` e `env.defaults`. O caminho **depende do sistema operacional** (por exemplo Linux costuma seguir `XDG_CONFIG_HOME`; no macOS costuma ser outra pasta dentro de *Application Support*). Tabela resumida: [Instalação — Diretórios por sistema operacional](../getting-started/installation.mdx#diretórios-por-sistema-operacional).
 
 - **`aliases.yaml`** — na raiz desse diretório. Esquema: `version` e, para cada alias, `command` (lista de strings) e opcionalmente `env_vault` (nome do vault usado só em `mb run`).
-- **Subpasta `shell/`** — scripts gerados (`aliases.bash`, `aliases.fish`, `aliases.ps1`, etc.) que o bloco do perfil passa a carregar.
+- **`mbcli.yaml` (repositório)** — opcional; ver seção abaixo. Aliases salvos aqui **não** geram funções em `shell/`; só funcionam com **`mb run`** (e aparecem no `mb alias list` com origem **repositório**).
+- **Subpasta `shell/`** — scripts gerados (`aliases.bash`, `aliases.fish`, `aliases.ps1`, etc.) que o bloco do perfil passa a carregar (apenas a partir de `aliases.yaml`).
+
+## Aliases em `mbcli.yaml` (repositório) {/* #aliases-em-mbcliyaml-repositório */}
+
+O caminho do arquivo segue as mesmas regras que `envs` no repositório: `MBCLI_YAML_PATH`, ou `${MBCLI_PROJECT_ROOT}/mbcli.yaml`, ou `./mbcli.yaml` no diretório atual. Ver [Variáveis de ambiente — `mbcli.yaml`](../user-guide/environment-variables.mdx).
+
+- **`mb alias set … --mbcli-yaml`** / **`mb alias unset … --mbcli-yaml`** — grava ou remove entradas na chave `aliases` desse arquivo. Se o arquivo não existir, o `set` cria um mínimo com `aliases`.
+- **Precedência em `mb run`:** se o mesmo nome existir em `aliases.yaml` e em `mbcli.yaml`, vale a definição do **repositório** (`mbcli.yaml`).
+- **Formato `aliases`:** espelha `envs`: cada chave pode ser um mapa com `command` (lista) e `env_vault` opcional **na raiz**, ou um **submapa** (grupo) cujo nome vira `env_vault` implícito para os aliases dentro dele, salvo se o próprio alias definir `env_vault` (use `env_vault: ""` para forçar sem vault dentro de um grupo). Os nomes de grupo **`project`** e prefixo **`project/`** são reservados.
+- **Regravar o YAML** com o MB pode alterar a ordem das chaves e **não preserva comentários** no arquivo.
 
 ## Perfil do shell e flag `--shell`
 
@@ -43,10 +53,11 @@ Cria um alias novo ou **atualiza** um que já existe (comando e/ou vault).
 ### Sintaxe
 
 ```text
-mb alias set <nome> [--env-vault <vault>] [--yes] [-- <comando>...]
+mb alias set <nome> [--mbcli-yaml] [--env-vault <vault>] [--yes] [-- <comando>...]
 ```
 
 - **`--`** — obrigatório **antes** do primeiro token do comando que você quer guardar. Tudo depois do `--` vira argumento do alias; o MB não trata como flag dele.
+- **`--mbcli-yaml`** — grava no `mbcli.yaml` do repositório em vez de `aliases.yaml`; **não** regenera os scripts de shell.
 - **`--env-vault <vault>`** — opcional. Se estiver definido, **`mb run <nome>`** usa esse vault no merge (arquivo `.env.<vault>`, secrets daquele vault, etc.). Chamar o alias **direto no shell** (sem `mb run`) **não** aplica esse merge.
 - **`--yes` / `-y`** — confirma alteração em alias **já existente** sem perguntar no terminal (útil em CI ou scripts).
 
@@ -79,6 +90,9 @@ mb alias set dev -- \
   up -d
 
 mb alias set dev --yes -- docker compose pull
+
+# Alias versionado no repositório (só mb run; não entra no shell)
+mb alias set ci --mbcli-yaml -- npm run ci
 ```
 
 ### Aspas, `$` e `mb run`
@@ -94,8 +108,8 @@ Lista todos os aliases em ordem alfabética pelo nome.
 
 | Situação | O que aparece |
 |----------|----------------|
-| **Terminal** (stdout é TTY) | Tabela **fzf** com colunas **ALIAS** e **VAULT** (vault usado no `mb run`) e painel de **preview** com o comando completo. Exige `fzf`, `gum` e `jq` no `PATH`. |
-| **Pipe ou redirecionamento** | Tabela com **gum** (ALIAS, VAULT, COMANDO truncado). |
+| **Terminal** (stdout é TTY) | Tabela **fzf** com colunas **ALIAS**, **VAULT** e **FONTE** (config = `aliases.yaml`, repositório = `mbcli.yaml`) e painel de **preview** com o comando completo. Exige `fzf`, `gum` e `jq` no `PATH`. |
+| **Pipe ou redirecionamento** | Tabela com **gum** (ALIAS, VAULT, COMANDO truncado, FONTE). |
 | **`--json`** | Sempre imprime um array JSON (não depende de TTY), bom para usar com `jq`. |
 
 ### Formato `--json`
@@ -107,14 +121,16 @@ Cada item do array tem:
 | `name` | string | Nome do alias |
 | `envVault` | string | Vault associado (pode ser vazio) |
 | `command` | array de strings | Argumentos do alias (`argv`) |
+| `source` | string | `config` (arquivo global) ou `project` (`mbcli.yaml`) |
+| `mbcliPath` | string | Caminho absoluto do `mbcli.yaml` quando `source` é `project`; vazio caso contrário |
 
 ```bash
-mb alias list --json | jq '.[] | select(.envVault == "staging")'
+mb alias list --json | jq '.[] | select(.source == "project")'
 ```
 
 ### Preview e o caractere `$`
 
-No modo interativo, o preview mostra o comando **como está salvo** no arquivo; o texto com `$` não deve sumir por causa de expansão indevida no script de preview.
+No modo interativo, o preview mostra o comando **como está salvo** no arquivo; o texto com `$` não deve sumir por causa de expansão indevida no script de preview. O painel inclui também **Origem** (`config` ou `project`, como no JSON de `--json`) e, para aliases de repositório, o caminho absoluto do **`mbcli.yaml`**; na tabela fzf, a coluna **FONTE** usa os rótulos **config** e **repositório**.
 
 ## `mb alias unset`
 
@@ -123,10 +139,11 @@ Remove um ou mais aliases de uma vez.
 ### Sintaxe
 
 ```text
-mb alias unset <nome> [<nome>...]
+mb alias unset <nome> [<nome>...] [--mbcli-yaml]
 ```
 
-- **Validação antes de tudo:** cada nome é checado **antes** de qualquer pergunta ou gravação. Se algum não existir, aparece o erro `aliases inexistentes: ...` e o arquivo **`aliases.yaml` não é alterado**.
+- **`--mbcli-yaml`** — remove apenas entradas em `mbcli.yaml`; não altera `aliases.yaml` nem scripts de shell.
+- **Validação antes de tudo:** cada nome é checado **antes** de qualquer pergunta ou gravação. Se algum não existir: sem `--mbcli-yaml`, o erro começa por `aliases inexistentes: ...`; com `--mbcli-yaml`, por `aliases inexistentes em mbcli.yaml: ...` (e uma dica para usar `mb alias unset` sem a flag se quiser remover do `aliases.yaml`). Em ambos os casos **nada é alterado**.
 - **Nomes repetidos** na linha de comando são tratados uma vez só, na ordem da **primeira** aparição (ex.: `a b a` vira `a b`).
 - **Uma confirmação para o lote inteiro.** Se você cancelar, **nenhum** dos nomes é removido.
 - **`--yes` / `-y`** — pula a pergunta para **todos** os nomes da lista (no Cobra, a flag pode ir no fim: `mb alias unset a b --yes`).
@@ -135,6 +152,8 @@ mb alias unset <nome> [<nome>...]
 mb alias unset dev
 mb alias unset api worker
 mb alias unset api worker --yes
+
+mb alias unset ci --mbcli-yaml --yes
 ```
 
 ## Ver também

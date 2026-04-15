@@ -112,23 +112,54 @@ func EffectiveEnvVault(cliVault, aliasVault string) string {
 	return aliasVault
 }
 
+// mergeProjectOverGlobal returns a new File: global entries first, then project entries
+// overwrite on duplicate names (project wins).
+func mergeProjectOverGlobal(global *File, project map[string]Entry) *File {
+	out := &File{Version: currentVersion, Aliases: make(map[string]Entry)}
+	if global != nil {
+		out.Version = global.Version
+		if out.Version == 0 {
+			out.Version = currentVersion
+		}
+		for k, v := range global.Aliases {
+			out.Aliases[k] = v
+		}
+	}
+	for k, v := range project {
+		out.Aliases[k] = v
+	}
+	return out
+}
+
+// ResolveForRunWithProject merges ~/.config/mb/aliases.yaml with project aliases (mbcli.yaml);
+// on name collision the project map wins. Pass nil or empty project to behave like ResolveForRun.
+func ResolveForRunWithProject(
+	configDir string,
+	project map[string]Entry,
+	first string,
+	rest []string,
+) (argv []string, aliasVault string, resolved bool, err error) {
+	path := FilePath(configDir)
+	global, err := Load(path)
+	if err != nil {
+		return nil, "", false, err
+	}
+	merged := mergeProjectOverGlobal(global, project)
+	argv0, v, ok := Lookup(merged, first)
+	if !ok {
+		return append([]string{first}, rest...), "", false, nil
+	}
+	out := append(argv0, rest...)
+	return out, v, true, nil
+}
+
 // ResolveForRun applies MB alias expansion: first token may be an alias name; extra args append.
 func ResolveForRun(
 	configDir string,
 	first string,
 	rest []string,
 ) (argv []string, aliasVault string, resolved bool, err error) {
-	path := FilePath(configDir)
-	f, err := Load(path)
-	if err != nil {
-		return nil, "", false, err
-	}
-	argv0, v, ok := Lookup(f, first)
-	if !ok {
-		return append([]string{first}, rest...), "", false, nil
-	}
-	out := append(argv0, rest...)
-	return out, v, true, nil
+	return ResolveForRunWithProject(configDir, nil, first, rest)
 }
 
 // ValidateEntry checks command and optional vault.

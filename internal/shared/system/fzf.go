@@ -41,9 +41,11 @@ type EnvEntry struct {
 
 // AliasEntry represents an alias row for fzf preview (command is joined argv for jq in preview.sh).
 type AliasEntry struct {
-	Name     string `json:"name"`
-	EnvVault string `json:"envVault"`
-	Command  string `json:"command"`
+	Name      string `json:"name"`
+	EnvVault  string `json:"envVault"`
+	Command   string `json:"command"`
+	Source    string `json:"source,omitempty"`
+	MbcliPath string `json:"mbcliPath,omitempty"`
 }
 
 // FzfTable displays data in fzf table mode with headers and returns the selected row.
@@ -637,11 +639,19 @@ else
 fi
 NAME=$(echo "$ENTRY" | jq -r '.name // "N/A"')
 CMD=$(echo "$ENTRY" | jq -r '.command // "N/A"')
+SOURCE=$(echo "$ENTRY" | jq -r '.source // ""')
+MBCLI=$(echo "$ENTRY" | jq -r '.mbcliPath // ""')
 {
   printf '%%s\n' "### ${NAME}"
   echo ""
   printf '%%s\n' "**Vault (mb run):** ${VAULT_LABEL}"
   printf '%%s\n' "**Comando:** ${CMD}"
+  if [ -n "$SOURCE" ]; then
+    printf '%%s\n' "**Origem:** ${SOURCE}"
+  fi
+  if [ -n "$MBCLI" ]; then
+    printf '%%s\n' "**Arquivo mbcli.yaml:** ${MBCLI}"
+  fi
 } | gum format
 `, entriesFile)
 

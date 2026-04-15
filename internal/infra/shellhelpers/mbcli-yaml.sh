@@ -5,6 +5,7 @@
 #
 # Caminho: MBCLI_YAML_PATH (prioritário) ou ${MBCLI_PROJECT_ROOT:-.}/mbcli.yaml
 # (raiz relativa ao PWD se MBCLI_PROJECT_ROOT não for absoluto).
+# O MB CLI também lê/grava a chave `aliases` aqui com `mb alias set|unset --mbcli-yaml`.
 #
 # Políticas: MBCLI_YAML_ON_MISSING=error|ignore (default error)
 #            MBCLI_YAML_AUTOCREATE=0|1 (default 0)

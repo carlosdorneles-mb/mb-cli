@@ -152,7 +152,7 @@ Estas são as variáveis que **você pode configurar** para injetar nos plugins.
 | # | Camada | Quando entra | Exemplo |
 |---|--------|--------------|---------|
 | 1 | **Sistema** | Sempre — variáveis do shell | `PATH`, `HOME` |
-| 2 | **`env.defaults`** | Sempre — ficheiro base | `~/.config/mb/env.defaults` |
+| 2 | **`env.defaults`** | Sempre — arquivo base | `~/.config/mb/env.defaults` |
 | 3 | **Vault (`--env-vault`)** | Com `--env-vault <nome>` | `.env.staging` no diretório de configuração |
 | 4 | **`mbcli.yaml` → `envs`** | Sempre — variáveis do projeto | `envs.API_BASE` no YAML |
 | 5 | **`.env` no cwd** | Quando existe no diretório atual | `.env` do projeto |
@@ -195,16 +195,23 @@ envs:
   FEATURE_X: "1"
   staging:
     API_BASE: https://api.staging.example
+aliases:
+  test-all:
+    command: [npm, test]
+  staging:
+    deploy:
+      command: [./scripts/deploy.sh]
 ```
 
 - `API_BASE` e `FEATURE_X` → vault de projeto **`project`** (sempre mesclados)
 - `staging.API_BASE` → vault de projeto **`project/staging`** (só com `--env-vault staging`)
+- `aliases.test-all` → atalho em `mb run test-all` (sem vault extra); `aliases.staging.deploy` usa implicitamente `--env-vault staging` em `mb run deploy`, salvo se o mapa do alias definir `env_vault` — detalhes em [`mb alias`](../commands/alias.mdx#aliases-em-mbcliyaml-repositório)
 
 ### Secrets
 
 #### Keyring do sistema (`--secret`)
 
-O valor fica no keyring (macOS Keychain, Linux Secret Service), não em ficheiro. Na listagem aparece como `***`. Use `mb envs list --show-secrets` para ver.
+O valor fica no keyring (macOS Keychain, Linux Secret Service), não em arquivo. Na listagem aparece como `***`. Use `mb envs list --show-secrets` para ver.
 
 ```bash
 mb envs set TOKEN=abc --secret   # funciona, mas o MB avisa: valor na linha pode ir para o histórico da shell
@@ -226,7 +233,7 @@ Em CI, use `KEY=VALOR` na linha de comandos (sem prompt) e, para `--secret-op` n
 
 ### Vaults de projeto {/* #project-vaults */}
 
-O ficheiro `mbcli.yaml` na raiz do projeto pode definir variáveis sob a chave `envs`:
+O arquivo `mbcli.yaml` na raiz do projeto pode definir variáveis sob a chave `envs`:
 
 - **Escalares na raiz** → vault lógico **`project`** (sempre mesclados)
 - **Sub-mapas** → vaults lógicos **`project/<nome>`** (só com `--env-vault <nome>`)
@@ -252,6 +259,7 @@ mb envs list --vault project/staging # só o sub-mapa staging
 | Variável usada em todos os projetos | `mb envs set` (env.defaults) |
 | Variável por ambiente (staging, prod) | Vault: `mb envs set --vault staging` + `--env-vault staging` |
 | Atalho com vault só em `mb run` | [`mb alias set … --env-vault …`](../commands/alias.mdx) — o mesmo nome no shell não usa o merge do MB |
+| Atalho compartilhado pela equipe (só `mb run`) | Chave `aliases` no [`mbcli.yaml`](../commands/alias.mdx#aliases-em-mbcliyaml-repositório) com `mb alias set --mbcli-yaml` |
 | Variável compartilhada pela equipe | `envs` no `mbcli.yaml` (versionado) |
 | Secret (tokens, senhas) | `mb envs set --secret` (keyring) ou `--secret-op` (1Password) |
 | Override rápido numa execução | `--env KEY=VALUE` |
@@ -266,7 +274,7 @@ mb run python script.py
 mb run --env-vault staging -e FOO=bar uv sync
 ```
 
-O primeiro token pode ser um **alias** criado com [`mb alias`](../commands/alias.mdx). O vault salvo no alias entra no merge **a menos que** você informe `--env-vault` no `mb run` — nesse caso, o valor da linha de comando **prevalece**.
+O primeiro token pode ser um **alias** criado com [`mb alias`](../commands/alias.mdx): o MB junta o **`aliases.yaml`** global (no [diretório de configuração do MB](../getting-started/installation.mdx#diretórios-por-sistema-operacional)) com a chave `aliases` do `mbcli.yaml` resolvido no repositório; se o **mesmo nome** existir nos dois, vale a entrada do **`mbcli.yaml`**. O vault salvo no alias entra no merge **a menos que** você informe `--env-vault` no `mb run` — nesse caso, o valor da linha de comando **prevalece**.
 
 Flags podem ir antes ou depois de `run`, sempre antes do executável. Depois de `--`, nada é interpretado como flag do MB.
 
@@ -275,7 +283,7 @@ Flags podem ir antes ou depois de `run`, sempre antes do executável. Depois de 
 - [Variáveis de controle do CLI](../getting-started/installation.mdx) — `MB_DISABLE_UPDATE_CHECK`, `MB_PLUGIN_SUBDIR` (detalhes)
 - [`mb envs`](../commands/envs.mdx) — Referência completa (subcomandos, flags, tabelas)
 - [`mb run`](../commands/run.mdx) — Executar programas com ambiente mesclado
-- [`mb alias`](../commands/alias.mdx) — Atalhos no shell e `mb run` com `env_vault` opcional
+- [`mb alias`](../commands/alias.mdx) — Atalhos em `aliases.yaml` / perfil, em `mbcli.yaml` e `mb run` (com `env_vault` opcional)
 - [Contexto de Invocação](../technical-reference/plugin-invocation-context.mdx) — Detalhes técnicos das variáveis `MB_CTX_*`
 - [Helpers de Shell](../plugin-authoring/shell-helpers.mdx) — Funções utilitárias para plugins
 - [Criar um Plugin](../plugin-authoring/create-a-plugin.mdx) — `env_files` no manifest

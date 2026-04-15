@@ -11,7 +11,6 @@ import (
 	"golang.org/x/term"
 
 	"mb/internal/deps"
-	alib "mb/internal/shared/aliases"
 	"mb/internal/shared/system"
 )
 
@@ -33,9 +32,11 @@ func truncateForTable(s string, max int) string {
 }
 
 type aliasListJSONRow struct {
-	Name     string   `json:"name"`
-	EnvVault string   `json:"envVault"`
-	Command  []string `json:"command"`
+	Name      string   `json:"name"`
+	EnvVault  string   `json:"envVault"`
+	Command   []string `json:"command"`
+	Source    string   `json:"source"`
+	MbcliPath string   `json:"mbcliPath"`
 }
 
 func newListCmd(d deps.Dependencies) *cobra.Command {
@@ -44,14 +45,18 @@ func newListCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lista aliases (fzf e preview no TTY; tabela em pipe; --json para jq)",
-		Long: `Lista os aliases guardados.
+		Long: `Lista os aliases salvos.
 
-No terminal interativo (stdout é TTY), mostra fzf com colunas ALIAS | VAULT e um painel
+Inclui aliases em ~/.config/mb/aliases.yaml e aliases de repositório em mbcli.yaml (quando
+resolvido por MBCLI_YAML_PATH / MBCLI_PROJECT_ROOT); em conflito de nome, vale a definição
+do repositório (a mesma precedência do mb run).
+
+No terminal interativo (stdout é TTY), mostra fzf com colunas ALIAS | VAULT | FONTE e um painel
 de preview à direita (vault para mb run e comando completo). O preview interativo requer
 fzf, gum e jq no PATH.
 
-Em pipe ou redirecção (ex.: mb alias list | cat, | grep, | wc), mostra uma tabela com
-gum (ALIAS, VAULT, COMANDO truncado).
+Em pipe ou redirecionamento (ex.: mb alias list | cat, | grep, | wc), mostra uma tabela com
+gum (ALIAS, VAULT, COMANDO truncado, FONTE).
 
 Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem depender de TTY.`,
 		Example: `  # Modo interativo (terminal)
@@ -62,7 +67,7 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
   mb alias list | grep dev
 
   # JSON para jq
-  mb alias list --json | jq '.[] | select(.envVault == "staging")'`,
+  mb alias list --json | jq '.[] | select(.source == "project")'`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
@@ -70,12 +75,11 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 				ctx = context.Background()
 			}
 
-			f, err := alib.Load(alib.FilePath(d.Runtime.ConfigDir))
+			rowsMerged, err := loadMergedAliasRows(d.Runtime.ConfigDir)
 			if err != nil {
 				return err
 			}
-			names := alib.SortedNames(f)
-			if len(names) == 0 {
+			if len(rowsMerged) == 0 {
 				if asJSON {
 					out := cmd.OutOrStdout()
 					b, mErr := json.MarshalIndent([]aliasListJSONRow{}, "", "  ")
@@ -85,22 +89,23 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 					_, err = fmt.Fprintln(out, string(b))
 					return err
 				}
-				msg := "Ainda não há aliases registrados. Crie um com: mb alias set <nome> -- <comando>"
+				msg := "Ainda não há aliases salvos. Crie um com: mb alias set <nome> -- <comando>"
 				fmt.Fprintln(cmd.OutOrStdout(), msg)
 				return nil
 			}
 
 			if asJSON {
-				rows := make([]aliasListJSONRow, 0, len(names))
-				for _, name := range names {
-					e := f.Aliases[name]
-					rows = append(rows, aliasListJSONRow{
-						Name:     name,
-						EnvVault: e.EnvVault,
-						Command:  append([]string(nil), e.Command...),
+				jsonRows := make([]aliasListJSONRow, 0, len(rowsMerged))
+				for _, row := range rowsMerged {
+					jsonRows = append(jsonRows, aliasListJSONRow{
+						Name:      row.Name,
+						EnvVault:  row.EnvVault,
+						Command:   append([]string(nil), row.Command...),
+						Source:    row.Source,
+						MbcliPath: row.MbcliPath,
 					})
 				}
-				b, err := json.MarshalIndent(rows, "", "  ")
+				b, err := json.MarshalIndent(jsonRows, "", "  ")
 				if err != nil {
 					return err
 				}
@@ -108,24 +113,29 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 				return err
 			}
 
-			entries := make([]system.AliasEntry, 0, len(names))
-			fzfRows := make([][]string, 0, len(names))
-			for _, name := range names {
-				e := f.Aliases[name]
-				cmdLine := strings.Join(e.Command, " ")
+			entries := make([]system.AliasEntry, 0, len(rowsMerged))
+			fzfRows := make([][]string, 0, len(rowsMerged))
+			for _, row := range rowsMerged {
+				cmdLine := strings.Join(row.Command, " ")
 				entries = append(entries, system.AliasEntry{
-					Name:     name,
-					EnvVault: e.EnvVault,
-					Command:  cmdLine,
+					Name:      row.Name,
+					EnvVault:  row.EnvVault,
+					Command:   cmdLine,
+					Source:    row.Source,
+					MbcliPath: row.MbcliPath,
 				})
-				fzfRows = append(fzfRows, []string{name, vaultCellMBRun(e.EnvVault)})
+				fzfRows = append(fzfRows, []string{
+					row.Name,
+					vaultCellMBRun(row.EnvVault),
+					sourceCell(row.Source),
+				})
 			}
 
 			if !term.IsTerminal(int(os.Stdout.Fd())) {
-				return outputAliasPipeTable(ctx, cmd, names, f)
+				return outputAliasPipeTable(ctx, cmd, rowsMerged)
 			}
 
-			headers := []string{"ALIAS", "VAULT"}
+			headers := []string{"ALIAS", "VAULT", "FONTE"}
 			_, err = system.FzfTableWithPreviewForAliases(
 				ctx, headers, fzfRows, cmd.OutOrStdout(), entries,
 			)
@@ -135,27 +145,37 @@ Com --json emite sempre um array JSON (ordenado por nome), adequado para jq, sem
 
 	cmd.Flags().BoolVar(
 		&asJSON, "json", false,
-		"Emite aliases como array JSON (name, envVault, command[])",
+		"Emite aliases como array JSON (name, envVault, command[], source, mbcliPath)",
 	)
 	return cmd
+}
+
+func sourceCell(s string) string {
+	switch s {
+	case "project":
+		return "repositório"
+	case "config":
+		return "config"
+	default:
+		return s
+	}
 }
 
 func outputAliasPipeTable(
 	ctx context.Context,
 	cmd *cobra.Command,
-	names []string,
-	f *alib.File,
+	rowsMerged []aliasListRow,
 ) error {
 	const maxCmd = 60
-	headers := []string{"ALIAS", "VAULT", "COMANDO"}
-	rows := make([][]string, 0, len(names))
-	for _, name := range names {
-		e := f.Aliases[name]
-		cmdLine := strings.Join(e.Command, " ")
+	headers := []string{"ALIAS", "VAULT", "COMANDO", "FONTE"}
+	rows := make([][]string, 0, len(rowsMerged))
+	for _, row := range rowsMerged {
+		cmdLine := strings.Join(row.Command, " ")
 		rows = append(rows, []string{
-			name,
-			vaultCellMBRun(e.EnvVault),
+			row.Name,
+			vaultCellMBRun(row.EnvVault),
 			truncateForTable(cmdLine, maxCmd),
+			sourceCell(row.Source),
 		})
 	}
 	return system.GumTable(ctx, headers, rows, cmd.OutOrStdout())

@@ -47,8 +47,17 @@ Para ajuda deste comando use: mb help run`,
 			if _, err := env.ParseInlinePairs(d.Runtime.InlineEnvValues); err != nil {
 				return err
 			}
-			expanded, aliasVault, _, err := alib.ResolveForRun(
+			mbcliPath, err := deps.ResolveMbcliYAMLPath()
+			if err != nil {
+				return err
+			}
+			projectAliases, err := deps.ParseMbcliAliases(mbcliPath)
+			if err != nil {
+				return err
+			}
+			expanded, aliasVault, _, err := alib.ResolveForRunWithProject(
 				d.Runtime.ConfigDir,
+				projectAliases,
 				rest[0],
 				rest[1:],
 			)

@@ -77,6 +77,43 @@ aliases:
 	}
 }
 
+func TestResolveForRunWithProject_projectOverridesGlobal(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := FilePath(dir)
+	raw := []byte(`version: 1
+aliases:
+  shared:
+    command: ["echo", "global"]
+`)
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project := map[string]Entry{
+		"shared": {Command: []string{"echo", "project"}},
+	}
+	argv, _, ok, err := ResolveForRunWithProject(dir, project, "shared", nil)
+	if err != nil || !ok || len(argv) != 2 || argv[0] != "echo" || argv[1] != "project" {
+		t.Fatalf("got argv=%v ok=%v err=%v", argv, ok, err)
+	}
+}
+
+func TestResolveForRunWithProject_onlyProject(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := FilePath(dir)
+	if err := os.WriteFile(path, []byte("version: 1\naliases: {}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project := map[string]Entry{
+		"onlyp": {Command: []string{"id"}},
+	}
+	argv, _, ok, err := ResolveForRunWithProject(dir, project, "onlyp", nil)
+	if err != nil || !ok || len(argv) != 1 || argv[0] != "id" {
+		t.Fatalf("got argv=%v ok=%v err=%v", argv, ok, err)
+	}
+}
+
 func TestEffectiveEnvVault(t *testing.T) {
 	if got := EffectiveEnvVault("cli", "alias"); got != "cli" {
 		t.Fatalf("got %q", got)

@@ -15,13 +15,13 @@ Exemplos:
 - Plugin em `tools/hello/` → `mb tools hello`
 - Plugin em `infra/ci/deploy/` → `mb infra ci deploy`
 
-Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do campo **`command`** do `manifest.yaml` (o último segmento do caminho interno continua a ser o nome da pasta). Plugins **só com `flags`** (sem entrypoint raiz) precisam de uma **flag declarada** para correr um script — ex.: `mb tools do --deploy`.
+Na folha com **entrypoint** ou **flags**, o nome do subcomando no CLI vem do campo **`command`** do `manifest.yaml` (o último segmento do caminho interno continua a ser o nome da pasta). Plugins **só com `flags`** (sem entrypoint raiz) precisam de uma **flag declarada** para executar um script — ex.: `mb tools do --deploy`.
 
 Em **categorias** (manifest sem entrypoint nem `flags`), o campo **`aliases`** no `manifest.yaml` define atalhos para esse segmento (ex.: `mb ai sk` se `skills` tiver `aliases: [sk]`). É preciso **`mb plugins sync`** para atualizar o cache após alterar aliases.
 
-> **Não confundir** com o comando **`mb alias`** do CLI: *aliases* no manifest são atalhos de **nome de segmento** dentro da árvore de plugins; **[`mb alias`](../commands/alias.mdx)** são atalhos **pessoais** (comando + argumentos guardados em `aliases.yaml`, integração com o perfil do shell e uso com `mb run`).
+> **Não confundir** com o comando **`mb alias`** do CLI: *aliases* no manifest são atalhos de **nome de segmento** dentro da árvore de plugins; **[`mb alias`](../commands/alias.mdx)** são atalhos **pessoais** (comando + argumentos em **`aliases.yaml`** com integração no perfil do shell **e** `mb run`, ou em **`mbcli.yaml`** com `mb alias set --mbcli-yaml` — só **`mb run`**, sem funções em `shell/`).
 
-**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar ficheiros diretamente em `PluginsDir`, volte a correr **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.mdx#cache-sqlite-e-sync).
+**Cache:** os comandos vêm do SQLite após **`mb plugins sync`**. O `mb plugins add` dispara o sync; se editar arquivos diretamente em `PluginsDir`, execute novamente **`mb plugins sync`** para atualizar listagem, help e completion. Para detalhes sobre o fluxo de sync e digest de comandos, veja [Cache SQLite e sync](../technical-reference/plugins.mdx#cache-sqlite-e-sync).
 
 ## Como descobrir os comandos
 

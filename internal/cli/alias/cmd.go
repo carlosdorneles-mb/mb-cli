@@ -22,7 +22,10 @@ ou indicado com --shell) um bloco idempotente (marcadores # mb-cli user aliases 
 carrega esses scripts. Para remover só o bloco do perfil, edite o arquivo manualmente.
 
 Chamar um alias no terminal não aplica o ambiente mesclado do MB; use mb run <nome> para isso
-(e opcionalmente --env-vault no alias).`,
+(e opcionalmente --env-vault no alias).
+
+Aliases em mbcli.yaml (mb alias set/unset --mbcli-yaml) aparecem no mb alias list e são resolvidos
+no mb run; não viram atalhos no shell — só o mb run aplica o ambiente mesclado.`,
 		PersistentPreRunE: func(c *cobra.Command, args []string) error {
 			if skipAliasProfileForHelp(os.Args[1:]) {
 				return nil

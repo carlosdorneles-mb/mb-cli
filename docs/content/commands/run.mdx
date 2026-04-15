@@ -30,6 +30,8 @@ mb run ./meu-script.sh           # script herda secrets e vaults
 
 O primeiro argumento de `mb run` pode ser o **nome de um alias** criado com [`mb alias set`](./alias.mdx). Nesse caso, o MB substitui esse token pela lista de argumentos salva no alias.
 
+O MB junta aliases do arquivo global **`aliases.yaml`** (no diretório de configuração) com a chave **`aliases`** do **`mbcli.yaml`** resolvido no repositório — mesma regra de caminho que `envs`: `MBCLI_YAML_PATH`, ou `${MBCLI_PROJECT_ROOT}/mbcli.yaml`, ou `./mbcli.yaml` no diretório atual (detalhes em [Aliases em `mbcli.yaml`](./alias.mdx#aliases-em-mbcliyaml-repositório)). Se o **mesmo nome** existir nos dois, vale a entrada do **`mbcli.yaml`**.
+
 **Vault:** se o alias tiver `--env-vault` configurado e você **não** passar `--env-vault` no `mb run`, o vault do alias entra no merge de ambiente. Se você **passar** `--env-vault` no `mb run`, esse valor **vence** o vault guardado no alias.
 
 Documentação completa: [`mb alias`](./alias.mdx).

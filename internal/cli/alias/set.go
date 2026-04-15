@@ -24,6 +24,7 @@ func formatVaultLabel(v string) string {
 func newSetCmd(d deps.Dependencies) *cobra.Command {
 	var envVault string
 	var yes bool
+	var mbcliYAML bool
 
 	cmd := &cobra.Command{
 		Use:   "set <name> [--env-vault <vault>] [-- <command>...]",
@@ -85,6 +86,16 @@ Alterar ou remover um alias existente pede confirmação no terminal; em CI ou s
 
 			envVaultFlag := cmd.Flags().Lookup("env-vault")
 			envVaultChanged := envVaultFlag != nil && envVaultFlag.Changed
+
+			if mbcliYAML {
+				mbcliPath, err := deps.ResolveMbcliYAMLPath()
+				if err != nil {
+					return err
+				}
+				return runSetMbcliYAML(
+					ctx, cmd, log, mbcliPath, name, args, envVaultChanged, envVault, yes,
+				)
+			}
 
 			if len(args) == 1 {
 				if !envVaultChanged {
@@ -168,11 +179,107 @@ Alterar ou remover um alias existente pede confirmação no terminal; em CI ou s
 		&envVault, "env-vault", "",
 		"Vault de ambiente usado apenas com mb run; vazio remove a associação ao vault",
 	)
+	cmd.Flags().BoolVar(
+		&mbcliYAML, "mbcli-yaml", false,
+		"Grava ou atualiza o alias em mbcli.yaml (resolvido por MBCLI_YAML_PATH / MBCLI_PROJECT_ROOT); não regenera os scripts de shell",
+	)
 	cmd.Flags().BoolVarP(
 		&yes, "yes", "y", false,
 		"Confirma alterações a aliases existentes sem prompt (CI / não interativo)",
 	)
 	return cmd
+}
+
+func runSetMbcliYAML(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	mbcliPath, name string,
+	args []string,
+	envVaultChanged bool,
+	envVault string,
+	yes bool,
+) error {
+	proj, err := deps.ParseMbcliAliases(mbcliPath)
+	if err != nil {
+		return err
+	}
+	eProj, hadProj := proj[name]
+
+	if len(args) == 1 {
+		if !envVaultChanged {
+			return errors.New(
+				"indique --env-vault para atualizar só o vault, ou o comando após o nome " +
+					"(ex.: mb alias set <nome> --mbcli-yaml -- <cmd>)",
+			)
+		}
+		if !hadProj {
+			return fmt.Errorf(
+				"alias %q não existe em mbcli.yaml; defina com mb alias set %s --mbcli-yaml -- <cmd>",
+				name, name,
+			)
+		}
+		oldV := eProj.EnvVault
+		prompt := fmt.Sprintf(
+			"Deseja alterar o vault do alias %q (mbcli.yaml) para %s?",
+			name,
+			formatVaultLabel(envVault),
+		)
+		if err := requireConfirmOrYes(ctx, cmd, yes, prompt); err != nil {
+			if errors.Is(err, ErrAliasOpCancelled) {
+				_ = log.Info(ctx, "Operação cancelada.")
+				return nil
+			}
+			return err
+		}
+		eProj.EnvVault = envVault
+		if err := alib.ValidateEntry(eProj); err != nil {
+			return err
+		}
+		if err := deps.UpsertMbcliYAMLAlias(mbcliPath, name, eProj); err != nil {
+			return err
+		}
+		feedbackVaultOnly(ctx, log, name, oldV, envVault)
+		_ = log.Info(ctx, "Salvo em %q.", mbcliPath)
+		return nil
+	}
+
+	cmdArgv := append([]string(nil), args[1:]...)
+	newE := alib.Entry{Command: cmdArgv}
+	if envVaultChanged {
+		newE.EnvVault = envVault
+	} else if hadProj {
+		newE.EnvVault = eProj.EnvVault
+	}
+	if err := alib.ValidateEntry(newE); err != nil {
+		return err
+	}
+
+	if hadProj {
+		prompt := fmt.Sprintf(
+			"O alias %q já existe em mbcli.yaml e está associado ao vault %s.\n\nConfirmar alteração do comando e/ou vault?",
+			name,
+			formatVaultLabel(eProj.EnvVault),
+		)
+		if err := requireConfirmOrYes(ctx, cmd, yes, prompt); err != nil {
+			if errors.Is(err, ErrAliasOpCancelled) {
+				_ = log.Info(ctx, "Operação cancelada.")
+				return nil
+			}
+			return err
+		}
+	}
+
+	if err := deps.UpsertMbcliYAMLAlias(mbcliPath, name, newE); err != nil {
+		return err
+	}
+	if !hadProj {
+		feedbackNewAlias(ctx, log, name, newE)
+	} else {
+		feedbackUpdatedAlias(ctx, log, name, eProj, newE)
+	}
+	_ = log.Info(ctx, "Salvo em %q.", mbcliPath)
+	return nil
 }
 
 func feedbackNewAlias(ctx context.Context, log *system.Logger, name string, e alib.Entry) {

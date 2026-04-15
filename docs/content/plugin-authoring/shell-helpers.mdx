@@ -6,7 +6,7 @@ sidebar_position: 2
 
 O MB CLI injeta no ambiente dos plugins a variável **`MB_HELPERS_PATH`**, que aponta para o diretório dos helpers de shell (ex.: `~/.config/mb/lib/shell` no Linux; `~/Library/Application Support/mb/lib/shell` no macOS).
 
-Os ficheiros são criados/atualizados pelo **`mb plugins sync`**. Se ainda não existirem, execute o sync antes.
+Os arquivos são criados/atualizados pelo **`mb plugins sync`**. Se ainda não existirem, execute o sync antes.
 
 ## Referência rápida
 
@@ -15,9 +15,9 @@ Os ficheiros são criados/atualizados pelo **`mb plugins sync`**. Se ainda não 
 | **`log`** | Log com níveis (`info`, `warn`, `error`…) respeitando `-q`/`-v` | Todas |
 | **`context`** | Lê variáveis `MB_CTX_*` da invocação do plugin | Todas |
 | **`string`** | Manipulação de texto (replace, case, trim, bool) | Todas |
-| **`memory`** | Memória chave/valor entre execuções (ficheiros em tmp) | Todas |
+| **`memory`** | Memória chave/valor entre execuções (arquivos em tmp) | Todas |
 | **`os`** | Detecção de OS e distro Linux | Todas |
-| **`mbcli-yaml`** | Lê/escreve `mbcli.yaml` do projeto | Todas |
+| **`mbcli-yaml`** | Lê/escreve `mbcli.yaml` do projeto (`envs`, etc.); o MB CLI também grava a chave **`aliases`** com `mb alias set --mbcli-yaml` / `mb alias unset --mbcli-yaml` | Todas |
 | **`sudo`** | Validação de privilégio (`warn_and_skip_without_sudo`) | Todas |
 | **`ensure`** | Pré-requisitos de CLI (`ensure_yq`, etc.) | Todas |
 | **`shell-rc`** | Blocos geridos em `~/.config/mb/shell-extras.sh` + stub mínimo em `.bashrc`/`.zshrc` | Todas |
@@ -158,19 +158,19 @@ log info "Usando cluster: $cluster"
 
 ### mbcli-yaml
 
-Lê e altera o ficheiro **`mbcli.yaml`** na raiz do projeto. Depende de **`yq`** (Mike Farah v4); use `ensure_yq` ou carregue `all.sh`.
+Lê e altera o arquivo **`mbcli.yaml`** na raiz do projeto. Depende de **`yq`** (Mike Farah v4); use `ensure_yq` ou carregue `all.sh`.
 
 **Resolução do caminho:** `MBCLI_YAML_PATH` → `${MBCLI_PROJECT_ROOT}/mbcli.yaml` → `${PWD}/mbcli.yaml`.
 
 | Variável | Valores | Efeito |
 |----------|---------|--------|
-| `MBCLI_YAML_ON_MISSING` | `error` (default) / `ignore` | Com `ignore`, `get` sem ficheiro retorna exit 0 e stdout vazio |
-| `MBCLI_YAML_AUTOCREATE` | `0` (default) / `1` | Com `1`, `set` e `ensure` criam o ficheiro (`{}`) se não existir |
+| `MBCLI_YAML_ON_MISSING` | `error` (default) / `ignore` | Com `ignore`, `get` sem arquivo retorna exit 0 e stdout vazio |
+| `MBCLI_YAML_AUTOCREATE` | `0` (default) / `1` | Com `1`, `set` e `ensure` criam o arquivo (`{}`) se não existir |
 
 | Função | Descrição |
 |--------|-----------|
 | `mbcli_yaml_path` | Imprime caminho resolvido do YAML |
-| `mbcli_yaml_ensure` | Garante que o ficheiro existe (com `AUTOCREATE=1`) |
+| `mbcli_yaml_ensure` | Garante que o arquivo existe (com `AUTOCREATE=1`) |
 | `mbcli_yaml_get <expressão_yq>` | Avalia expressão e imprime JSON |
 | `mbcli_yaml_set <caminho_yq> <valor...>` | Atribui valor ao caminho (usa `strenv`) |
 | `mbcli_yaml_del <caminho_yq>` | Remove o nó |
@@ -188,7 +188,7 @@ ver="$(mbcli_yaml_get '.example.version' | jq -r .)"
 log info "Versão em mbcli.yaml: $ver"
 ```
 
-O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso. Veja [Variáveis de ambiente](../user-guide/environment-variables.mdx).
+O CLI também lê a chave **`envs`** no `mbcli.yaml` e mescla no ambiente do subprocesso, e a chave **`aliases`** para atalhos de repositório usados em **`mb run`** e em **`mb alias list`**. Veja [Variáveis de ambiente](../user-guide/environment-variables.mdx) e [`mb alias`](../commands/alias.mdx).
 
 ## Utilitários
 
@@ -252,16 +252,16 @@ Pré-requisitos de CLI. Cada função loga erro e faz `exit 1` se o comando não
 
 ### shell-rc
 
-Blocos idempotentes com marcadores `# mb-cli-plugins:<tool>:begin` / `:end`. O corpo vive em **`${XDG_CONFIG_HOME:-$HOME/.config}/mb/shell-extras.sh`**; se `~/.bashrc` e/ou `~/.zshrc` **já existirem**, acrescenta-se um **stub** (uma linha de `source` desse ficheiro) quando ainda não estiver presente. Não cria `~/.bashrc` / `~/.zshrc` automaticamente.
+Blocos idempotentes com marcadores `# mb-cli-plugins:<tool>:begin` / `:end`. O corpo vive em **`${XDG_CONFIG_HOME:-$HOME/.config}/mb/shell-extras.sh`**; se `~/.bashrc` e/ou `~/.zshrc` **já existirem**, acrescenta-se um **stub** (uma linha de `source` desse arquivo) quando ainda não estiver presente. Não cria `~/.bashrc` / `~/.zshrc` automaticamente.
 
 Se o mesmo marcador ainda existir só nos RCs (instalação antiga), na próxima `shell_rc_ensure_block` o bloco é **removido** dali e passa a existir só em `shell-extras.sh` (sem duplicar init).
 
 | Função | Descrição |
 |--------|-----------|
 | `shell_rc_extras_path` | Imprime o caminho de `shell-extras.sh` |
-| `shell_rc_touch_extras_file` | Cria o directório `mb` e o ficheiro inicial se faltar |
+| `shell_rc_touch_extras_file` | Cria o diretório `mb` e o arquivo inicial se faltar |
 | `shell_rc_ensure_stub` | Garante a linha `source` de `shell-extras.sh` nos RC existentes |
-| `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` | Garante stub + ficheiro extras; acrescenta o bloco em `shell-extras.sh` (migra legado dos RCs se necessário) |
+| `shell_rc_ensure_block MARKER_BEGIN MARKER_END BODY` | Garante stub e o arquivo de extras; acrescenta o bloco em `shell-extras.sh` (migra legado dos RCs se necessário) |
 | `shell_rc_remove_block MARKER_BEGIN MARKER_END` | Remove o bloco de `shell-extras.sh` e dos RCs (limpeza legada) |
 
 ## Package managers
