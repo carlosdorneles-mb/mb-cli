@@ -201,7 +201,11 @@ func unsetAliasesConfig(
 	return nil
 }
 
-func buildUnsetMbcliBatchPrompt(proj map[string]alib.Entry, names []string, vaultInner string) string {
+func buildUnsetMbcliBatchPrompt(
+	proj map[string]alib.Entry,
+	names []string,
+	vaultInner string,
+) string {
 	if len(names) == 1 {
 		return fmt.Sprintf(
 			"Deseja remover o alias %q (vault %s) de mbcli.yaml?",
@@ -227,7 +231,11 @@ func buildUnsetMbcliBatchPrompt(proj map[string]alib.Entry, names []string, vaul
 
 func buildUnsetBatchPrompt(f *alib.File, names []string, envVault string) string {
 	if len(names) == 1 {
-		return fmt.Sprintf("Deseja remover o alias %q (vault %s)?", names[0], configVaultLabel(envVault))
+		return fmt.Sprintf(
+			"Deseja remover o alias %q (vault %s)?",
+			names[0],
+			configVaultLabel(envVault),
+		)
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "Remover %d aliases?\n\n", len(names))

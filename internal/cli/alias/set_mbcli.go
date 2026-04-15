@@ -51,13 +51,15 @@ func runSetMbcliYAML(
 		if n == 0 {
 			return fmt.Errorf(
 				"alias %q não existe em mbcli.yaml; defina com mb alias set %s --mbcli-yaml -- <cmd>",
-				name, name,
+				name,
+				name,
 			)
 		}
 		if n > 1 {
 			return fmt.Errorf(
 				"há vários aliases com o nome %q em mbcli.yaml; use mb alias set %s --mbcli-yaml --vault <vault-do-slot> -- <cmd>",
-				name, name,
+				name,
+				name,
 			)
 		}
 		eProj = eOne

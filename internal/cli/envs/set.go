@@ -22,7 +22,7 @@ func newSetCmd(d deps.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set <KEY[=VALOR]> [<KEY[=VALOR]>...]",
 		Aliases: []string{"s"},
-		Short: "Define ou atualiza variáveis persistidas: texto plano, keyring (--secret) ou 1Password (--secret-op)",
+		Short:   "Define ou atualiza variáveis persistidas: texto plano, keyring (--secret) ou 1Password (--secret-op)",
 		Long: `Grava variáveis de ambiente persistentes usadas pelo MB (plugins, mb run, etc.).
 
 Sem --secret nem --secret-op, cada argumento tem de ser CHAVE=VALOR. O valor fica em env.defaults (vault padrão) ou em .env.<nome> quando usa --vault <nome>.
@@ -53,203 +53,13 @@ Gravar com --secret-op no vault padrão pode implicar confirmação extra; em mo
   mb envs set CI=true --mbcli-yaml`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
-
-			if mbcliYAML {
-				if flagSecret || flagSecretOP {
-					return fmt.Errorf(
-						"--mbcli-yaml não pode ser usado com --secret nem --secret-op (variáveis em mbcli.yaml são só em texto)",
-					)
-				}
-				mbcliPath, err := deps.ResolveMbcliYAMLPath()
-				if err != nil {
-					return err
-				}
-				pairs, err := parseEnvSetArgs(args, false)
-				if err != nil {
-					return err
-				}
-				pairMap := make(map[string]string, len(pairs))
-				for _, kv := range pairs {
-					pairMap[kv.key] = kv.value
-				}
-				def, byV, err := deps.ParseMbcliProjectEnvs(mbcliPath)
-				if err != nil {
-					return err
-				}
-				var changeLines []string
-				for _, kv := range pairs {
-					var old string
-					found := false
-					if setVault == "" {
-						old, found = def[kv.key]
-					} else {
-						if inner, ok := byV[setVault]; ok {
-							old, found = inner[kv.key]
-						}
-					}
-					if found && old != kv.value {
-						changeLines = append(
-							changeLines,
-							fmt.Sprintf("- %s: %q -> %q", kv.key, old, kv.value),
-						)
-					}
-				}
-				if len(changeLines) > 0 && !yes {
-					if !term.IsTerminal(int(os.Stdin.Fd())) {
-						return fmt.Errorf(
-							"atualizar variáveis existentes em mbcli.yaml requer terminal interativo ou use a flag --yes",
-						)
-					}
-					prompt := fmt.Sprintf(
-						"Atualizar variáveis no mbcli.yaml?\n\n%s\n\nConfirmar?",
-						strings.Join(changeLines, "\n"),
-					)
-					ok, cerr := system.Confirm(ctx, prompt, cmd.InOrStdin(), cmd.ErrOrStderr())
-					if cerr != nil {
-						return cerr
-					}
-					if !ok {
-						return fmt.Errorf("cancelado")
-					}
-				}
-				if err := deps.UpsertMbcliYAMLEnvs(mbcliPath, setVault, pairMap); err != nil {
-					return err
-				}
-				for _, kv := range pairs {
-					_ = log.Info(ctx, "Variável %q salva em mbcli.yaml (%q).", kv.key, mbcliPath)
-				}
-				return nil
-			}
-
-			paths := []string{d.Runtime.DefaultEnvPath}
-			if setVault != "" {
-				vp, perr := appenvs.TargetPath(envPaths(d), setVault)
-				if perr != nil {
-					return perr
-				}
-				paths = append(paths, vp)
-			}
-			asSecret, secretOP, err := appenvs.ResolveSetSecretFlags(
-				flagSecret,
-				flagSecretOP,
-				paths...)
-			if err != nil {
-				return err
-			}
-			secretMode := asSecret || secretOP
-
-			pairs, err := parseEnvSetArgs(args, secretMode)
-			if err != nil {
-				return err
-			}
-
-			if envSetAnyNeedsPrompt(pairs) && !term.IsTerminal(int(os.Stdin.Fd())) {
-				return fmt.Errorf(
-					"definir chave sem valor (sem '=') com --secret ou --secret-op requer um terminal interativo; " +
-						"use KEY=VALOR na linha de comandos ou execute num TTY",
-				)
-			}
-
-			if secretOP && setVault == "" && !yes {
-				if !term.IsTerminal(int(os.Stdin.Fd())) {
-					return fmt.Errorf(
-						"gravar segredos 1Password no vault padrão (env.defaults) pode pedir desbloqueio do 1Password em todo o comando mb; em modo não interativo use --yes para confirmar",
-					)
-				}
-				_ = log.Warn(
-					ctx,
-					"A gravação da variável no 1Password no vault padrão pode resultar em pedidos frequentes de desbloqueio do 1Password em todo o comando mb.",
-				)
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr())
-				ok, cerr := system.Confirm(
-					ctx,
-					"Deseja continuar com a gravação da variável no 1Password no vault padrão?",
-					cmd.InOrStdin(),
-					cmd.ErrOrStderr(),
-				)
-				if cerr != nil {
-					return cerr
-				}
-				if !ok {
-					return fmt.Errorf("cancelado")
-				}
-			}
-
-			for i := range pairs {
-				if !pairs[i].needsPrompt {
-					continue
-				}
-				val, perr := system.PromptSecretValue(ctx, pairs[i].key)
-				if perr != nil {
-					return perr
-				}
-				if strings.TrimSpace(val) == "" {
-					return fmt.Errorf("o valor para %q não pode ser vazio", pairs[i].key)
-				}
-				pairs[i].value = val
-			}
-
-			if secretMode && envSetAnyInlineSecretValue(pairs) {
-				_ = log.Warn(
-					ctx,
-					"Passar o segredo na linha de comandos (KEY=VALOR) não é seguro: o valor pode ficar no histórico da shell "+
-						"e em registos de processos. Prefira `mb envs set CHAVE --secret` ou `mb envs set CHAVE --secret-op` sem '=' "+
-						"para o valor ser pedido com mascaramento.",
-				)
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr())
-			}
-
-			for _, kv := range pairs {
-				if err := appenvs.Set(
-					d.SecretStore,
-					d.OnePassword,
-					envPaths(d),
-					setVault,
-					kv.key,
-					kv.value,
-					asSecret,
-					secretOP,
-				); err != nil {
-					return err
-				}
-				if setVault != "" {
-					if secretOP {
-						_ = log.Info(
-							ctx,
-							"variável %q guardada no 1Password (vault %q)",
-							kv.key,
-							setVault,
-						)
-					} else if asSecret {
-						_ = log.Info(
-							ctx,
-							"variável %q guardada no keyring (vault %q)",
-							kv.key,
-							setVault,
-						)
-					} else {
-						_ = log.Info(ctx, "variável %q salva no vault %q", kv.key, setVault)
-					}
-				} else {
-					if secretOP {
-						_ = log.Info(
-							ctx,
-							"variável %q guardada no 1Password (vault padrão)",
-							kv.key,
-						)
-					} else if asSecret {
-						_ = log.Info(ctx, "variável %q guardada no keyring (vault padrão)", kv.key)
-					} else {
-						_ = log.Info(ctx, "variável %q salva no vault padrão", kv.key)
-					}
-				}
-			}
-			return nil
+			return runEnvsSet(cmd, d, envSetRunFlags{
+				Vault:     setVault,
+				Secret:    flagSecret,
+				SecretOP:  flagSecretOP,
+				Yes:       yes,
+				MbcliYAML: mbcliYAML,
+			}, args)
 		},
 	}
 	cmd.Flags().
@@ -272,6 +82,283 @@ Gravar com --secret-op no vault padrão pode implicar confirmação extra; em mo
 	cmd.MarkFlagsMutuallyExclusive("mbcli-yaml", "secret", "secret-op")
 	cmd.GroupID = "commands"
 	return cmd
+}
+
+type envSetRunFlags struct {
+	Vault     string
+	Secret    bool
+	SecretOP  bool
+	Yes       bool
+	MbcliYAML bool
+}
+
+func commandContext(cmd *cobra.Command) context.Context {
+	if ctx := cmd.Context(); ctx != nil {
+		return ctx
+	}
+	return context.Background()
+}
+
+func runEnvsSet(cmd *cobra.Command, d deps.Dependencies, f envSetRunFlags, args []string) error {
+	ctx := commandContext(cmd)
+	log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+	if f.MbcliYAML {
+		return runEnvsSetMbcliYAML(ctx, cmd, log, f, args)
+	}
+	return runEnvsSetLocalFiles(ctx, cmd, d, log, f, args)
+}
+
+func runEnvsSetMbcliYAML(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	f envSetRunFlags,
+	args []string,
+) error {
+	if f.Secret || f.SecretOP {
+		return fmt.Errorf(
+			"--mbcli-yaml não pode ser usado com --secret nem --secret-op (variáveis em mbcli.yaml são só em texto)",
+		)
+	}
+	mbcliPath, err := deps.ResolveMbcliYAMLPath()
+	if err != nil {
+		return err
+	}
+	pairs, err := parseEnvSetArgs(args, false)
+	if err != nil {
+		return err
+	}
+	pairMap := make(map[string]string, len(pairs))
+	for _, kv := range pairs {
+		pairMap[kv.key] = kv.value
+	}
+	def, byV, err := deps.ParseMbcliProjectEnvs(mbcliPath)
+	if err != nil {
+		return err
+	}
+	var changeLines []string
+	for _, kv := range pairs {
+		var old string
+		found := false
+		if f.Vault == "" {
+			old, found = def[kv.key]
+		} else {
+			if inner, ok := byV[f.Vault]; ok {
+				old, found = inner[kv.key]
+			}
+		}
+		if found && old != kv.value {
+			changeLines = append(
+				changeLines,
+				fmt.Sprintf("- %s: %q -> %q", kv.key, old, kv.value),
+			)
+		}
+	}
+	if len(changeLines) > 0 && !f.Yes {
+		if !term.IsTerminal(int(os.Stdin.Fd())) {
+			return fmt.Errorf(
+				"atualizar variáveis existentes em mbcli.yaml requer terminal interativo ou use a flag --yes",
+			)
+		}
+		prompt := fmt.Sprintf(
+			"Atualizar variáveis no mbcli.yaml?\n\n%s\n\nConfirmar?",
+			strings.Join(changeLines, "\n"),
+		)
+		ok, cerr := system.Confirm(ctx, prompt, cmd.InOrStdin(), cmd.ErrOrStderr())
+		if cerr != nil {
+			return cerr
+		}
+		if !ok {
+			return fmt.Errorf("cancelado")
+		}
+	}
+	if err := deps.UpsertMbcliYAMLEnvs(mbcliPath, f.Vault, pairMap); err != nil {
+		return err
+	}
+	for _, kv := range pairs {
+		_ = log.Info(ctx, "Variável %q salva em mbcli.yaml (%q).", kv.key, mbcliPath)
+	}
+	return nil
+}
+
+func runEnvsSetLocalFiles(
+	ctx context.Context,
+	cmd *cobra.Command,
+	d deps.Dependencies,
+	log *system.Logger,
+	f envSetRunFlags,
+	args []string,
+) error {
+	paths := []string{d.Runtime.DefaultEnvPath}
+	if f.Vault != "" {
+		vp, perr := appenvs.TargetPath(envPaths(d), f.Vault)
+		if perr != nil {
+			return perr
+		}
+		paths = append(paths, vp)
+	}
+	asSecret, secretOP, err := appenvs.ResolveSetSecretFlags(
+		f.Secret,
+		f.SecretOP,
+		paths...)
+	if err != nil {
+		return err
+	}
+	secretMode := asSecret || secretOP
+
+	pairs, err := parseEnvSetArgs(args, secretMode)
+	if err != nil {
+		return err
+	}
+
+	if err := validateEnvsSetTTYForPrompts(pairs); err != nil {
+		return err
+	}
+	if err := confirmSecretOPDefaultVault(ctx, cmd, log, f, secretOP); err != nil {
+		return err
+	}
+	if err := fillPromptedSecretValues(ctx, pairs); err != nil {
+		return err
+	}
+	warnInlineSecretsInSecretMode(ctx, cmd, log, secretMode, pairs)
+
+	for _, kv := range pairs {
+		if err := appenvs.Set(
+			d.SecretStore,
+			d.OnePassword,
+			envPaths(d),
+			f.Vault,
+			kv.key,
+			kv.value,
+			asSecret,
+			secretOP,
+		); err != nil {
+			return err
+		}
+		logEnvSetSaved(ctx, log, f.Vault, asSecret, secretOP, kv.key)
+	}
+	return nil
+}
+
+func validateEnvsSetTTYForPrompts(pairs []kvPair) error {
+	if envSetAnyNeedsPrompt(pairs) && !term.IsTerminal(int(os.Stdin.Fd())) {
+		return fmt.Errorf(
+			"definir chave sem valor (sem '=') com --secret ou --secret-op requer um terminal interativo; " +
+				"use KEY=VALOR na linha de comandos ou execute num TTY",
+		)
+	}
+	return nil
+}
+
+func confirmSecretOPDefaultVault(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	f envSetRunFlags,
+	secretOP bool,
+) error {
+	if !secretOP || f.Vault != "" || f.Yes {
+		return nil
+	}
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return fmt.Errorf(
+			"gravar segredos 1Password no vault padrão (env.defaults) pode pedir desbloqueio do 1Password em todo o comando mb; em modo não interativo use --yes para confirmar",
+		)
+	}
+	_ = log.Warn(
+		ctx,
+		"A gravação da variável no 1Password no vault padrão pode resultar em pedidos frequentes de desbloqueio do 1Password em todo o comando mb.",
+	)
+	_, _ = fmt.Fprintln(cmd.ErrOrStderr())
+	ok, cerr := system.Confirm(
+		ctx,
+		"Deseja continuar com a gravação da variável no 1Password no vault padrão?",
+		cmd.InOrStdin(),
+		cmd.ErrOrStderr(),
+	)
+	if cerr != nil {
+		return cerr
+	}
+	if !ok {
+		return fmt.Errorf("cancelado")
+	}
+	return nil
+}
+
+func fillPromptedSecretValues(ctx context.Context, pairs []kvPair) error {
+	for i := range pairs {
+		if !pairs[i].needsPrompt {
+			continue
+		}
+		val, perr := system.PromptSecretValue(ctx, pairs[i].key)
+		if perr != nil {
+			return perr
+		}
+		if strings.TrimSpace(val) == "" {
+			return fmt.Errorf("o valor para %q não pode ser vazio", pairs[i].key)
+		}
+		pairs[i].value = val
+	}
+	return nil
+}
+
+func warnInlineSecretsInSecretMode(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	secretMode bool,
+	pairs []kvPair,
+) {
+	if !secretMode || !envSetAnyInlineSecretValue(pairs) {
+		return
+	}
+	_ = log.Warn(
+		ctx,
+		"Passar o segredo na linha de comandos (KEY=VALOR) não é seguro: o valor pode ficar no histórico da shell "+
+			"e em registos de processos. Prefira `mb envs set CHAVE --secret` ou `mb envs set CHAVE --secret-op` sem '=' "+
+			"para o valor ser pedido com mascaramento.",
+	)
+	_, _ = fmt.Fprintln(cmd.ErrOrStderr())
+}
+
+func logEnvSetSaved(
+	ctx context.Context,
+	log *system.Logger,
+	vault string,
+	asSecret, secretOP bool,
+	key string,
+) {
+	if vault != "" {
+		if secretOP {
+			_ = log.Info(
+				ctx,
+				"variável %q guardada no 1Password (vault %q)",
+				key,
+				vault,
+			)
+		} else if asSecret {
+			_ = log.Info(
+				ctx,
+				"variável %q guardada no keyring (vault %q)",
+				key,
+				vault,
+			)
+		} else {
+			_ = log.Info(ctx, "variável %q salva no vault %q", key, vault)
+		}
+		return
+	}
+	if secretOP {
+		_ = log.Info(
+			ctx,
+			"variável %q guardada no 1Password (vault padrão)",
+			key,
+		)
+	} else if asSecret {
+		_ = log.Info(ctx, "variável %q guardada no keyring (vault padrão)", key)
+	} else {
+		_ = log.Info(ctx, "variável %q salva no vault padrão", key)
+	}
 }
 
 type kvPair struct {

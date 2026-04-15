@@ -79,7 +79,11 @@ func ParseAliasesYAMLValue(raw any) (map[string]Entry, error) {
 			}
 			sub, ok := asStringAnyMap(iv)
 			if !ok {
-				return nil, fmt.Errorf("aliases.%s.%s: esperava-se uma lista de comando ou um mapa com command", k, ik)
+				return nil, fmt.Errorf(
+					"aliases.%s.%s: esperava-se uma lista de comando ou um mapa com command",
+					k,
+					ik,
+				)
 			}
 			e, err := decodeAliasEntryMap(sub, k, ik)
 			if err != nil {
@@ -96,7 +100,11 @@ func ParseAliasesYAMLValue(raw any) (map[string]Entry, error) {
 func mergeStoreUnique(dst map[string]Entry, displayName string, e Entry) error {
 	sk := StoreKey(e.EnvVault, displayName)
 	if _, dup := dst[sk]; dup {
-		return fmt.Errorf("alias %q duplicado para o mesmo vault %q", displayName, formatVaultForErr(e.EnvVault))
+		return fmt.Errorf(
+			"alias %q duplicado para o mesmo vault %q",
+			displayName,
+			formatVaultForErr(e.EnvVault),
+		)
 	}
 	dst[sk] = e
 	return nil
@@ -292,7 +300,8 @@ func AliasesYAMLMapFromEntries(entries map[string]Entry) (map[string]any, error)
 			if _, clash := vaultUsed[displayName]; clash {
 				return nil, fmt.Errorf(
 					"aliases: nome %q sem env_vault conflita com o vault %q usado por outro(s) alias(es); renomeie o alias ou o vault",
-					displayName, displayName,
+					displayName,
+					displayName,
 				)
 			}
 		}

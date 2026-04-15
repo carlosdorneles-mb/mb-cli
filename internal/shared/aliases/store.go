@@ -198,7 +198,10 @@ func ResolveForRunWithProject(
 	return out, v, true, nil
 }
 
-func resolveMergedAlias(merged *File, cliVault, displayName string) (argv []string, envVault string, ok bool, err error) {
+func resolveMergedAlias(
+	merged *File,
+	cliVault, displayName string,
+) (argv []string, envVault string, ok bool, err error) {
 	if merged == nil || merged.Aliases == nil {
 		return nil, "", false, nil
 	}
@@ -226,14 +229,19 @@ func resolveMergedAlias(merged *File, cliVault, displayName string) (argv []stri
 	if cliVault == "" {
 		return nil, "", false, fmt.Errorf(
 			"vários aliases com o nome %q; indique --env-vault (ex.: mb --env-vault staging run %q)",
-			displayName, displayName,
+			displayName,
+			displayName,
 		)
 	}
 	var match *Entry
 	for i := range hits {
 		if hits[i].EnvVault == cliVault {
 			if match != nil {
-				return nil, "", false, fmt.Errorf("vários aliases %q para o vault %q", displayName, cliVault)
+				return nil, "", false, fmt.Errorf(
+					"vários aliases %q para o vault %q",
+					displayName,
+					cliVault,
+				)
 			}
 			match = &hits[i]
 		}
@@ -278,7 +286,10 @@ func ValidateEntry(e Entry) error {
 }
 
 // FindUniqueStoreKeyForDisplayName returns the sole store key for displayName, or n==0 / n>1.
-func FindUniqueStoreKeyForDisplayName(m map[string]Entry, displayName string) (key string, e Entry, n int) {
+func FindUniqueStoreKeyForDisplayName(
+	m map[string]Entry,
+	displayName string,
+) (key string, e Entry, n int) {
 	if m == nil {
 		return "", Entry{}, 0
 	}
@@ -330,7 +341,10 @@ func PickShellEntryForDisplayName(f *File, displayName string) (e Entry, ok bool
 			return def[0], true, nil
 		}
 		if len(def) > 1 {
-			return Entry{}, false, fmt.Errorf("aliases: várias definições de %q sem env_vault", displayName)
+			return Entry{}, false, fmt.Errorf(
+				"aliases: várias definições de %q sem env_vault",
+				displayName,
+			)
 		}
 		return Entry{}, false, fmt.Errorf(
 			"aliases: várias definições de %q com env_vault; o shell só pode expor uma função por nome — "+

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	alib "mb/internal/shared/aliases"
 	"mb/internal/deps"
+	alib "mb/internal/shared/aliases"
 	"mb/internal/shared/config"
 )
 
@@ -116,7 +116,8 @@ func TestAliasSetMbcliYAML_sameCommandNewVault_withYes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r := m[alib.StoreKey("", "py")]; r.EnvVault != "" || len(r.Command) != 2 || r.Command[1] != "hi" {
+	if r := m[alib.StoreKey("", "py")]; r.EnvVault != "" || len(r.Command) != 2 ||
+		r.Command[1] != "hi" {
 		t.Fatalf("root py=%+v", r)
 	}
 	got := m[alib.StoreKey("staging", "py")]
@@ -161,7 +162,9 @@ func TestAliasSetMbcliYAML_vaultProjectSlashStaging(t *testing.T) {
 
 	cmd := newSetCmd(d)
 	cmd.SetContext(context.Background())
-	cmd.SetArgs([]string{"q", "--yes", "--mbcli-yaml", "--vault", "project/staging", "--", "echo", "leaf"})
+	cmd.SetArgs(
+		[]string{"q", "--yes", "--mbcli-yaml", "--vault", "project/staging", "--", "echo", "leaf"},
+	)
 	var out bytes.Buffer
 	cmd.SetOut(&out)
 	cmd.SetErr(&out)

@@ -10,7 +10,11 @@ import (
 func TestUpsertMbcliYAMLEnvs_root_preservesAliases(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "mbcli.yaml")
-	if err := os.WriteFile(p, []byte("aliases:\n  x:\n    command: [echo]\nenvs:\n  A: \"1\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(
+		p,
+		[]byte("aliases:\n  x:\n    command: [echo]\nenvs:\n  A: \"1\"\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := UpsertMbcliYAMLEnvs(p, "", map[string]string{"B": "2"}); err != nil {

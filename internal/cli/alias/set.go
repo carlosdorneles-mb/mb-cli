@@ -59,120 +59,14 @@ Alterar ou remover um alias existente pede confirmação no terminal; em CI ou s
     docker compose up -d`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
-
-			name := args[0]
-			if err := alib.ValidateName(name); err != nil {
-				return err
-			}
-
-			cfgDir := d.Runtime.ConfigDir
-			path := alib.FilePath(cfgDir)
-			f, err := alib.Load(path)
-			if err != nil {
-				return err
-			}
-
 			vaultFlag := cmd.Flags().Lookup("vault")
 			vaultChanged := vaultFlag != nil && vaultFlag.Changed
-
-			if mbcliYAML {
-				mbcliPath, err := deps.ResolveMbcliYAMLPath()
-				if err != nil {
-					return err
-				}
-				return runSetMbcliYAML(
-					ctx, cmd, log, mbcliPath, name, args, vaultChanged, vaultStr, yes,
-				)
-			}
-
-			if len(args) == 1 {
-				if !vaultChanged {
-					return errors.New(
-						"indique --vault para atualizar só o vault, ou o comando após o nome " +
-							"(ex.: mb alias set <nome> -- <cmd>)",
-					)
-				}
-				oldKey, e, n := alib.FindUniqueStoreKeyForDisplayName(f.Aliases, name)
-				if n == 0 {
-					hint := "defina o comando primeiro (ex.: mb alias set %s -- <cmd>)"
-					return fmt.Errorf("alias %q ainda não existe; "+hint, name, name)
-				}
-				if n > 1 {
-					return fmt.Errorf(
-						"há vários aliases com o nome %q; remova os que não precisa ou use "+
-							"mb alias set %s --vault <vault-do-slot> -- <cmd> para escolher o slot (nome+vault)",
-						name, name,
-					)
-				}
-				oldV := e.EnvVault
-				prompt := fmt.Sprintf(
-					"Deseja alterar o vault do alias %q para %s?",
-					name,
-					configVaultLabel(vaultStr),
-				)
-				if err := requireConfirmOrYes(ctx, cmd, yes, prompt); err != nil {
-					if errors.Is(err, ErrAliasOpCancelled) {
-						_ = log.Info(ctx, "Operação cancelada.")
-						return nil
-					}
-					return err
-				}
-				delete(f.Aliases, oldKey)
-				e.EnvVault = vaultStr
-				if err := alib.ValidateEntry(e); err != nil {
-					return err
-				}
-				f.Aliases[alib.StoreKey(e.EnvVault, name)] = e
-				if err := saveAndRegenerate(cfgDir, f); err != nil {
-					return err
-				}
-				feedbackVaultOnly(ctx, log, name, oldV, vaultStr, false)
-				return nil
-			}
-
-			cmdArgv := append([]string(nil), args[1:]...)
-			slotVault := ""
-			if vaultChanged {
-				slotVault = vaultStr
-			}
-			sk := alib.StoreKey(slotVault, name)
-			e, had := f.Aliases[sk]
-			newE := alib.Entry{Command: cmdArgv}
-			if vaultChanged {
-				newE.EnvVault = vaultStr
-			} else if had {
-				newE.EnvVault = e.EnvVault
-			}
-			if err := alib.ValidateEntry(newE); err != nil {
-				return err
-			}
-
-			if had {
-				if err := confirmExistingAliasChange(ctx, cmd, yes, name, e, newE, false); err != nil {
-					if errors.Is(err, ErrAliasOpCancelled) {
-						_ = log.Info(ctx, "Operação cancelada.")
-						return nil
-					}
-					return err
-				}
-			}
-
-			f.Aliases[sk] = newE
-			if err := saveAndRegenerate(cfgDir, f); err != nil {
-				return err
-			}
-
-			if !had {
-				feedbackNewAlias(ctx, log, name, newE, false)
-				return nil
-			}
-			feedbackUpdatedAlias(ctx, log, name, e, newE, false)
-			return nil
+			return runAliasSet(cmd, d, aliasSetRunInput{
+				Vault:            vaultStr,
+				VaultFlagChanged: vaultChanged,
+				Yes:              yes,
+				MbcliYAML:        mbcliYAML,
+			}, args)
 		},
 	}
 
@@ -189,4 +83,168 @@ Alterar ou remover um alias existente pede confirmação no terminal; em CI ou s
 		"Confirma alterações a aliases existentes sem prompt (CI / não interativo)",
 	)
 	return cmd
+}
+
+type aliasSetRunInput struct {
+	Vault            string
+	VaultFlagChanged bool
+	Yes              bool
+	MbcliYAML        bool
+}
+
+func commandContext(cmd *cobra.Command) context.Context {
+	if ctx := cmd.Context(); ctx != nil {
+		return ctx
+	}
+	return context.Background()
+}
+
+func runAliasSet(
+	cmd *cobra.Command,
+	d deps.Dependencies,
+	in aliasSetRunInput,
+	args []string,
+) error {
+	ctx := commandContext(cmd)
+	log := system.NewLogger(d.Runtime.Quiet, d.Runtime.Verbose, cmd.ErrOrStderr())
+
+	name := args[0]
+	if err := alib.ValidateName(name); err != nil {
+		return err
+	}
+
+	cfgDir := d.Runtime.ConfigDir
+	path := alib.FilePath(cfgDir)
+	f, err := alib.Load(path)
+	if err != nil {
+		return err
+	}
+
+	if in.MbcliYAML {
+		mbcliPath, err := deps.ResolveMbcliYAMLPath()
+		if err != nil {
+			return err
+		}
+		return runSetMbcliYAML(
+			ctx, cmd, log, mbcliPath, name, args, in.VaultFlagChanged, in.Vault, in.Yes,
+		)
+	}
+
+	if len(args) == 1 {
+		if !in.VaultFlagChanged {
+			return errors.New(
+				"indique --vault para atualizar só o vault, ou o comando após o nome " +
+					"(ex.: mb alias set <nome> -- <cmd>)",
+			)
+		}
+		return runAliasSetVaultOnly(ctx, cmd, log, cfgDir, f, name, in.Vault, in.Yes)
+	}
+
+	return runAliasSetWithCommand(ctx, cmd, log, cfgDir, f, name, args, in)
+}
+
+func runAliasSetVaultOnly(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	cfgDir string,
+	f *alib.File,
+	name string,
+	vaultStr string,
+	yes bool,
+) error {
+	oldKey, e, n := alib.FindUniqueStoreKeyForDisplayName(f.Aliases, name)
+	if n == 0 {
+		hint := "defina o comando primeiro (ex.: mb alias set %s -- <cmd>)"
+		return fmt.Errorf("alias %q ainda não existe; "+hint, name, name)
+	}
+	if n > 1 {
+		return fmt.Errorf(
+			"há vários aliases com o nome %q; remova os que não precisa ou use "+
+				"mb alias set %s --vault <vault-do-slot> -- <cmd> para escolher o slot (nome+vault)",
+			name, name,
+		)
+	}
+	oldV := e.EnvVault
+	prompt := fmt.Sprintf(
+		"Deseja alterar o vault do alias %q para %s?",
+		name,
+		configVaultLabel(vaultStr),
+	)
+	if err := requireConfirmOrYes(ctx, cmd, yes, prompt); err != nil {
+		if errors.Is(err, ErrAliasOpCancelled) {
+			_ = log.Info(ctx, "Operação cancelada.")
+			return nil
+		}
+		return err
+	}
+	delete(f.Aliases, oldKey)
+	e.EnvVault = vaultStr
+	if err := alib.ValidateEntry(e); err != nil {
+		return err
+	}
+	f.Aliases[alib.StoreKey(e.EnvVault, name)] = e
+	if err := saveAndRegenerate(cfgDir, f); err != nil {
+		return err
+	}
+	feedbackVaultOnly(ctx, log, name, oldV, vaultStr, false)
+	return nil
+}
+
+func runAliasSetWithCommand(
+	ctx context.Context,
+	cmd *cobra.Command,
+	log *system.Logger,
+	cfgDir string,
+	f *alib.File,
+	name string,
+	args []string,
+	in aliasSetRunInput,
+) error {
+	cmdArgv := append([]string(nil), args[1:]...)
+	slotVault := ""
+	if in.VaultFlagChanged {
+		slotVault = in.Vault
+	}
+	sk := alib.StoreKey(slotVault, name)
+	e, had := f.Aliases[sk]
+	newE := alib.Entry{Command: cmdArgv}
+	if in.VaultFlagChanged {
+		newE.EnvVault = in.Vault
+	} else if had {
+		newE.EnvVault = e.EnvVault
+	}
+	if err := alib.ValidateEntry(newE); err != nil {
+		return err
+	}
+
+	if had {
+		if err := confirmExistingAliasChange(
+			ctx,
+			cmd,
+			in.Yes,
+			name,
+			e,
+			newE,
+			false,
+		); err != nil {
+			if errors.Is(err, ErrAliasOpCancelled) {
+				_ = log.Info(ctx, "Operação cancelada.")
+				return nil
+			}
+			return err
+		}
+	}
+
+	f.Aliases[sk] = newE
+	if err := saveAndRegenerate(cfgDir, f); err != nil {
+		return err
+	}
+
+	if !had {
+		feedbackNewAlias(ctx, log, name, newE, false)
+		return nil
+	}
+	feedbackUpdatedAlias(ctx, log, name, e, newE, false)
+	return nil
 }

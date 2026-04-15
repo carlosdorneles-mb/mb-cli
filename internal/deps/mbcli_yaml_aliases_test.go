@@ -43,10 +43,13 @@ func TestParseMbcliAliases_shorthandLists(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m[alib.StoreKey("", "pinga")]; got.EnvVault != "" || len(got.Command) != 2 || got.Command[0] != "echo" {
+	if got := m[alib.StoreKey("", "pinga")]; got.EnvVault != "" || len(got.Command) != 2 ||
+		got.Command[0] != "echo" {
 		t.Fatalf("pinga=%+v", got)
 	}
-	if got := m[alib.StoreKey("staging", "test")]; got.EnvVault != "staging" || got.Command[0] != "mb" || got.Command[2] != "test" {
+	if got := m[alib.StoreKey("staging", "test")]; got.EnvVault != "staging" ||
+		got.Command[0] != "mb" ||
+		got.Command[2] != "test" {
 		t.Fatalf("test=%+v", got)
 	}
 }
@@ -72,10 +75,12 @@ func TestParseMbcliAliases_flatAndNested(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m[alib.StoreKey("", "root1")]; got.EnvVault != "" || len(got.Command) != 2 || got.Command[1] != "root" {
+	if got := m[alib.StoreKey("", "root1")]; got.EnvVault != "" || len(got.Command) != 2 ||
+		got.Command[1] != "root" {
 		t.Fatalf("root1=%+v", got)
 	}
-	if got := m[alib.StoreKey("staging", "inner1")]; got.EnvVault != "staging" || got.Command[1] != "inner" {
+	if got := m[alib.StoreKey("staging", "inner1")]; got.EnvVault != "staging" ||
+		got.Command[1] != "inner" {
 		t.Fatalf("inner1=%+v", got)
 	}
 	if got := m[alib.StoreKey("prod", "inner2")]; got.EnvVault != "prod" {
@@ -226,17 +231,26 @@ func TestUpsertMbcliYAML_shorthandMixedRoundTrip(t *testing.T) {
 	if err := os.WriteFile(p, []byte("envs:\n  X: \"y\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := UpsertMbcliYAMLAlias(p, "rootA", alib.Entry{Command: []string{"echo", "r"}}); err != nil {
+	if err := UpsertMbcliYAMLAlias(
+		p,
+		"rootA",
+		alib.Entry{Command: []string{"echo", "r"}},
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := UpsertMbcliYAMLAlias(p, "inSt", alib.Entry{Command: []string{"true"}, EnvVault: "staging"}); err != nil {
+	if err := UpsertMbcliYAMLAlias(
+		p,
+		"inSt",
+		alib.Entry{Command: []string{"true"}, EnvVault: "staging"},
+	); err != nil {
 		t.Fatal(err)
 	}
 	m, err := ParseMbcliAliases(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m[alib.StoreKey("", "rootA")].EnvVault != "" || m[alib.StoreKey("staging", "inSt")].EnvVault != "staging" {
+	if m[alib.StoreKey("", "rootA")].EnvVault != "" ||
+		m[alib.StoreKey("staging", "inSt")].EnvVault != "staging" {
 		t.Fatalf("%+v %+v", m[alib.StoreKey("", "rootA")], m[alib.StoreKey("staging", "inSt")])
 	}
 	data, err := os.ReadFile(p)
@@ -263,7 +277,11 @@ func TestUpsertMbcliYAML_shorthandMixedRoundTrip(t *testing.T) {
 func TestUpsertMbcliYAMLAlias_rootNameVaultClash(t *testing.T) {
 	t.Parallel()
 	p := filepath.Join(t.TempDir(), "mbcli.yaml")
-	if err := UpsertMbcliYAMLAlias(p, "inner", alib.Entry{Command: []string{"id"}, EnvVault: "staging"}); err != nil {
+	if err := UpsertMbcliYAMLAlias(
+		p,
+		"inner",
+		alib.Entry{Command: []string{"id"}, EnvVault: "staging"},
+	); err != nil {
 		t.Fatal(err)
 	}
 	err := UpsertMbcliYAMLAlias(p, "staging", alib.Entry{Command: []string{"echo", "x"}})

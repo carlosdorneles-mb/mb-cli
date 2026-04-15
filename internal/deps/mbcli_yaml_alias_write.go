@@ -59,7 +59,12 @@ func RemoveMbcliYAMLAlias(mbcliPath, name, envVault string) error {
 	}
 	sk := alib.StoreKey(envVault, name)
 	if _, ok := entries[sk]; !ok {
-		return fmt.Errorf("alias %q (vault %s) não existe em %q", name, formatVaultLabelWrite(envVault), mbcliPath)
+		return fmt.Errorf(
+			"alias %q (vault %s) não existe em %q",
+			name,
+			formatVaultLabelWrite(envVault),
+			mbcliPath,
+		)
 	}
 	delete(entries, sk)
 	return WriteMbcliYAMLAliasSection(mbcliPath, entries)

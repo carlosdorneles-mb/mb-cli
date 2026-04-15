@@ -85,7 +85,8 @@ func checkUpsertConflicts(envsMap map[string]any, vault string, pairs map[string
 			if _, isMap := asStringAnyMap(raw); isMap {
 				return fmt.Errorf(
 					"mbcli.yaml: envs.%q é um vault aninhado (mapa); defina variáveis dentro dele com --vault %q",
-					k, k,
+					k,
+					k,
 				)
 			}
 		}
@@ -100,7 +101,8 @@ func checkUpsertConflicts(envsMap map[string]any, vault string, pairs map[string
 	}
 	return fmt.Errorf(
 		"mbcli.yaml: envs.%q é um valor escalar; não é possível usar --vault %q como submapa (remova ou renomeie a chave no YAML)",
-		vault, vault,
+		vault,
+		vault,
 	)
 }
 
@@ -157,7 +159,8 @@ func MbcliYAMLEnvKeysMissing(mbcliPath, vault string, keys []string) (missing []
 			if _, isMap := asStringAnyMap(v); isMap {
 				return nil, fmt.Errorf(
 					"mbcli.yaml: envs.%q é um vault aninhado (mapa); use mb envs unset --mbcli-yaml --vault %s",
-					key, key,
+					key,
+					key,
 				)
 			}
 		}

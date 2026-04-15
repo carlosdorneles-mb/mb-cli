@@ -9,7 +9,13 @@ import (
 	"mb/internal/shared/system"
 )
 
-func feedbackNewAlias(ctx context.Context, log *system.Logger, name string, e alib.Entry, mbcliYAML bool) {
+func feedbackNewAlias(
+	ctx context.Context,
+	log *system.Logger,
+	name string,
+	e alib.Entry,
+	mbcliYAML bool,
+) {
 	if e.EnvVault == "" {
 		if mbcliYAML {
 			_ = log.Info(ctx, "Alias %q criado no vault project (raiz mbcli.yaml).", name)
@@ -30,7 +36,12 @@ func feedbackNewAlias(ctx context.Context, log *system.Logger, name string, e al
 	)
 }
 
-func feedbackVaultOnly(ctx context.Context, log *system.Logger, name, oldV, newV string, mbcliLogical bool) {
+func feedbackVaultOnly(
+	ctx context.Context,
+	log *system.Logger,
+	name, oldV, newV string,
+	mbcliLogical bool,
+) {
 	oldD, newD := oldV, newV
 	if mbcliLogical {
 		oldD = aliasMbcliLogicalVaultDisplay(oldV)
