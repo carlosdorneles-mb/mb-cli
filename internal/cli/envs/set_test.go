@@ -142,7 +142,7 @@ func TestParseEnvSetArgsEmptyValueWithEquals(t *testing.T) {
 }
 
 func TestEnvSetSecretInlineValueEmitsSecurityWarning(t *testing.T) {
-	d := testDeps(t)
+	d := testDepsWithSecretStore(t, make(memorySecretStore))
 	var errBuf bytes.Buffer
 	root := NewCmd(testListServiceForDeps(t, d), d)
 	root.SetOut(&bytes.Buffer{})
