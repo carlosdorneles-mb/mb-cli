@@ -14,7 +14,7 @@ func NewCmd(d deps.Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "alias",
-		Short: "Aliases de comando no shell e mb run",
+		Short: "Gerencia atalhos globais e do mbcli.yaml com injeção de ambiente do vault",
 		Long: `Define atalhos de comando persistentes no MB CLI e gera scripts para o seu shell.
 
 Ao usar um subcomando, o MB garante no perfil do shell (caminho padrão para o shell detectado

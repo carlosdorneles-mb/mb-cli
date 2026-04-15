@@ -12,7 +12,7 @@ func NewCmd(listSvc *envs.ListService, d deps.Dependencies) *cobra.Command {
 	root := &cobra.Command{
 		Use:     "envs",
 		Aliases: []string{"e", "env"},
-		Short:   "Gerencia variáveis de ambiente globais e do mbcli.yaml (--mbcli-yaml)",
+		Short:   "Gerencia variáveis de ambiente globais e do mbcli.yaml",
 	}
 	root.AddGroup(&cobra.Group{ID: "commands", Title: "COMANDOS"})
 
